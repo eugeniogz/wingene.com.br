@@ -2,37 +2,162 @@
    WINGENE LANDING PAGE - SYSTEM DESIGN TOKENS & STYLE SHEET
    ========================================================================== */
 
-/* Cores e Variáveis Globais */
+/* Cores e Variáveis Globais (Tema Claro por Padrão) */
 :root {
-    --bg-primary: #0a0b0e;
-    --bg-secondary: #12151c;
-    --bg-card: rgba(25, 29, 38, 0.45);
-    --bg-card-hover: rgba(35, 41, 54, 0.65);
-    --border-glass: rgba(255, 255, 255, 0.07);
-    --border-glass-hover: rgba(255, 255, 255, 0.15);
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --bg-card: rgba(241, 245, 249, 0.7);
+    --bg-card-hover: rgba(226, 232, 240, 0.85);
+    --border-glass: rgba(15, 23, 42, 0.08);
+    --border-glass-hover: rgba(15, 23, 42, 0.15);
     
-    --text-primary: #f3f4f6;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
     
-    /* Cores do Logotipo e Pilares VIDA */
-    --color-valores: #e62e2e;      /* Vermelho */
-    --color-valores-glow: rgba(230, 46, 46, 0.4);
+    /* Cores do Logotipo e Pilares VIDA (Versões de Contraste para Fundo Claro) */
+    --color-valores: #940f0f;      /* Vermelho */
+    --color-valores-glow: rgba(148, 15, 15, 0.15);
     
-    --color-imperfeicoes: #d4d41a; /* Amarelo */
-    --color-imperfeicoes-glow: rgba(212, 212, 26, 0.4);
+    --color-imperfeicoes: #857506; /* Amarelo / Ouro */
+    --color-imperfeicoes-glow: rgba(133, 117, 6, 0.15);
     
-    --color-decisoes: #10b981;     /* Verde */
-    --color-decisoes-glow: rgba(16, 185, 129, 0.4);
+    --color-decisoes: #0e7d0f;     /* Verde Floresta */
+    --color-decisoes-glow: rgba(14, 125, 15, 0.15);
     
-    --color-atencao: #2563eb;      /* Azul */
-    --color-atencao-glow: rgba(37, 99, 235, 0.4);
+    --color-atencao: #123e9c;      /* Azul Safira */
+    --color-atencao-glow: rgba(18, 62, 156, 0.15);
 
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
     
     --transition-smooth: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
     --transition-quick: all 0.2s ease;
+
+    /* Variáveis do Fundo Estelar */
+    --stars-gradient-center: #f1f5f9;
+    --stars-gradient-edge: #cbd5e1;
+    --star-color: #475569;
+    --star-opacity: 0.12;
+
+    /* Variáveis dos Títulos e Textos Dinâmicos */
+    --title-gradient-start: #0f172a;
+    --title-gradient-end: var(--text-secondary);
+    --hero-title-gradient-start: #0f172a;
+    --hero-title-gradient-end: rgba(15, 23, 42, 0.6);
+    --nav-brand-color: #0f172a;
+    --bg-navbar-scrolled: rgba(255, 255, 255, 0.85);
+    --logo-shadow: rgba(15, 23, 42, 0.15);
+
+    /* Variáveis dos Botões */
+    --btn-primary-bg: #0f172a;
+    --btn-primary-color: #ffffff;
+    --btn-primary-border: #0f172a;
+    --btn-primary-hover-bg: transparent;
+    --btn-primary-hover-color: #0f172a;
+    --btn-primary-hover-border: #0f172a;
+    --btn-primary-hover-shadow: rgba(15, 23, 42, 0.1);
+
+    --btn-secondary-bg: rgba(15, 23, 42, 0.04);
+    --btn-secondary-color: var(--text-primary);
+    --btn-secondary-border: var(--border-glass-hover);
+    --btn-secondary-hover-bg: rgba(15, 23, 42, 0.08);
+    --btn-secondary-hover-border: #0f172a;
+
+    --btn-cta-hover-bg: #0f172a;
+    --btn-cta-hover-color: #ffffff;
+    --btn-cta-hover-border: #0f172a;
+
+    /* Variáveis do Rodapé */
+    --footer-bg: #f8fafc;
+    --footer-title-color: #0f172a;
+    --footer-text-color: var(--text-secondary);
+    --footer-bottom-border: rgba(15, 23, 42, 0.08);
+
+    /* Cores Dinâmicas do Logotipo SVG */
+    --svg-star-valores: #b01010;
+    --svg-star-imperfeicoes: #b0b010;
+    --svg-star-decisoes: #0f9010;
+    --svg-star-atencao-bg: #ffffff;
+    --svg-star-atencao: #1040b0;
+    --svg-star-atencao-opacity: 0.83;
+}
+
+/* TEMA ESCURO AUTOMÁTICO (Dark Mode via prefers-color-scheme) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #0a0b0e;
+        --bg-secondary: #12151c;
+        --bg-card: rgba(25, 29, 38, 0.45);
+        --bg-card-hover: rgba(35, 41, 54, 0.65);
+        --border-glass: rgba(255, 255, 255, 0.07);
+        --border-glass-hover: rgba(255, 255, 255, 0.15);
+        
+        --text-primary: #f3f4f6;
+        --text-secondary: #a1a1aa;
+        --text-muted: #71717a;
+        
+        /* Cores do Logotipo e Pilares VIDA */
+        --color-valores: #e62e2e;
+        --color-valores-glow: rgba(230, 46, 46, 0.4);
+        
+        --color-imperfeicoes: #d4d41a;
+        --color-imperfeicoes-glow: rgba(212, 212, 26, 0.4);
+        
+        --color-decisoes: #10b981;
+        --color-decisoes-glow: rgba(16, 185, 129, 0.4);
+        
+        --color-atencao: #2563eb;
+        --color-atencao-glow: rgba(37, 99, 235, 0.4);
+
+        /* Variáveis do Fundo Estelar */
+        --stars-gradient-center: #151a24;
+        --stars-gradient-edge: #0a0b0e;
+        --star-color: #ffffff;
+        --star-opacity: 0.15;
+
+        /* Variáveis dos Títulos e Textos Dinâmicos */
+        --title-gradient-start: #ffffff;
+        --title-gradient-end: var(--text-secondary);
+        --hero-title-gradient-start: #ffffff;
+        --hero-title-gradient-end: rgba(255, 255, 255, 0.4);
+        --nav-brand-color: #ffffff;
+        --bg-navbar-scrolled: rgba(10, 11, 14, 0.85);
+        --logo-shadow: rgba(0, 0, 0, 0.5);
+
+        /* Variáveis dos Botões */
+        --btn-primary-bg: #ffffff;
+        --btn-primary-color: #0a0b0e;
+        --btn-primary-border: #ffffff;
+        --btn-primary-hover-bg: transparent;
+        --btn-primary-hover-color: #ffffff;
+        --btn-primary-hover-border: #ffffff;
+        --btn-primary-hover-shadow: rgba(255, 255, 255, 0.2);
+
+        --btn-secondary-bg: rgba(255, 255, 255, 0.04);
+        --btn-secondary-color: var(--text-primary);
+        --btn-secondary-border: var(--border-glass-hover);
+        --btn-secondary-hover-bg: rgba(255, 255, 255, 0.1);
+        --btn-secondary-hover-border: #ffffff;
+
+        --btn-cta-hover-bg: #ffffff;
+        --btn-cta-hover-color: #0a0b0e;
+        --btn-cta-hover-border: #ffffff;
+
+        /* Variáveis do Rodapé */
+        --footer-bg: #06070a;
+        --footer-title-color: #ffffff;
+        --footer-text-color: var(--text-secondary);
+        --footer-bottom-border: rgba(255, 255, 255, 0.05);
+
+        /* Cores Dinâmicas do Logotipo SVG */
+        --svg-star-valores: #b01010;
+        --svg-star-imperfeicoes: #b0b010;
+        --svg-star-decisoes: #0f9010;
+        --svg-star-atencao-bg: #ffffff;
+        --svg-star-atencao: #1040b0;
+        --svg-star-atencao-opacity: 0.83;
+    }
 }
 
 /* Reset Geral */
@@ -59,9 +184,10 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 50% 50%, #151a24 0%, #0a0b0e 80%);
+    background: radial-gradient(circle at 50% 50%, var(--stars-gradient-center) 0%, var(--stars-gradient-edge) 80%);
     z-index: -2;
     overflow: hidden;
+    transition: var(--transition-smooth);
 }
 
 .stars-bg::before {
@@ -72,17 +198,18 @@ body {
     width: 100%;
     height: 100%;
     background-image: 
-        radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
-        radial-gradient(1.5px 1.5px at 40px 70px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 50px 160px, #ddd, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1.5px 1.5px at 130px 80px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 160px 120px, #ddd, rgba(0,0,0,0));
+        radial-gradient(1px 1px at 20px 30px, var(--star-color), rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 40px 70px, var(--star-color), rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 50px 160px, var(--star-color), rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 40px, var(--star-color), rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 130px 80px, var(--star-color), rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 160px 120px, var(--star-color), rgba(0,0,0,0));
     background-repeat: repeat;
     background-size: 200px 200px;
-    opacity: 0.15;
+    opacity: var(--star-opacity);
     z-index: -1;
     animation: backgroundMove 120s linear infinite;
+    transition: var(--transition-smooth);
 }
 
 @keyframes backgroundMove {
@@ -118,7 +245,7 @@ h1, h2, h3, h4 {
     font-size: 2.5rem;
     margin-bottom: 1rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #fff 30%, var(--text-secondary) 100%);
+    background: linear-gradient(135deg, var(--title-gradient-start) 30%, var(--title-gradient-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -171,7 +298,7 @@ h1, h2, h3, h4 {
 }
 
 .navbar.scrolled {
-    background: rgba(10, 11, 14, 0.85);
+    background: var(--bg-navbar-scrolled);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-glass);
     padding: 0.8rem 0;
@@ -197,8 +324,9 @@ h1, h2, h3, h4 {
     font-family: var(--font-heading);
     font-weight: 800;
     font-size: 1.5rem;
-    color: #fff;
+    color: var(--nav-brand-color);
     letter-spacing: 0.1em;
+    transition: var(--transition-quick);
 }
 
 .nav-links {
@@ -216,21 +344,23 @@ h1, h2, h3, h4 {
 }
 
 .nav-links a:hover {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .nav-cta-small {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--btn-secondary-bg);
+    border: 1px solid var(--btn-secondary-border);
     padding: 0.5rem 1.2rem;
     border-radius: 30px;
     font-weight: 600;
+    color: var(--text-primary) !important;
+    transition: var(--transition-quick);
 }
 
 .nav-cta-small:hover {
-    background: #fff !important;
-    color: var(--bg-primary) !important;
-    border-color: #fff;
+    background: var(--btn-cta-hover-bg) !important;
+    color: var(--btn-cta-hover-color) !important;
+    border-color: var(--btn-cta-hover-border) !important;
     transform: translateY(-2px);
 }
 
@@ -275,8 +405,30 @@ h1, h2, h3, h4 {
 .wingene-logo-svg {
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 4px 20px var(--logo-shadow, rgba(0, 0, 0, 0.3)));
     transition: var(--transition-smooth);
+}
+
+.wingene-logo-svg .star-valores {
+    fill: var(--svg-star-valores, #b01010) !important;
+    stroke: var(--svg-star-valores, #b01010) !important;
+}
+.wingene-logo-svg .star-imperfeicoes {
+    fill: var(--svg-star-imperfeicoes, #b0b010) !important;
+    stroke: var(--svg-star-imperfeicoes, #b0b010) !important;
+}
+.wingene-logo-svg .star-decisoes {
+    fill: var(--svg-star-decisoes, #0f9010) !important;
+    stroke: var(--svg-star-decisoes, #0f9010) !important;
+}
+.wingene-logo-svg .star-atencao-bg {
+    fill: var(--svg-star-atencao-bg, #ffffff) !important;
+    stroke: var(--svg-star-atencao-bg, #ffffff) !important;
+}
+.wingene-logo-svg .star-atencao {
+    fill: var(--svg-star-atencao, #1040b0) !important;
+    stroke: var(--svg-star-atencao, #1040b0) !important;
+    opacity: var(--svg-star-atencao-opacity, 0.83) !important;
 }
 
 .wingene-logo-svg:hover {
@@ -371,7 +523,7 @@ h1, h2, h3, h4 {
     letter-spacing: 0.15em;
     line-height: 1.1;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.4) 100%);
+    background: linear-gradient(135deg, var(--hero-title-gradient-start) 60%, var(--hero-title-gradient-end) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: fadeInSlide 1s ease-out;
@@ -412,27 +564,28 @@ h1, h2, h3, h4 {
 }
 
 .btn-primary {
-    background: #fff;
-    color: var(--bg-primary);
-    border: 1px solid #fff;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+    border: 1px solid var(--btn-primary-border);
 }
 
 .btn-primary:hover {
-    background: transparent;
-    color: #fff;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    background: var(--btn-primary-hover-bg);
+    color: var(--btn-primary-hover-color);
+    border-color: var(--btn-primary-hover-border);
+    box-shadow: 0 0 20px var(--btn-primary-hover-shadow);
     transform: translateY(-3px);
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-primary);
-    border: 1px solid var(--border-glass-hover);
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-color);
+    border: 1px solid var(--btn-secondary-border);
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #fff;
+    background: var(--btn-secondary-hover-bg);
+    border-color: var(--btn-secondary-hover-border);
     transform: translateY(-3px);
 }
 
@@ -499,18 +652,18 @@ h1, h2, h3, h4 {
 }
 
 .philosophy-intro-card p strong {
-    color: #fff;
-    font-weight: 500;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .highlight-box {
     margin-top: 2rem;
     padding: 1.5rem;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-card);
     border-left: 3px solid var(--border-glass-hover);
     border-radius: 0 8px 8px 0;
     font-size: 1.2rem;
-    color: #fff;
+    color: var(--text-primary);
     text-align: center;
 }
 
@@ -537,7 +690,7 @@ h1, h2, h3, h4 {
 .vida-card h3 {
     font-size: 1.6rem;
     margin-bottom: 0.5rem;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .pillar-subtitle {
@@ -592,12 +745,12 @@ h1, h2, h3, h4 {
 }
 .badge-valores { color: var(--color-valores); }
 .link-valores { color: var(--color-valores); }
-.link-valores:hover { color: #fff; }
+.link-valores:hover { color: var(--text-primary); }
 
 /* 2. Imperfeições - Amarelo */
 .card-imperfeicoes:hover, .card-imperfeicoes.active {
     box-shadow: 0 10px 30px var(--color-imperfeicoes-glow);
-    border-color: rgba(212, 212, 26, 0.4);
+    border-color: var(--color-imperfeicoes-glow);
 }
 .card-imperfeicoes:hover .card-pillar-tag, .card-imperfeicoes.active .card-pillar-tag {
     color: var(--color-imperfeicoes);
@@ -605,12 +758,12 @@ h1, h2, h3, h4 {
 }
 .badge-imperfeicoes { color: var(--color-imperfeicoes); }
 .link-imperfeicoes { color: var(--color-imperfeicoes); }
-.link-imperfeicoes:hover { color: #fff; }
+.link-imperfeicoes:hover { color: var(--text-primary); }
 
 /* 3. Decisões - Verde */
 .card-decisoes:hover, .card-decisoes.active {
     box-shadow: 0 10px 30px var(--color-decisoes-glow);
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: var(--color-decisoes-glow);
 }
 .card-decisoes:hover .card-pillar-tag, .card-decisoes.active .card-pillar-tag {
     color: var(--color-decisoes);
@@ -618,12 +771,12 @@ h1, h2, h3, h4 {
 }
 .badge-decisoes { color: var(--color-decisoes); }
 .link-decisoes { color: var(--color-decisoes); }
-.link-decisoes:hover { color: #fff; }
+.link-decisoes:hover { color: var(--text-primary); }
 
 /* 4. Atenção - Azul */
 .card-atencao:hover, .card-atencao.active {
     box-shadow: 0 10px 30px var(--color-atencao-glow);
-    border-color: rgba(37, 99, 235, 0.4);
+    border-color: var(--color-atencao-glow);
 }
 .card-atencao:hover .card-pillar-tag, .card-atencao.active .card-pillar-tag {
     color: var(--color-atencao);
@@ -631,7 +784,7 @@ h1, h2, h3, h4 {
 }
 .badge-atencao { color: var(--color-atencao); }
 .link-atencao { color: var(--color-atencao); }
-.link-atencao:hover { color: #fff; }
+.link-atencao:hover { color: var(--text-primary); }
 
 /* Seção Mapa de Conteúdo (Tópicos do Acervo) */
 .content-directory-section {
@@ -653,7 +806,7 @@ h1, h2, h3, h4 {
 
 .topic-group-title {
     font-size: 1.35rem;
-    color: #fff;
+    color: var(--text-primary);
     border-bottom: 1px solid var(--border-glass-hover);
     padding-bottom: 0.8rem;
     margin-bottom: 0.5rem;
@@ -667,7 +820,7 @@ h1, h2, h3, h4 {
 
 .topic-card h4 {
     font-size: 1.15rem;
-    color: #fff;
+    color: var(--text-primary);
     margin-bottom: 0.6rem;
 }
 
@@ -679,7 +832,7 @@ h1, h2, h3, h4 {
 }
 
 .btn-text {
-    color: #fff;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 0.88rem;
     font-weight: 600;
@@ -688,7 +841,7 @@ h1, h2, h3, h4 {
 
 .btn-text:hover {
     color: var(--text-secondary);
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    text-shadow: 0 0 8px var(--border-glass-hover);
 }
 
 /* Seção Citações (Rotador) */
@@ -716,7 +869,7 @@ h1, h2, h3, h4 {
     font-weight: 300;
     line-height: 1.5;
     margin-bottom: 2rem;
-    color: #fff;
+    color: var(--text-primary);
     transition: opacity 0.4s ease;
 }
 
@@ -735,9 +888,9 @@ h1, h2, h3, h4 {
 }
 
 .quote-btn {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--btn-secondary-bg);
     border: 1px solid var(--border-glass);
-    color: #fff;
+    color: var(--text-primary);
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -751,17 +904,18 @@ h1, h2, h3, h4 {
 }
 
 .quote-btn:hover {
-    background: #fff;
-    color: var(--bg-primary);
-    border-color: #fff;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+    border-color: var(--btn-primary-border);
 }
 
 /* Rodapé */
 .footer {
-    background: #06070a;
+    background: var(--footer-bg);
     border-top: 1px solid var(--border-glass);
     padding: 5rem 0 2rem 0;
     color: var(--text-secondary);
+    transition: var(--transition-smooth);
 }
 
 .footer-grid {
@@ -772,7 +926,7 @@ h1, h2, h3, h4 {
 }
 
 .footer-about h4, .footer-links h4, .footer-contact h4 {
-    color: #fff;
+    color: var(--footer-title-color);
     font-size: 1.1rem;
     margin-bottom: 1.5rem;
     letter-spacing: 0.05em;
@@ -780,7 +934,7 @@ h1, h2, h3, h4 {
 
 .footer-about p {
     font-size: 0.95rem;
-    color: var(--text-secondary);
+    color: var(--footer-text-color);
 }
 
 .footer-links ul {
@@ -809,7 +963,7 @@ h1, h2, h3, h4 {
 }
 
 .footer-contact a {
-    color: #fff;
+    color: var(--text-primary);
     text-decoration: none;
     transition: var(--transition-quick);
 }
@@ -819,7 +973,7 @@ h1, h2, h3, h4 {
 }
 
 .footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--footer-bottom-border);
     padding-top: 2rem;
     font-size: 0.85rem;
     color: var(--text-muted);
