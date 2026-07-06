@@ -123,6 +123,18 @@ h1, h2, h3, h4 {
     -webkit-text-fill-color: transparent;
 }
 
+.section-title a {
+    text-decoration: none;
+    background: inherit;
+    -webkit-background-clip: inherit;
+    -webkit-text-fill-color: inherit;
+    transition: opacity 0.2s ease;
+}
+
+.section-title a:hover {
+    opacity: 0.8;
+}
+
 .section-intro {
     font-size: 1.15rem;
     color: var(--text-secondary);
