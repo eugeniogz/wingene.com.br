@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aplicativos Wingene — Conectando filosofia e prática no seu dia a dia. Conheça o Wingene VIDA e o +afeto.">
+    <title>Aplicativos Wingene</title>
+    
+    <!-- Google Fonts: Outfit para títulos e Inter para o corpo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Link para o arquivo CSS de estilos externos -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="wingene-simplified.svg">
+
+    <!-- Estilos específicos para a página de aplicativos (usando design system do style.css) -->
+    <style>
+        .apps-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 120px 24px 80px;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .apps-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .apps-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2.5rem, 5vw, 3.8rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--title-gradient-start), var(--title-gradient-end));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .apps-subtitle {
+            font-size: clamp(1.05rem, 2vw, 1.25rem);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 32px;
+            margin-bottom: 50px;
+        }
+
+        .app-card {
+            border-radius: 24px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-glass);
+            height: 100%;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--border-glass-hover);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .app-card:hover {
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        .app-badge-pillar {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+
+        /* Estilo para Wingene VIDA */
+        .app-vida {
+            border-top: 4px solid var(--color-valores);
+        }
+        .app-vida .app-badge-pillar {
+            background-color: var(--color-valores-glow);
+            color: var(--color-valores);
+        }
+
+        /* Estilo para +afeto */
+        .app-afeto {
+            border-top: 4px solid var(--color-atencao);
+        }
+        .app-afeto .app-badge-pillar {
+            background-color: var(--color-atencao-glow);
+            color: var(--color-atencao);
+        }
+
+        .app-name {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .app-desc {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            flex-grow: 1;
+        }
+
+        .app-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 40px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .app-features li {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-features li::before {
+            content: "✓";
+            color: inherit;
+            font-weight: bold;
+        }
+
+        .app-vida .app-features li::before {
+            color: var(--color-valores);
+        }
+
+        .app-afeto .app-features li::before {
+            color: var(--color-atencao);
+        }
+
+        .back-home {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Estrelas de fundo dinâmicas -->
+    <div class="stars-bg"></div>
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar scrolled" id="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <span class="brand-text">WINGENE</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html#filosofia">Filosofia</a>
+                <a href="index.html#metodo-vida">O Método VIDA</a>
+                <a href="index.html#conteudo">Tópicos</a>
+                <a href="https://blog.wingene.com.br/" class="nav-cta-small">Acessar o Blog</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Container dos Aplicativos -->
+    <main class="apps-container">
+        <header class="apps-header">
+            <h1 class="apps-title">Aplicativos Wingene</h1>
+            <p class="apps-subtitle">Ferramentas práticas criadas para apoiar o cultivo da atenção, da auto-observação e do cuidado intencional.</p>
+        </header>
+
+        <div class="apps-grid">
+            <!-- Card 1: Wingene VIDA -->
+            <div class="card glassmorphism app-card app-vida">
+                <div>
+                    <span class="app-badge-pillar">Autoconhecimento & Prática</span>
+                    <h2 class="app-name">Wingene VIDA</h2>
+                    <p class="app-desc">Aplicativo offline-first projetado para a prática diária do Método VIDA. Registre e reflita sobre seus Valores, Imperfeições, Decisões e Atenção de forma simples, fluida e totalmente privada.</p>
+                    <ul class="app-features">
+                        <li>Acompanhamento dos 4 pilares do método</li>
+                        <li>Interface minimalista e focada</li>
+                        <li>Dados salvos localmente com total privacidade</li>
+                        <li>Opção de análises por IA totalmente anônimas</li>
+                    </ul>
+                </div>
+                <div class="app-actions">
+                    <a href="https://blog.wingene.com.br/wingene-vida-app/" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Conhecer o App</a>
+                </div>
+            </div>
+
+            <!-- Card 2: +afeto -->
+            <div class="card glassmorphism app-card app-afeto">
+                <div>
+                    <span class="app-badge-pillar">Cuidado & Conexão</span>
+                    <h2 class="app-name">+afeto</h2>
+                    <p class="app-desc">Uma plataforma segura que conecta familiares e cuidadores no acompanhamento diário da rotina e saúde de idosos. Monitore de forma prática e com segurança criptográfica ativa.</p>
+                    <ul class="app-features">
+                        <li>Registro de medicamentos e rotinas</li>
+                        <li>Monitoramento de sinais vitais</li>
+                        <li>Notificações e alertas em tempo real</li>
+                        <li>Criptografia de ponta a ponta ativa</li>
+                    </ul>
+                </div>
+                <div class="app-actions">
+                    <a href="https://blog.wingene.com.br/cuidados/landing.html" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Conhecer o App</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-home">
+            <a href="index.html" class="btn-text">← Voltar para o Portal Principal</a>
+        </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+        <div class="container footer-grid">
+            <div class="footer-about">
+                <h4>WINGENE</h4>
+                <p>Um projeto filosófico que une ciência, neurociência, eudaimonia e legado moral para construir um futuro consciente e sustentável.</p>
+            </div>
+            
+            <div class="footer-links">
+                <h4>Navegação</h4>
+                <ul>
+                    <li><a href="index.html#filosofia">Filosofia</a></li>
+                    <li><a href="index.html#metodo-vida">O Método VIDA</a></li>
+                    <li><a href="index.html#conteudo">Tópicos de Conteúdo</a></li>
+                    <li><a href="https://blog.wingene.com.br/sobre-o-autor.html">Sobre o Autor</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-contact">
+                <h4>Contato</h4>
+                <p>José Eugênio de Assis Gonçalves</p>
+                <p>E-mail: <a href="mailto:eugenio@wingene.com.br">eugenio@wingene.com.br</a></p>
+                <p>Blog: <a href="https://blog.wingene.com.br/">blog.wingene.com.br</a></p>
+            </div>
+        </div>
+        
+        <div class="footer-bottom text-center">
+            <p>&copy; 2026 Wingene. Todos os direitos reservados. "Criar o futuro ancestral."</p>
+        </div>
+    </footer>
+
+    <!-- Script para compatibilidade local e navegação -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Ajustar links se estiver rodando localmente (file:// ou localhost)
+            if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                const links = document.querySelectorAll('a');
+                links.forEach(link => {
+                    let href = link.getAttribute('href');
+                    if (href) {
+                        if (href.startsWith('https://blog.wingene.com.br/wingene-vida-app/')) {
+                            link.setAttribute('href', '../../eugeniogz.github.io/wingene-vida-app/index.html');
+                        } else if (href.startsWith('https://blog.wingene.com.br/cuidados/landing.html')) {
+                            link.setAttribute('href', '../../eugeniogz.github.io/cuidados/landing.html');
+                        } else if (href === 'https://blog.wingene.com.br/') {
+                            link.setAttribute('href', '../../eugeniogz.github.io/index.html');
+                        } else if (href.startsWith('https://blog.wingene.com.br/sobre-o-autor.html')) {
+                            link.setAttribute('href', '../../eugeniogz.github.io/sobre-o-autor.html');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
