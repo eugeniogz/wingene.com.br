@@ -18,6 +18,7 @@
     /* Cores do Logotipo e Pilares VIDA (Versões de Contraste para Fundo Claro) */
     --color-valores: #940f0f;      /* Vermelho */
     --color-valores-glow: rgba(148, 15, 15, 0.15);
+    --text-valores: var(--color-valores);
     
     --color-imperfeicoes: #857506; /* Amarelo / Ouro */
     --color-imperfeicoes-glow: rgba(133, 117, 6, 0.15);
@@ -100,6 +101,7 @@
         /* Cores do Logotipo e Pilares VIDA */
         --color-valores: #e62e2e;
         --color-valores-glow: rgba(230, 46, 46, 0.4);
+        --text-valores: #ffffff;
         
         --color-imperfeicoes: #d4d41a;
         --color-imperfeicoes-glow: rgba(212, 212, 26, 0.4);
@@ -740,11 +742,11 @@ h1, h2, h3, h4 {
     border-color: rgba(230, 46, 46, 0.4);
 }
 .card-valores:hover .card-pillar-tag, .card-valores.active .card-pillar-tag {
-    color: var(--color-valores);
+    color: var(--text-valores);
     opacity: 0.25;
 }
-.badge-valores { color: var(--color-valores); }
-.link-valores { color: var(--color-valores); }
+.badge-valores { color: var(--text-valores); }
+.link-valores { color: var(--text-valores); }
 .link-valores:hover { color: var(--text-primary); }
 
 /* 2. Imperfeições - Amarelo */
