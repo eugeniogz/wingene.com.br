@@ -142,4 +142,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Início automático
     startQuoteRotation();
+
+    // 4. Ajustar links se estiver rodando localmente (file:// ou localhost)
+    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const appsLink = document.querySelector('a[href="https://blog.wingene.com.br/apps.html"]');
+        if (appsLink) {
+            appsLink.setAttribute('href', '../../eugeniogz.github.io/apps.html');
+        }
+    }
 });
