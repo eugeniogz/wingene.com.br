@@ -92,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Vida breve, rotas eternas.",
         "A matéria é instrumento; a sinapse é música.",
         "Recordar: seiva que adoça a alegria.",
-        "Os pilares da felicidade: Criar, Amar, Recordar e Evoluir (CARE).",
+        "Pilares da felicidade: Criar, Amar, Recordar e Evoluir.",
         "Viver tece tons indescritíveis."
     ];
 
