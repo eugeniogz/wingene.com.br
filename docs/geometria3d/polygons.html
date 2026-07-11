@@ -198,6 +198,18 @@
       transform: translateY(-1px);
     }
 
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn:disabled:hover {
+      color: var(--text-secondary);
+      border-color: var(--panel-border);
+      transform: none;
+    }
+
     .btn.primary {
       color: white;
       border-color: transparent;
@@ -336,7 +348,7 @@
         <button class="btn primary" onclick="draw()">Desenhar</button>
         <button class="btn" onclick="drawNext()">Próximo</button>
         <button class="btn" onclick="drawComplete()">Grafo Completo</button>
-        <button class="btn" onclick="drawSemiComplete()">Semicompleto</button>
+        <button id="btnSemiComplete" class="btn" onclick="drawSemiComplete()">Semicompleto</button>
       </div>
 
       <div class="control-group">
@@ -386,6 +398,22 @@
       return document.getElementById('strSize').value * 1.0;
     }
 
+    function hasSemiComplete() {
+      var n = getN();
+      var p = getP();
+      for (var i = 1; i <= p; i++) {
+        if (gcd(n, i) != 1) return true;
+      }
+      return false;
+    }
+
+    function updateSemiCompleteButton() {
+      var btn = document.getElementById('btnSemiComplete');
+      if (btn) {
+        btn.disabled = !hasSemiComplete();
+      }
+    }
+
     function verifyP() {
       var n = getN();
       var p = getP();
@@ -393,9 +421,12 @@
         document.getElementById('strP').value = Math.round(n / 2);
         alert('O passo deve ser menor que a metade do número de vértices');
       }
+      updateSemiCompleteButton();
     }
 
     document.getElementById('strP').addEventListener('change', verifyP);
+    document.getElementById('strN').addEventListener('input', updateSemiCompleteButton);
+    document.getElementById('strP').addEventListener('input', updateSemiCompleteButton);
 
     function download() {
       var canvas = document.getElementById('canvas');
@@ -457,6 +488,7 @@
       if (n == 4) actualStartAngle = 45;
       actualStartAngle = actualStartAngle + 180 * (p + 1) / n;
       drawStar(ctx, n, p, document.getElementById("canvas").width, actualStartAngle);
+      updateSemiCompleteButton();
     }
 
     function drawStar(ctx, n, p, size, startAngle) {
