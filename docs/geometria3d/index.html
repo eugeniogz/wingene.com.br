@@ -1,248 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GEOMETRIA 3D</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometria Interativa - Menu Principal</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
 
-        canvas {
-            display: block;
-        }
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.45);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-color: #6366f1;
+      --shadow-color: rgba(0, 0, 0, 0.4);
+      --glass-blur: blur(20px);
+      --radius-md: 12px;
+      --radius-lg: 20px;
+    }
 
+    * {
+      box-sizing: border-box;
+    }
 
-        #tutorial {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            border-radius: 5px;
-            max-width: 300px;
-            z-index: 10;
-        }
-    </style>
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-color);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle background glows */
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
+      z-index: -1;
+    }
+
+    body::before {
+      top: -100px;
+      left: -100px;
+    }
+
+    body::after {
+      bottom: -100px;
+      right: -100px;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 16px;
+      margin: 10px 0 0 0;
+      font-weight: 400;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+      .header h1 {
+        font-size: 32px;
+      }
+    }
+
+    .menu-card {
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      text-decoration: none;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 30px var(--shadow-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--accent-gradient);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+    }
+
+    .menu-card:hover::before {
+      opacity: 0.03;
+    }
+
+    .card-icon {
+      font-size: 32px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .card-desc {
+      color: var(--text-secondary);
+      font-size: 14.5px;
+      line-height: 1.6;
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .card-arrow {
+      align-self: flex-start;
+      font-size: 13px;
+      font-weight: 700;
+      color: #818cf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 0.2s ease;
+    }
+
+    .menu-card:hover .card-arrow {
+      gap: 10px;
+    }
+
+    .footer {
+      font-size: 13px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      margin-top: 20px;
+    }
+  </style>
 </head>
-
 <body>
-    <div id="tutorial">
-    </div>
-    <script type="module">
-        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
+  <div class="container">
+    <header class="header">
+      <h1>Geometria Interativa</h1>
+      <p>Explore sólidos geométricos e poliedros regulares em 3D</p>
+    </header>
 
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-        let mobile = /iPhone|iPad|iPod|Android|BlackBerry|Windows Phone/i.test(userAgent);
-        if (!mobile) {
-            document.getElementById("tutorial").innerHTML = 
-            "<p><b>MOUSE:</b> MOVA PARA ROTACIONAR A FIGURA 3 D</p>" +
-            "<p><b>TECLA ESPAÇO:</b> TROCA A GEOMETRIA DA FIGURA ENTRE ESFERA, CONE, CILINDRO, CUBO E PIRÂMIDE</p>"+
-            "<p><b>TECLA +:</b> AVANÇA PARA A PRÓXIMA TEXTURA</p>"+
-            "<p><b>TECLA -:</b> VOLTA PARA A TEXTURA ANTERIOR</p>";
-        } else {
-            document.getElementById("tutorial").innerHTML = 
-            "<p><b>ARRASTAR:</b> MOVER PARA ROTACIONAR A FIGURA 3D</p>"+
-            "<p><b>TOQUE SIMPLES</b> MUDA A TEXTURA</p>"+
-            "<p><b>TOQUE COM DOIS DEDOS:</b> TROCA A GEOMETRIA DA FIGURA ENTRE ESFERA, CONE, CILINDRO, CUBO E PIRÂMIDE</p>"; 
-        }
-        // Scene setup
-        const scene = new THREE.Scene();
-        const raycaster = new THREE.Raycaster();
-        // Camera setup
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 5;
+    <main class="menu-grid">
+      <!-- Card 1: Poliedros de Platão -->
+      <a href="platoPoly.html" class="menu-card">
+        <div class="card-icon">▲</div>
+        <h2 class="card-title">Poliedros de Platão</h2>
+        <p class="card-desc">Os 5 sólidos regulares convexos: Tetraedro, Cubo, Octaedro, Dodecaedro e Icosaedro. Explore sua simetria e dualidades clássicas.</p>
+        <span class="card-arrow">Explorar 3D <span>→</span></span>
+      </a>
 
-        // Renderer setup
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+      <!-- Card 2: Sólidos Estrelados e Compostos -->
+      <a href="compositePoly.html" class="menu-card">
+        <div class="card-icon">★</div>
+        <h2 class="card-title">Estrelas & Compostos</h2>
+        <p class="card-desc">Compostos de interpenetração clássicos (como a Stella Octangula) e os 4 sólidos regulares estrelados de Kepler-Poinsot.</p>
+        <span class="card-arrow">Explorar 3D <span>→</span></span>
+      </a>
 
-        const textureLoader = new THREE.TextureLoader();
-        const textureUrls =
-            [
-                "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
-                "https://threejs.org/examples/textures/brick_diffuse.jpg",
-                "https://threejs.org/examples/textures/terrain/grasslight-big.jpg",
-                "https://threejs.org/examples/textures/waternormals.jpg",
-                "https://threejs.org/examples/textures/planets/earth_specular_2048.jpg",
-                "https://threejs.org/examples/textures/planets/moon_1024.jpg",
-                "Beatriz.png",
-                "Arthur.png",
-                "Lorenzo.png",
-                "Lucca.png",
-                "Nicole1.png",
-                "Nicole2.png",
-                "Pedro1.png",
-                "Pedro2.png"
-                //"https://threejs.org/examples/textures/checker.png"
-            ];
-        let currentTextureIndex = 0;
+      <!-- Card 3: Geometrias Básicas e Texturas -->
+      <a href="basicPoly.html" class="menu-card">
+        <div class="card-icon">■</div>
+        <h2 class="card-title">Formas Básicas & Texturas</h2>
+        <p class="card-desc">Esfera, Cone, Cilindro, Cubo e Pirâmide revestidos com diferentes materiais, incluindo fotos de família e texturas da Terra e da Lua.</p>
+        <span class="card-arrow">Explorar 3D <span>→</span></span>
+      </a>
 
-        const texture = textureLoader.load(textureUrls[0]); // URL da textura
-        const geometries = [new THREE.SphereGeometry(1, 32, 32),
-        new THREE.ConeGeometry(1, 2, 32),
-        new THREE.CylinderGeometry(1, 1, 2, 32),
-        new THREE.BoxGeometry(2, 2, 2),
-        new THREE.ConeGeometry(1, 2, 4)];
-        let currentGeometryIndex = 0;
-        let geometry = geometries[0];
+      <!-- Card 4: Polígonos 2D -->
+      <a href="polygons.html" class="menu-card">
+        <div class="card-icon">⬡</div>
+        <h2 class="card-title">Polígonos 2D</h2>
+        <p class="card-desc">Visualizador e gerador bidimensional de polígonos e estrelas regulares usando desenho em canvas HTML5.</p>
+        <span class="card-arrow">Explorar 2D <span>→</span></span>
+      </a>
+    </main>
 
-
-        // Aplicando a textura ao material
-        const material = new THREE.MeshBasicMaterial({ map: texture });
-
-        let mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-        // Variables to track mouse position
-        let mouseX = 0;
-        let mouseY = 0;
-        
-        // Variables for touch gestures
-        let isTouching = false;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
-        let lastTap = 0;
-
-        // Function to handle single tap (texture change)
-        function handleSingleTap() {
-            if (currentTextureIndex>=textureUrls.length) {
-                currentTextureIndex=0;
-                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
-            material.needsUpdate = true;
-            } else 
-                changeTexture(1);
-        }
-
-        // Function to handle double tap (geometry change)
-        function handleDoubleTap() {
-            changeGeometry();
-        }
-
-         // Change texture
-         function changeTexture(direction) {
-            currentTextureIndex = (currentTextureIndex + direction + textureUrls.length) % textureUrls.length;
-            material.map = textureLoader.load(textureUrls[currentTextureIndex]);
-            material.needsUpdate = true;
-        }
-
-        // Change geometry
-        function changeGeometry() {
-            currentGeometryIndex = (currentGeometryIndex + 1) % geometries.length;
-            scene.remove(mesh);
-            geometry = geometries[currentGeometryIndex];
-            mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
-        }
-
-
-        // Handle touch events for rotation and pinch zoom
-        document.addEventListener('touchstart', (event) => {
-            if (event.touches.length === 1) {
-                event.preventDefault();
-                handleSingleTap();
-                isTouching = true;
-                lastTouchX = event.touches[0].clientX;
-                lastTouchY = event.touches[0].clientY;
-            } else if (event.touches.length === 2) {
-                event.preventDefault();
-                handleDoubleTap();
-            }
-        });
-
-        document.addEventListener('touchmove', (event) => {
-            if (event.touches.length === 1 && isTouching) {
-                event.preventDefault();
-                // Rotation based on single touch move
-                const deltaX = event.touches[0].clientX - lastTouchX;
-                const deltaY = event.touches[0].clientY - lastTouchY;
-
-                mesh.rotation.y += deltaX * 0.01;
-                mesh.rotation.x += deltaY * 0.01;
-
-                lastTouchX = event.touches[0].clientX;
-                lastTouchY = event.touches[0].clientY;
-            } else if (event.touches.length === 2) {
-                event.preventDefault();
-                // Pinch zoom handling
-                // const newDistance = getDistance(event.touches[0], event.touches[1]);
-                // const zoomFactor = newDistance - touchZoomDistance;
-                // camera.position.z -= zoomFactor * 0.01;
-                // touchZoomDistance = newDistance;
-            }
-        });
-
-        document.addEventListener('touchend', () => {
-            isTouching = false;
-        });
-
-        // Helper function to calculate the distance between two touch points
-        function getDistance(touch1, touch2) {
-            const dx = touch2.clientX - touch1.clientX;
-            const dy = touch2.clientY - touch1.clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // Event listener for keydown to switch textures
-        document.addEventListener('keydown', (event) => {
-            if (event.key === '+') {
-                currentTextureIndex = (currentTextureIndex + 1) % textureUrls.length;
-                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
-                material.needsUpdate = true;
-            } else if (event.key === '-') {
-                currentTextureIndex =
-                    (currentTextureIndex - 1 + textureUrls.length) % textureUrls.length;
-                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
-                material.needsUpdate = true;
-            }
-            else if (event.key === ' ') {
-                currentGeometryIndex++;
-                if (currentGeometryIndex > geometries.length - 1) currentGeometryIndex = 0;
-                scene.remove(mesh);
-                geometry = geometries[currentGeometryIndex];
-                mesh = new THREE.Mesh(geometry, material);
-                scene.add(mesh);
-            }
-        });
-
-        // Event listener to update mouse position
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
-
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (!mobile) {
-                // Rotate the cone based on mouse position
-                mesh.rotation.x = mouseY * Math.PI;
-                mesh.rotation.y = mouseX * Math.PI;
-            }
-            renderer.render(scene, camera);
-        }
-
-        animate();
-
-
-        // Responsividade ao redimensionar a janela
-        window.addEventListener('resize', () => {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            renderer.setSize(width, height);
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-        });
-
-        
-    </script>
+    <footer class="footer">
+      Desenvolvido com Three.js & HTML5 Canvas
+    </footer>
+  </div>
 </body>
-
 </html>

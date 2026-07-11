@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sólidos Estrelados e Compostos em 3D</title>
+  <style id='page-skin-1' type='text/css'>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-color: #6366f1;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-color);
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      -ms-text-size-adjust: none;
+    }
+
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+      width: fit-content;
+    }
+    .back-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      width: 360px;
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--panel-border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 10;
+      box-shadow: 10px 0 30px var(--shadow-color);
+      overflow-y: auto;
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 4px 0 0 0;
+    }
+
+    /* Category Tabs Control */
+    .category-tabs {
+      display: flex;
+      background: rgba(2, 6, 23, 0.4);
+      border: 1px solid var(--panel-border);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      position: relative;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: 'Inter', sans-serif;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-btn.active {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Control groups and buttons */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group.hidden {
+      display: none;
+    }
+
+    .star-btn {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid var(--panel-border);
+      padding: 12px 16px;
+      text-align: left;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+    }
+
+    .star-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--accent-gradient);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.2s ease;
+    }
+
+    .star-btn:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .star-btn.active {
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+      z-index: 1;
+    }
+
+    .star-btn.active::before {
+      opacity: 1;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: rgba(2, 6, 23, 0.35);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .info-badge {
+      display: inline-block;
+      align-self: flex-start;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .info-type {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin: -4px 0 0 0;
+      font-weight: 600;
+    }
+
+    .info-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .sidebar-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Viewport Container */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #graph {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Responsive design */
+    @media (max-width: 960px) {
+      .app-container {
+        flex-direction: column-reverse;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 45%;
+        min-height: 320px;
+        border-right: none;
+        border-top: 1px solid var(--panel-border);
+        box-shadow: 0 -10px 30px var(--shadow-color);
+        padding: 20px;
+        gap: 16px;
+      }
+      
+      .header {
+        display: none;
+      }
+      
+      .info-card {
+        margin-top: 0;
+        padding: 16px;
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Painel Lateral de Controle -->
+    <aside class="sidebar">
+      <a href="index.html" class="back-link">← Voltar ao menu</a>
+
+      <header class="header">
+        <h1>Sólidos Estrelados</h1>
+        <p class="subtitle">Compostos & Poliedros Regulares 3D</p>
+      </header>
+      
+      <!-- Seletor de Categoria (Abas) -->
+      <div class="category-tabs">
+        <button class="tab-btn active" id="tab-composite">Estrelas Compostos</button>
+        <button class="tab-btn" id="tab-regular">Estrelas Regulares</button>
+      </div>
+      
+      <!-- Grupo de Botões: Estrelas Compostas -->
+      <div class="control-group" id="group-composite">
+        <button class="star-btn active" data-star="0">2 Tetraedros</button>
+        <button class="star-btn" data-star="1">Cubo + Octaedro</button>
+        <button class="star-btn" data-star="2">Dodecaedro + Icosaedro</button>
+      </div>
+      
+      <!-- Grupo de Botões: Estrelas Regulares -->
+      <div class="control-group hidden" id="group-regular">
+        <button class="star-btn" data-star="3">Peq. Dodecaedro Estrelado</button>
+        <button class="star-btn" data-star="4">Gr. Dodecaedro Estrelado</button>
+        <button class="star-btn" data-star="5">Grande Dodecaedro</button>
+        <button class="star-btn" data-star="6">Grande Icosaedro</button>
+      </div>
+      
+      <!-- Cartão Informativo -->
+      <div class="info-card" id="info-card">
+        <h2 id="info-title">Composto de 2 Tetraedros</h2>
+        <div class="info-badge" id="info-schlafli">{8/2} (composto)</div>
+        <p id="info-subtitle" class="info-type">Stella Octangula</p>
+        <p id="info-description" class="info-desc">O composto de dois tetraedros (também conhecido como Stella Octangula) é a única stelação possível do octaedro regular. É formado por dois tetraedros regulares intercalados no espaço tridimensional.</p>
+      </div>
+      
+      <footer class="sidebar-footer">
+        Arraste ou mova o mouse para rotacionar o sólido
+      </footer>
+    </aside>
+    
+    <!-- Visualizador 3D -->
+    <main class="viewport-container">
+      <div id="graph"></div>
+    </main>
+  </div>
+
+  <script src="three.js"></script>
+  <script>
+    // Dicionário de informações sobre os sólidos
+    const starInfo = {
+      "0": {
+        title: "Composto de 2 Tetraedros",
+        subtitle: "Stella Octangula",
+        description: "O composto de dois tetraedros (também conhecido como Stella Octangula) é a única stelação possível do octaedro regular. É formado por dois tetraedros regulares intercalados no espaço tridimensional.",
+        schlafli: "{8/2} (composto)"
+      },
+      "1": {
+        title: "Composto de Cubo + Octaedro",
+        subtitle: "Composto Dual",
+        description: "Formado por um cubo e um octaedro concêntricos cujas arestas se intersectam mutuamente. Representa a interpenetração mútua de dois sólidos platônicos que são duais entre si.",
+        schlafli: "(composto dual)"
+      },
+      "2": {
+        title: "Composto de Dodecaedro + Icosaedro",
+        subtitle: "Composto Dual",
+        description: "Formado por um dodecaedro e um icosaedro concêntricos. Suas arestas se cruzam de forma regular, demonstrando a perfeita dualidade entre a estrutura de 12 faces pentagonais e a de 20 faces triangulares.",
+        schlafli: "(composto dual)"
+      },
+      "3": {
+        title: "Pequeno Dodecaedro Estrelado",
+        subtitle: "Sólido de Kepler-Poinsot",
+        description: "Um poliedro não convexo regular composto por 12 faces que são pentagramas (estrelas de 5 pontas), onde 5 pentagramas se encontram em cada vértice. Foi descoberto por Johannes Kepler em 1619.",
+        schlafli: "{5/2, 5}"
+      },
+      "4": {
+        title: "Grande Dodecaedro Estrelado",
+        subtitle: "Sólido de Kepler-Poinsot",
+        description: "Poliedro não convexo regular com 12 faces pentagrâmicas que se cruzam no espaço, encontrando-se 3 em cada vértice. É a stelação final e mais complexa do dodecaedro regular.",
+        schlafli: "{5/2, 3}"
+      },
+      "5": {
+        title: "Grande Dodecaedro",
+        subtitle: "Sólido de Kepler-Poinsot",
+        description: "Poliedro não convexo regular com 12 faces pentagonais regulares que se intersectam, com 5 pentágonos se encontrando em cada vértice em forma de estrela. Seu dual é o Pequeno Dodecaedro Estrelado.",
+        schlafli: "{5, 5/2}"
+      },
+      "6": {
+        title: "Grande Icosaedro",
+        subtitle: "Sólido de Kepler-Poinsot",
+        description: "Único sólido de Kepler-Poinsot com faces triangulares. É composto por 20 triângulos equiláteros que se cruzam, encontrando-se 5 em cada vértice em uma disposição pentagrâmica.",
+        schlafli: "{3, 5/2}"
+      }
+    };
+
+    // Configurações do Three.js
+    var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    var scene = new THREE.Scene();
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera.position.z = 5;
+    
+    // Material de normais com renderização em ambos os lados (DoubleSide) para sólidos auto-intersecionantes
+    var material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+    
+    var container = document.getElementById("graph");
+    scene.background = new THREE.Color(0x0b0f19);
+
+    // Ajuste responsivo de tamanho do renderizador e aspecto da câmera
+    function resize() {
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+    
+    container.appendChild(renderer.domElement);
+    resize();
+
+    // Função para gerar geometria customizada triangulando polígonos/pentagramas
+    function createCustomGeometry(vertices, facesData, scaleFactor) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+
+      facesData.forEach(face => {
+        if (face.length === 3) {
+          // Triângulo
+          const v0 = vertices[face[0]];
+          const v1 = vertices[face[1]];
+          const v2 = vertices[face[2]];
+          positions.push(
+            v0[0] * scaleFactor, v0[1] * scaleFactor, v0[2] * scaleFactor,
+            v1[0] * scaleFactor, v1[1] * scaleFactor, v1[2] * scaleFactor,
+            v2[0] * scaleFactor, v2[1] * scaleFactor, v2[2] * scaleFactor
+          );
+        } else if (face.length === 5) {
+          // Pentagon/Pentagram triangulado: (0,1,2), (0,2,3), (0,3,4)
+          const v0 = vertices[face[0]];
+          const v1 = vertices[face[1]];
+          const v2 = vertices[face[2]];
+          const v3 = vertices[face[3]];
+          const v4 = vertices[face[4]];
+
+          positions.push(
+            v0[0] * scaleFactor, v0[1] * scaleFactor, v0[2] * scaleFactor,
+            v1[0] * scaleFactor, v1[1] * scaleFactor, v1[2] * scaleFactor,
+            v2[0] * scaleFactor, v2[1] * scaleFactor, v2[2] * scaleFactor
+          );
+
+          positions.push(
+            v0[0] * scaleFactor, v0[1] * scaleFactor, v0[2] * scaleFactor,
+            v2[0] * scaleFactor, v2[1] * scaleFactor, v2[2] * scaleFactor,
+            v3[0] * scaleFactor, v3[1] * scaleFactor, v3[2] * scaleFactor
+          );
+
+          positions.push(
+            v0[0] * scaleFactor, v0[1] * scaleFactor, v0[2] * scaleFactor,
+            v3[0] * scaleFactor, v3[1] * scaleFactor, v3[2] * scaleFactor,
+            v4[0] * scaleFactor, v4[1] * scaleFactor, v4[2] * scaleFactor
+          );
+        }
+      });
+
+      geometry.addAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    function makeCCW(face, vertices) {
+      const v0 = vertices[face[0]];
+      const v1 = vertices[face[1]];
+      const v2 = vertices[face[2]];
+      const crossX = v0[1] * v1[2] - v0[2] * v1[1];
+      const crossY = v0[2] * v1[0] - v0[0] * v1[2];
+      const crossZ = v0[0] * v1[1] - v0[1] * v1[0];
+      const det = crossX * v2[0] + crossY * v2[1] + crossZ * v2[2];
+      if (det < 0) {
+        return [...face].reverse();
+      }
+      return face;
+    }
+
+    function buildSmallStellatedDodecahedron() {
+      const C0 = (1 + Math.sqrt(5)) / 4;
+      const C1 = (3 + Math.sqrt(5)) / 4;
+      const vertices = [
+        [0, 0.5, C1], [0, 0.5, -C1], [0, -0.5, C1], [0, -0.5, -C1],
+        [C1, 0, 0.5], [C1, 0, -0.5], [-C1, 0, 0.5], [-C1, 0, -0.5],
+        [0.5, C1, 0], [0.5, -C1, 0], [-0.5, C1, 0], [-0.5, -C1, 0],
+        [C0, C0, C0], [C0, C0, -C0], [C0, -C0, C0], [C0, -C0, -C0],
+        [-C0, C0, C0], [-C0, C0, -C0], [-C0, -C0, C0], [-C0, -C0, -C0]
+      ];
+      const baseFaces = [
+        [0, 2, 14, 4, 12],
+        [0, 12, 8, 10, 16],
+        [0, 16, 6, 18, 2],
+        [7, 6, 16, 10, 17],
+        [7, 17, 1, 3, 19],
+        [7, 19, 11, 18, 6],
+        [9, 11, 19, 3, 15],
+        [9, 15, 5, 4, 14],
+        [9, 14, 2, 18, 11],
+        [13, 1, 17, 10, 8],
+        [13, 8, 12, 4, 5],
+        [13, 5, 15, 3, 1]
+      ];
+
+      const dx = vertices[0][0] - vertices[12][0];
+      const dy = vertices[0][1] - vertices[12][1];
+      const dz = vertices[0][2] - vertices[12][2];
+      const a = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+      const h = a * Math.sqrt((5 + 2 * Math.sqrt(5)) / 5);
+
+      const allVertices = [...vertices];
+      const finalFaces = [];
+
+      baseFaces.forEach((face) => {
+        const ccwFace = makeCCW(face, vertices);
+        const v0 = vertices[ccwFace[0]];
+        const v1 = vertices[ccwFace[1]];
+        const v2 = vertices[ccwFace[2]];
+        const v3 = vertices[ccwFace[3]];
+        const v4 = vertices[ccwFace[4]];
+
+        const cx = (v0[0] + v1[0] + v2[0] + v3[0] + v4[0]) / 5;
+        const cy = (v0[1] + v1[1] + v2[1] + v3[1] + v4[1]) / 5;
+        const cz = (v0[2] + v1[2] + v2[2] + v3[2] + v4[2]) / 5;
+
+        const len = Math.sqrt(cx*cx + cy*cy + cz*cz);
+        const nx = cx / len;
+        const ny = cy / len;
+        const nz = cz / len;
+
+        const px = cx + h * nx;
+        const py = cy + h * ny;
+        const pz = cz + h * nz;
+
+        const peakIdx = allVertices.length;
+        allVertices.push([px, py, pz]);
+
+        finalFaces.push([ccwFace[0], ccwFace[1], peakIdx]);
+        finalFaces.push([ccwFace[1], ccwFace[2], peakIdx]);
+        finalFaces.push([ccwFace[2], ccwFace[3], peakIdx]);
+        finalFaces.push([ccwFace[3], ccwFace[4], peakIdx]);
+        finalFaces.push([ccwFace[4], ccwFace[0], peakIdx]);
+      });
+
+      return { vertices: allVertices, faces: finalFaces };
+    }
+
+    function buildGreatStellatedDodecahedron() {
+      const C0 = (Math.sqrt(5) - 1) / 4;
+      const vertices = [
+        [0.0, -0.5, C0], [0.0, -0.5, -C0], [0.0, 0.5, C0], [0.0, 0.5, -C0],
+        [-0.5, C0, 0.0], [0.5, C0, 0.0], [-0.5, -C0, 0.0], [0.5, -C0, 0.0],
+        [C0, 0.0, -0.5], [C0, 0.0, 0.5], [-C0, 0.0, -0.5], [-C0, 0.0, 0.5]
+      ];
+
+      // Find the edge length 'a' (minimum distance between any pair of vertices)
+      let a = Infinity;
+      for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+          const d = Math.sqrt(
+            Math.pow(vertices[i][0] - vertices[j][0], 2) +
+            Math.pow(vertices[i][1] - vertices[j][1], 2) +
+            Math.pow(vertices[i][2] - vertices[j][2], 2)
+          );
+          if (d < a) a = d;
+        }
+      }
+
+      // Find all triplets of vertices that form equilateral triangles of side length 'a'
+      const baseFaces = [];
+      for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+          const d_ij = Math.sqrt(
+            Math.pow(vertices[i][0] - vertices[j][0], 2) +
+            Math.pow(vertices[i][1] - vertices[j][1], 2) +
+            Math.pow(vertices[i][2] - vertices[j][2], 2)
+          );
+          if (Math.abs(d_ij - a) < 0.01) {
+            for (let k = j + 1; k < vertices.length; k++) {
+              const d_jk = Math.sqrt(
+                Math.pow(vertices[j][0] - vertices[k][0], 2) +
+                Math.pow(vertices[j][1] - vertices[k][1], 2) +
+                Math.pow(vertices[j][2] - vertices[k][2], 2)
+              );
+              const d_ki = Math.sqrt(
+                Math.pow(vertices[k][0] - vertices[i][0], 2) +
+                Math.pow(vertices[k][1] - vertices[i][1], 2) +
+                Math.pow(vertices[k][2] - vertices[i][2], 2)
+              );
+              if (Math.abs(d_jk - a) < 0.01 && Math.abs(d_ki - a) < 0.01) {
+                baseFaces.push([i, j, k]);
+              }
+            }
+          }
+        }
+      }
+
+      const h = a * Math.sqrt((7 + 3 * Math.sqrt(5)) / 6);
+
+      const allVertices = [...vertices];
+      const finalFaces = [];
+
+      baseFaces.forEach((face) => {
+        const ccwFace = makeCCW(face, vertices);
+        const v0 = vertices[ccwFace[0]];
+        const v1 = vertices[ccwFace[1]];
+        const v2 = vertices[ccwFace[2]];
+
+        const cx = (v0[0] + v1[0] + v2[0]) / 3;
+        const cy = (v0[1] + v1[1] + v2[1]) / 3;
+        const cz = (v0[2] + v1[2] + v2[2]) / 3;
+
+        const len = Math.sqrt(cx*cx + cy*cy + cz*cz);
+        const nx = cx / len;
+        const ny = cy / len;
+        const nz = cz / len;
+
+        const px = cx + h * nx;
+        const py = cy + h * ny;
+        const pz = cz + h * nz;
+
+        const peakIdx = allVertices.length;
+        allVertices.push([px, py, pz]);
+
+        finalFaces.push([ccwFace[0], ccwFace[1], peakIdx]);
+        finalFaces.push([ccwFace[1], ccwFace[2], peakIdx]);
+        finalFaces.push([ccwFace[2], ccwFace[0], peakIdx]);
+      });
+
+      return { vertices: allVertices, faces: finalFaces };
+    }
+
+    // Função de construção dos poliedros
+    function buildStar(index) {
+      // Remove todas as malhas existentes da cena
+      while (scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+      }
+
+      var meshes = [];
+
+      if (index == 0) {
+        // 2 Tetraedros (Stella Octangula)
+        var geo0 = new THREE.TetrahedronGeometry(2.5, 0);
+        var mesh0 = new THREE.Mesh(geo0, material);
+        meshes.push(mesh0);
+        scene.add(mesh0);
+
+        var geo1 = new THREE.TetrahedronGeometry(2.5, 0);
+        var mesh1 = new THREE.Mesh(geo1, material);
+        mesh1.scale.set(-1, -1, -1);
+        meshes.push(mesh1);
+        scene.add(mesh1);
+      } else if (index == 1) {
+        // Cubo + Octaedro
+        var geo0 = new THREE.BoxGeometry(2.8, 2.8, 2.8);
+        var mesh0 = new THREE.Mesh(geo0, material);
+        meshes.push(mesh0);
+        scene.add(mesh0);
+
+        var geo1 = new THREE.OctahedronGeometry(2.8, 0);
+        var mesh1 = new THREE.Mesh(geo1, material);
+        meshes.push(mesh1);
+        scene.add(mesh1);
+      } else if (index == 2) {
+        // Dodecaedro + Icosaedro
+        var geo0 = new THREE.DodecahedronGeometry(2, 0);
+        var mesh0 = new THREE.Mesh(geo0, material);
+        mesh0.rotation.y = Math.PI / 2;
+        meshes.push(mesh0);
+        scene.add(mesh0);
+
+        var geo1 = new THREE.IcosahedronGeometry(2.2, 0);
+        var mesh1 = new THREE.Mesh(geo1, material);
+        meshes.push(mesh1);
+        scene.add(mesh1);
+      } else if (index == 3) {
+        // Pequeno Dodecaedro Estrelado
+        const data = buildSmallStellatedDodecahedron();
+        var geo = createCustomGeometry(data.vertices, data.faces, 1.1);
+        var mesh = new THREE.Mesh(geo, material);
+        meshes.push(mesh);
+        scene.add(mesh);
+      } else if (index == 4) {
+        // Grande Dodecaedro Estrelado
+        const data = buildGreatStellatedDodecahedron();
+        var geo = createCustomGeometry(data.vertices, data.faces, 1.8);
+        var mesh = new THREE.Mesh(geo, material);
+        meshes.push(mesh);
+        scene.add(mesh);
+      } else if (index == 5) {
+        // Grande Dodecaedro
+        const C0 = (1 + Math.sqrt(5)) / 4;
+        const vertices = [
+          [0.5, 0.0, C0], [0.5, 0.0, -C0], [-0.5, 0.0, C0], [-0.5, 0.0, -C0],
+          [C0, 0.5, 0.0], [C0, -0.5, 0.0], [-C0, 0.5, 0.0], [-C0, -0.5, 0.0],
+          [0.0, C0, 0.5], [0.0, C0, -0.5], [0.0, -C0, 0.5], [0.0, -C0, -0.5]
+        ];
+        const faces = [
+          [0, 2, 7, 11, 5], [0, 5, 1, 9, 8], [0, 8, 6, 7, 10], [1, 3, 6, 8, 4],
+          [1, 4, 0, 10, 11], [1, 11, 7, 6, 9], [2, 0, 4, 9, 6], [2, 6, 3, 11, 10],
+          [2, 10, 5, 4, 8], [3, 1, 5, 10, 7], [3, 7, 2, 8, 9], [3, 9, 4, 5, 11]
+        ];
+        var geo = createCustomGeometry(vertices, faces, 2.6);
+        var mesh = new THREE.Mesh(geo, material);
+        meshes.push(mesh);
+        scene.add(mesh);
+      } else if (index == 6) {
+        // Grande Icosaedro
+        const C0 = (Math.sqrt(5) - 1) / 4;
+        const vertices = [
+          [0.0, -0.5, C0], [0.0, -0.5, -C0], [0.0, 0.5, C0], [0.0, 0.5, -C0],
+          [-0.5, C0, 0.0], [0.5, C0, 0.0], [-0.5, -C0, 0.0], [0.5, -C0, 0.0],
+          [C0, 0.0, -0.5], [C0, 0.0, 0.5], [-C0, 0.0, -0.5], [-C0, 0.0, 0.5]
+        ];
+        const faces = [
+          [0, 2, 10], [0, 10, 5], [0, 5, 4], [0, 4, 8], [0, 8, 2],
+          [3, 1, 11], [3, 11, 7], [3, 7, 6], [3, 6, 9], [3, 9, 1],
+          [2, 6, 7], [2, 7, 10], [10, 7, 11], [10, 11, 5], [5, 11, 1],
+          [5, 1, 4], [4, 1, 9], [4, 9, 8], [8, 9, 6], [8, 6, 2]
+        ];
+        var geo = createCustomGeometry(vertices, faces, 4.25);
+        var mesh = new THREE.Mesh(geo, material);
+        meshes.push(mesh);
+        scene.add(mesh);
+      }
+
+      return meshes;
+    }
+
+    var currentStar = 0;
+    var polyhedron = buildStar(currentStar);
+
+    var mouseX = 0;
+    var mouseY = 0;
+
+    // Atualização dos eixos com mouse
+    document.addEventListener('mousemove', (event) => {
+      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    // Atualização dos eixos com toque em mobile
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches.length > 0) {
+        var touch = event.touches[0];
+        mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
+      }
+    }, { passive: true });
+
+    // Alternador de Abas (Compostas vs Regulares)
+    const tabComposite = document.getElementById('tab-composite');
+    const tabRegular = document.getElementById('tab-regular');
+    const groupComposite = document.getElementById('group-composite');
+    const groupRegular = document.getElementById('group-regular');
+
+    tabComposite.addEventListener('click', () => {
+      tabComposite.classList.add('active');
+      tabRegular.classList.remove('active');
+      groupComposite.classList.remove('hidden');
+      groupRegular.classList.add('hidden');
+      
+      // Seleção automática ao mudar de aba
+      if (currentStar >= 3) {
+        const firstComposite = groupComposite.querySelector('.star-btn');
+        if (firstComposite) firstComposite.click();
+      }
+    });
+
+    tabRegular.addEventListener('click', () => {
+      tabRegular.classList.add('active');
+      tabComposite.classList.remove('active');
+      groupRegular.classList.remove('hidden');
+      groupComposite.classList.add('hidden');
+      
+      // Seleção automática ao mudar de aba
+      if (currentStar < 3) {
+        const firstRegular = groupRegular.querySelector('.star-btn');
+        if (firstRegular) firstRegular.click();
+      }
+    });
+
+    // Eventos de clique nos botões dos poliedros
+    const buttons = document.querySelectorAll('.star-btn');
+    const infoTitle = document.getElementById('info-title');
+    const infoSchlafli = document.getElementById('info-schlafli');
+    const infoSubtitle = document.getElementById('info-subtitle');
+    const infoDescription = document.getElementById('info-description');
+
+    function updateInfoCard(index) {
+      const data = starInfo[index.toString()];
+      if (data) {
+        infoTitle.textContent = data.title;
+        infoSchlafli.textContent = data.schlafli;
+        infoSubtitle.textContent = data.subtitle;
+        infoDescription.textContent = data.description;
+      }
+    }
+
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        buttons.forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        currentStar = parseInt(this.getAttribute('data-star'));
+        polyhedron = buildStar(currentStar);
+        updateInfoCard(currentStar);
+      });
+    });
+
+    // Loop de Animação
+    var animate = function () {
+      requestAnimationFrame(animate);
+
+      for (var i = 0; i < polyhedron.length; i++) {
+        // Correção de rotações específicas
+        if (currentStar == 2) {
+          polyhedron[i].rotation.y = mouseX * Math.PI + (i == 0 ? Math.PI / 2 : 0);
+        } else {
+          polyhedron[i].rotation.y = mouseX * Math.PI;
+        }
+        polyhedron[i].rotation.x = mouseY * Math.PI;
+      }
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Redimensionamento responsivo
+    window.addEventListener('resize', resize);
+  </script>
+</body>
+</html>

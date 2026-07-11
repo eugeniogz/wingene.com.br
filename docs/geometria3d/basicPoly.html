@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometrias Básicas e Texturas em 3D</title>
+  <style id='page-skin-1' type='text/css'>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-color: #6366f1;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-color);
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      -ms-text-size-adjust: none;
+    }
+
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+      width: fit-content;
+    }
+    .back-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      width: 360px;
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--panel-border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 10;
+      box-shadow: 10px 0 30px var(--shadow-color);
+      overflow-y: auto;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 4px 0 0 0;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      margin: 10px 0 5px 0;
+      opacity: 0.8;
+      font-weight: 700;
+    }
+
+    /* Control groups and buttons */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .grid-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid var(--panel-border);
+      padding: 10px 14px;
+      text-align: left;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--accent-gradient);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn.active {
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+      z-index: 1;
+    }
+
+    .btn.active::before {
+      opacity: 1;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: rgba(2, 6, 23, 0.35);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .info-badge {
+      display: inline-block;
+      align-self: flex-start;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .info-type {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .info-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .sidebar-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Viewport Container */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #graph {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Responsive design */
+    @media (max-width: 960px) {
+      .app-container {
+        flex-direction: column-reverse;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 50%;
+        min-height: 380px;
+        border-right: none;
+        border-top: 1px solid var(--panel-border);
+        box-shadow: 0 -10px 30px var(--shadow-color);
+        padding: 20px;
+        gap: 12px;
+      }
+      
+      .header {
+        display: none;
+      }
+      
+      .info-card {
+        margin-top: 0;
+        padding: 14px;
+        gap: 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Painel Lateral de Controle -->
+    <aside class="sidebar">
+      <a href="index.html" class="back-link">← Voltar ao menu</a>
+
+      <header class="header">
+        <h1>Formas Básicas</h1>
+        <p class="subtitle">Geometria 3D & Texturas</p>
+      </header>
+
+      <div class="section-title">1. Geometria</div>
+      <div class="grid-group" id="group-geometries">
+        <button class="btn active" data-geom="0">Esfera</button>
+        <button class="btn" data-geom="1">Cone</button>
+        <button class="btn" data-geom="2">Cilindro</button>
+        <button class="btn" data-geom="3">Cubo</button>
+        <button class="btn" data-geom="4">Pirâmide</button>
+      </div>
+
+      <div class="section-title">2. Textura</div>
+      <div class="control-group" id="group-textures" style="max-height: 200px; overflow-y: auto; padding-right: 4px;">
+        <button class="btn active" data-tex="0">Terra</button>
+        <button class="btn" data-tex="1">Tijolo</button>
+        <button class="btn" data-tex="2">Grama</button>
+        <button class="btn" data-tex="3">Água</button>
+        <button class="btn" data-tex="4">Terra Especular</button>
+        <button class="btn" data-tex="5">Lua</button>
+        <button class="btn" data-tex="6">Beatriz</button>
+        <button class="btn" data-tex="7">Arthur</button>
+        <button class="btn" data-tex="8">Lorenzo</button>
+        <button class="btn" data-tex="9">Lucca</button>
+        <button class="btn" data-tex="10">Nicole 1</button>
+        <button class="btn" data-tex="11">Nicole 2</button>
+        <button class="btn" data-tex="12">Pedro 1</button>
+        <button class="btn" data-tex="13">Pedro 2</button>
+      </div>
+      
+      <!-- Cartão Informativo -->
+      <div class="info-card" id="info-card">
+        <h2 id="info-title">Esfera</h2>
+        <div class="info-badge" id="info-badge">Textura: Terra</div>
+        <p id="info-description" class="info-desc">Uma forma tridimensional perfeitamente simétrica. Você pode rotacioná-la usando o mouse ou gestos de toque, e alterar sua forma ou textura usando os botões acima.</p>
+      </div>
+      
+      <footer class="sidebar-footer">
+        Arraste ou mova o mouse para rotacionar
+      </footer>
+    </aside>
+    
+    <!-- Visualizador 3D -->
+    <main class="viewport-container">
+      <div id="graph"></div>
+    </main>
+  </div>
+
+  <script src="three.js"></script>
+  <script>
+    // Configurações do Three.js
+    var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    var scene = new THREE.Scene();
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera.position.z = 5;
+    
+    var container = document.getElementById("graph");
+    scene.background = new THREE.Color(0x0b0f19);
+
+    function resize() {
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+    
+    container.appendChild(renderer.domElement);
+    resize();
+
+    // Texturas
+    const textureLoader = new THREE.TextureLoader();
+    const textureUrls = [
+      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+      "https://threejs.org/examples/textures/brick_diffuse.jpg",
+      "https://threejs.org/examples/textures/terrain/grasslight-big.jpg",
+      "https://threejs.org/examples/textures/waternormals.jpg",
+      "https://threejs.org/examples/textures/planets/earth_specular_2048.jpg",
+      "https://threejs.org/examples/textures/planets/moon_1024.jpg",
+      "Beatriz.png",
+      "Arthur.png",
+      "Lorenzo.png",
+      "Lucca.png",
+      "Nicole1.png",
+      "Nicole2.png",
+      "Pedro1.png",
+      "Pedro2.png"
+    ];
+
+    const textureNames = [
+      "Terra", "Tijolo", "Grama", "Água", "Terra Especular", "Lua",
+      "Beatriz", "Arthur", "Lorenzo", "Lucca", "Nicole 1", "Nicole 2", "Pedro 1", "Pedro 2"
+    ];
+
+    const geomNames = [
+      "Esfera", "Cone", "Cilindro", "Cubo", "Pirâmide"
+    ];
+
+    const geometries = [
+      new THREE.SphereGeometry(1.6, 32, 32),
+      new THREE.ConeGeometry(1.5, 2.5, 32),
+      new THREE.CylinderGeometry(1.3, 1.3, 2.5, 32),
+      new THREE.BoxGeometry(2.2, 2.2, 2.2),
+      new THREE.ConeGeometry(1.6, 2.5, 4)
+    ];
+
+    let currentTextureIndex = 0;
+    let currentGeometryIndex = 0;
+
+    let activeTexture = textureLoader.load(textureUrls[0]);
+    let material = new THREE.MeshBasicMaterial({ map: activeTexture });
+    let mesh = new THREE.Mesh(geometries[0], material);
+    scene.add(mesh);
+
+    function updateGeometry(geomIndex) {
+      currentGeometryIndex = geomIndex;
+      scene.remove(mesh);
+      mesh = new THREE.Mesh(geometries[currentGeometryIndex], material);
+      scene.add(mesh);
+      updateInfo();
+    }
+
+    function updateTexture(texIndex) {
+      currentTextureIndex = texIndex;
+      activeTexture = textureLoader.load(textureUrls[currentTextureIndex]);
+      material.map = activeTexture;
+      material.needsUpdate = true;
+      updateInfo();
+    }
+
+    function updateInfo() {
+      document.getElementById('info-title').textContent = geomNames[currentGeometryIndex];
+      document.getElementById('info-badge').textContent = "Textura: " + textureNames[currentTextureIndex];
+    }
+
+    // Interações
+    var mouseX = 0;
+    var mouseY = 0;
+
+    document.addEventListener('mousemove', (event) => {
+      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches.length > 0) {
+        var touch = event.touches[0];
+        mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
+      }
+    }, { passive: true });
+
+    // Botões
+    const geomButtons = document.querySelectorAll('[data-geom]');
+    geomButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        geomButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        updateGeometry(parseInt(this.getAttribute('data-geom')));
+      });
+    });
+
+    const texButtons = document.querySelectorAll('[data-tex]');
+    texButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        texButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        updateTexture(parseInt(this.getAttribute('data-tex')));
+      });
+    });
+
+    // Teclado (suporte mantido por retrocompatibilidade)
+    document.addEventListener('keydown', (event) => {
+      if (event.key === '+') {
+        let nextTex = (currentTextureIndex + 1) % textureUrls.length;
+        texButtons[nextTex].click();
+      } else if (event.key === '-') {
+        let prevTex = (currentTextureIndex - 1 + textureUrls.length) % textureUrls.length;
+        texButtons[prevTex].click();
+      } else if (event.key === ' ') {
+        let nextGeom = (currentGeometryIndex + 1) % geometries.length;
+        geomButtons[nextGeom].click();
+      }
+    });
+
+    // Loop
+    var animate = function () {
+      requestAnimationFrame(animate);
+      if (mesh) {
+        mesh.rotation.y = mouseX * Math.PI;
+        mesh.rotation.x = mouseY * Math.PI;
+      }
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    window.addEventListener('resize', resize);
+  </script>
+</body>
+</html>

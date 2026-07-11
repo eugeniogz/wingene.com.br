@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml' lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polígonos 2D - Gerador</title>
+  <style id='page-skin-1' type='text/css'>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-color: #6366f1;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-color);
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      -ms-text-size-adjust: none;
+    }
+
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      width: 360px;
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--panel-border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+      box-shadow: 10px 0 30px var(--shadow-color);
+      overflow-y: auto;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+      width: fit-content;
+    }
+    .back-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 4px 0 0 0;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-primary);
+      margin: 8px 0 4px 0;
+      opacity: 0.8;
+      font-weight: 700;
+    }
+
+    /* Input fields */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-row label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      min-width: 70px;
+    }
+
+    .input-row input {
+      flex: 1;
+      background: rgba(2, 6, 23, 0.4);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-row input:focus {
+      border-color: var(--accent-color);
+    }
+
+    /* Control buttons */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .grid-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid var(--panel-border);
+      padding: 10px 14px;
+      text-align: center;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--accent-gradient);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .btn.primary {
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+      z-index: 1;
+    }
+
+    .btn.primary::before {
+      opacity: 1;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: rgba(2, 6, 23, 0.35);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .info-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .info-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .info-msg {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .info-msg.regular {
+      color: #4ade80;
+    }
+
+    .info-msg.irregular {
+      color: #fb923c;
+    }
+
+    .sidebar-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Viewport Container */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    /* Responsive design */
+    @media (max-width: 960px) {
+      .app-container {
+        flex-direction: column-reverse;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 50%;
+        min-height: 400px;
+        border-right: none;
+        border-top: 1px solid var(--panel-border);
+        box-shadow: 0 -10px 30px var(--shadow-color);
+        padding: 20px;
+        gap: 12px;
+      }
+      
+      .header {
+        display: none;
+      }
+      
+      .info-card {
+        margin-top: 0;
+        padding: 14px;
+        gap: 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Painel Lateral de Controle -->
+    <aside class="sidebar">
+      <a href="index.html" class="back-link">← Voltar ao menu</a>
+
+      <header class="header">
+        <h1>Polígonos 2D</h1>
+        <p class="subtitle">Gerador de polígonos e estrelas regulares</p>
+      </header>
+
+      <div class="section-title">Parâmetros</div>
+
+      <div class="input-row">
+        <label for="strN">Vértices</label>
+        <input id="strN" maxlength="3" name="strN" size="3" type="text" value="6" />
+      </div>
+
+      <div class="input-row">
+        <label for="strP">Passo</label>
+        <input id="strP" maxlength="3" name="strP" size="3" type="text" value="1" />
+      </div>
+
+      <div class="input-row">
+        <label for="strSize">Tamanho</label>
+        <input id="strSize" maxlength="3" name="strSize" size="3" type="text" value="400" />
+      </div>
+
+      <div class="section-title">Ações</div>
+
+      <div class="grid-group">
+        <button class="btn primary" onclick="draw()">Desenhar</button>
+        <button class="btn" onclick="drawNext()">Próximo</button>
+        <button class="btn" onclick="drawComplete()">Grafo Completo</button>
+        <button class="btn" onclick="drawSemiComplete()">Semicompleto</button>
+      </div>
+
+      <div class="control-group">
+        <button class="btn" onclick="download()">Baixar Imagem</button>
+      </div>
+
+      <!-- Cartão Informativo -->
+      <div class="info-card">
+        <h2>Sobre o polígono</h2>
+        <p id="info-msg" class="info-msg regular">Polígono regular</p>
+        <p class="info-desc" id="info-desc">Com passo = 1, o desenho forma um polígono convexo regular. Use passo > 1 para gerar polígonos estrelados.</p>
+      </div>
+      
+      <footer class="sidebar-footer">
+        Arraste para redimensionar o canvas | Clique em "Baixar" para salvar
+      </footer>
+    </aside>
+    
+    <!-- Visualizador 2D -->
+    <main class="viewport-container">
+      <canvas id="canvas">
+      </canvas>
+    </main>
+  </div>
+
+  <script type="application/javascript">
+    var actualStartAngle = 90;
+
+    function gcd(a, b) {
+      while (b) {
+        r = a % b;
+        a = b;
+        b = r;
+      }
+      return a;
+    }
+
+    function getN() {
+      return document.getElementById('strN').value * 1.0;
+    }
+
+    function getP() {
+      return document.getElementById('strP').value * 1.0;
+    }
+
+    function getSize() {
+      return document.getElementById('strSize').value * 1.0;
+    }
+
+    function verifyP() {
+      var n = getN();
+      var p = getP();
+      if (Math.round(n / 2) <= p) {
+        document.getElementById('strP').value = Math.round(n / 2);
+        alert('O passo deve ser menor que a metade do número de vértices');
+      }
+    }
+
+    document.getElementById('strP').addEventListener('change', verifyP);
+
+    function download() {
+      var canvas = document.getElementById('canvas');
+      var link = document.createElement("a");
+      link.download = 'poligono.png';
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function setup() {
+      var size = getSize();
+      var canvas = document.getElementById("canvas");
+      if (size > 800) size = 800;
+      canvas.width = size;
+      canvas.height = size;
+      var container = canvas.parentElement;
+      var maxW = container.clientWidth * 0.9;
+      var maxH = container.clientHeight * 0.9;
+      if (size > maxW || size > maxH) {
+        var scale = Math.min(maxW / size, maxH / size);
+        canvas.style.width = (size * scale) + 'px';
+        canvas.style.height = (size * scale) + 'px';
+      } else {
+        canvas.style.width = size + 'px';
+        canvas.style.height = size + 'px';
+      }
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = "#0b0f19";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      return ctx;
+    }
+
+    function drawNext() {
+      var n = getN();
+      var p = getP();
+      if (Math.round(n / 2) > (p + 1)) {
+        document.getElementById('strP').value = p + 1;
+      } else {
+        document.getElementById('strN').value = n + 1;
+        document.getElementById('strP').value = 1;
+      }
+      draw();
+    }
+
+    function draw() {
+      var n = getN();
+      var p = getP();
+      if (p > Math.round(n / 2)) {
+        alert('O passo deve ser menor que a metade do número de vértices');
+        return;
+      }
+      var ctx = setup();
+      actualStartAngle = 90;
+      if (n == 3) actualStartAngle = 30;
+      if (n == 4) actualStartAngle = 45;
+      actualStartAngle = actualStartAngle + 180 * (p + 1) / n;
+      drawStar(ctx, n, p, document.getElementById("canvas").width, actualStartAngle);
+    }
+
+    function drawStar(ctx, n, p, size, startAngle) {
+      if (n > 3000) n = 3000;
+      if (n < 3) {
+        alert("Não é possível desenhar com menos de 3 vértices");
+        return;
+      }
+      if (p > Math.round(n / 2)) {
+        alert("O passo deve ser menor que a metade dos vértices");
+        return;
+      }
+
+      var len = (size / 2) * 0.9;
+      var centro = size / 2;
+      var actualAngle = startAngle;
+      ctx.beginPath();
+      var i = 0;
+      var mudar = 0;
+      var g = gcd(n, p);
+      if (g > 1) mudar = n / g;
+
+      var infoMsg = document.getElementById('info-msg');
+      var infoDesc = document.getElementById('info-desc');
+      if (mudar > 0) {
+        infoMsg.textContent = 'Polígono estrelado (irregular)';
+        infoMsg.className = 'info-msg irregular';
+        infoDesc.textContent = 'O MDC entre vértices e passo é maior que 1, formando um polígono estrelado que requer múltiplos traços.';
+      } else {
+        infoMsg.textContent = 'Polígono estrelado regular';
+        infoMsg.className = 'info-msg regular';
+        infoDesc.textContent = 'Polígono estrelado regular: o traço é contínuo, pois MDC(vértices, passo) = 1.';
+      }
+      if (p == 1) {
+        infoMsg.textContent = 'Polígono convexo regular';
+        infoMsg.className = 'info-msg regular';
+        infoDesc.textContent = 'Com passo = 1, o desenho forma um polígono convexo regular. Use passo > 1 para gerar polígonos estrelados.';
+      }
+
+      do {
+        if (mudar > 0 && i % mudar == 0 && i > 0) {
+          actualAngle = actualAngle + 360 / n;
+        }
+        var x1 = len * Math.cos(actualAngle * Math.PI / 180);
+        var y1 = len * Math.sin(actualAngle * Math.PI / 180);
+        actualAngle = actualAngle + 360 * p / n;
+        var x2 = len * Math.cos(actualAngle * Math.PI / 180);
+        var y2 = len * Math.sin(actualAngle * Math.PI / 180);
+        ctx.moveTo(x1 + centro, y1 + centro);
+        ctx.lineTo(x2 + centro, y2 + centro);
+        ctx.stroke();
+        i++;
+      } while (i < n);
+      i = 0;
+      ctx.closePath();
+      ctx.stroke();
+
+      // Draw vertices
+      ctx.fillStyle = "#6366f1";
+      var vAngle = startAngle;
+      for (var j = 0; j < n; j++) {
+        var vx = len * Math.cos(vAngle * Math.PI / 180) + centro;
+        var vy = len * Math.sin(vAngle * Math.PI / 180) + centro;
+        ctx.beginPath();
+        ctx.arc(vx, vy, 4, 0, Math.PI * 2);
+        ctx.fill();
+        vAngle += 360 / n;
+      }
+    }
+
+    function drawSemiComplete() {
+      var ctx = setup();
+      var n = getN();
+      var p = getP();
+      if (n == 3) actualStartAngle = 30;
+      if (n == 4) actualStartAngle = 45;
+
+      for (var i = 1; i <= p; i++) {
+        if (gcd(n, i) != 1) drawStar(ctx, n, i, document.getElementById("canvas").width, actualStartAngle);
+      }
+    }
+
+    function drawComplete() {
+      var ctx = setup();
+      var n = getN();
+      var p = n / 2;
+      if (n == 3) actualStartAngle = 30;
+      if (n == 4) actualStartAngle = 45;
+
+      for (var i = 1; i <= p; i++) {
+        drawStar(ctx, n, i, document.getElementById("canvas").width, actualStartAngle);
+      }
+    }
+
+    // Auto-draw on load
+    setTimeout(draw, 200);
+
+    // Redraw on window resize
+    window.addEventListener('resize', function() {
+      draw();
+    });
+  </script>
+</body>
+</html>

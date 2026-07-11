@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5 Poliedros de Platão em 3D</title>
+  <style id='page-skin-1' type='text/css'>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(15, 23, 42, 0.65);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-color: #6366f1;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --glass-blur: blur(16px);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      background: var(--bg-color);
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      -ms-text-size-adjust: none;
+    }
+
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.2s ease;
+      width: fit-content;
+    }
+    .back-link:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Sidebar styling */
+    .sidebar {
+      width: 360px;
+      background: var(--panel-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--panel-border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 10;
+      box-shadow: 10px 0 30px var(--shadow-color);
+      overflow-y: auto;
+    }
+
+    .header h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      background: linear-gradient(to right, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header .subtitle {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin: 4px 0 0 0;
+    }
+
+    /* Control groups and buttons */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .solid-btn {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      border: 1px solid var(--panel-border);
+      padding: 12px 16px;
+      text-align: left;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+    }
+
+    .solid-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--accent-gradient);
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.2s ease;
+    }
+
+    .solid-btn:hover {
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .solid-btn.active {
+      color: white;
+      border-color: transparent;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
+      z-index: 1;
+    }
+
+    .solid-btn.active::before {
+      opacity: 1;
+    }
+
+    /* Info Card */
+    .info-card {
+      background: rgba(2, 6, 23, 0.35);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .info-badge {
+      display: inline-block;
+      align-self: flex-start;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .info-type {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin: -4px 0 0 0;
+      font-weight: 600;
+    }
+
+    .info-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .info-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .stat-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      text-align: center;
+    }
+
+    .stat-item .stat-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stat-item .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .sidebar-footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Viewport Container */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+    }
+
+    #graph {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* Responsive design */
+    @media (max-width: 960px) {
+      .app-container {
+        flex-direction: column-reverse;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 45%;
+        min-height: 320px;
+        border-right: none;
+        border-top: 1px solid var(--panel-border);
+        box-shadow: 0 -10px 30px var(--shadow-color);
+        padding: 20px;
+        gap: 16px;
+      }
+      
+      .header {
+        display: none;
+      }
+      
+      .info-card {
+        margin-top: 0;
+        padding: 16px;
+        gap: 8px;
+      }
+
+      .info-stats {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+      }
+
+      .stat-item .stat-value {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Painel Lateral de Controle -->
+    <aside class="sidebar">
+      <a href="index.html" class="back-link">← Voltar ao menu</a>
+
+      <header class="header">
+        <h1>Poliedros de Platão</h1>
+        <p class="subtitle">Os 5 Sólidos Regulares Convexos</p>
+      </header>
+      
+      <!-- Grupo de Botões: Poliedros -->
+      <div class="control-group" id="group-solids">
+        <button class="solid-btn active" data-solid="0">Tetraedro</button>
+        <button class="solid-btn" data-solid="1">Cubo (Hexaedro)</button>
+        <button class="solid-btn" data-solid="2">Octaedro</button>
+        <button class="solid-btn" data-solid="3">Dodecaedro</button>
+        <button class="solid-btn" data-solid="4">Icosaedro</button>
+      </div>
+      
+      <!-- Cartão Informativo -->
+      <div class="info-card" id="info-card">
+        <h2 id="info-title">Tetraedro</h2>
+        <div class="info-badge" id="info-schlafli">{3, 3}</div>
+        <p id="info-subtitle" class="info-type">Sólido Platônico</p>
+        <p id="info-description" class="info-desc">O tetraedro é o mais simples dos poliedros de Platão, composto por 4 faces triangulares equiláteras. Seu nome vem do grego "tétra" (quatro) e "édra" (face). É o único poliedro regular que é dual de si mesmo.</p>
+        <div class="info-stats">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-faces">4</div>
+            <div class="stat-label">Faces</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-vertices">4</div>
+            <div class="stat-label">Vértices</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-edges">6</div>
+            <div class="stat-label">Arestas</div>
+          </div>
+        </div>
+      </div>
+      
+      <footer class="sidebar-footer">
+        Arraste ou mova o mouse para rotacionar o sólido
+      </footer>
+    </aside>
+    
+    <!-- Visualizador 3D -->
+    <main class="viewport-container">
+      <div id="graph"></div>
+    </main>
+  </div>
+
+  <script src="three.js"></script>
+  <script>
+    // Dicionário de informações sobre os poliedros de Platão
+    const solidInfo = {
+      "0": {
+        title: "Tetraedro",
+        subtitle: "Sólido Platônico",
+        description: "O tetraedro é o mais simples dos poliedros de Platão, composto por 4 faces triangulares equiláteras. Seu nome vem do grego 'tétra' (quatro) e 'édra' (face). É o único poliedro regular que é dual de si mesmo. Representa o elemento fogo na tradição filosófica grega.",
+        schlafli: "{3, 3}",
+        faces: 4,
+        vertices: 4,
+        edges: 6
+      },
+      "1": {
+        title: "Cubo (Hexaedro)",
+        subtitle: "Sólido Platônico",
+        description: "O cubo é composto por 6 faces quadradas congruentes. Seu nome vem do grego 'kýbos' (dado de jogar). É o mais intuitivo dos sólidos platônicos e o único que preenche o espaço por empilhamento regular. Representa o elemento terra na tradição filosófica grega.",
+        schlafli: "{4, 3}",
+        faces: 6,
+        vertices: 8,
+        edges: 12
+      },
+      "2": {
+        title: "Octaedro",
+        subtitle: "Sólido Platônico",
+        description: "O octaedro é composto por 8 faces triangulares equiláteras. Seu nome vem do grego 'októ' (oito) e 'édra' (face). É o dual do cubo: seus vértices correspondem aos centros das faces do cubo. Representa o elemento ar na tradição filosófica grega.",
+        schlafli: "{3, 4}",
+        faces: 8,
+        vertices: 6,
+        edges: 12
+      },
+      "3": {
+        title: "Dodecaedro",
+        subtitle: "Sólido Platônico",
+        description: "O dodecaedro é composto por 12 faces pentagonais regulares. Seu nome vem do grego 'dódeka' (doze) e 'édra' (face). É considerado o mais belo e harmonioso dos sólidos platônicos. Representa o elemento cosmos/universo na tradição filosófica grega.",
+        schlafli: "{5, 3}",
+        faces: 12,
+        vertices: 20,
+        edges: 30
+      },
+      "4": {
+        title: "Icosaedro",
+        subtitle: "Sólido Platônico",
+        description: "O icosaedro é composto por 20 faces triangulares equiláteras. Seu nome vem do grego 'eíkosi' (vinte) e 'édra' (face). É o dual do dodecaedro e possui o maior número de faces entre os sólidos platônicos. Representa o elemento água na tradição filosófica grega.",
+        schlafli: "{3, 5}",
+        faces: 20,
+        vertices: 12,
+        edges: 30
+      }
+    };
+
+    // Configurações do Three.js
+    var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+    var scene = new THREE.Scene();
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    camera.position.z = 5;
+    
+    // Material de normais com renderização em ambos os lados
+    var material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+    
+    var container = document.getElementById("graph");
+    scene.background = new THREE.Color(0x0b0f19);
+
+    // Ajuste responsivo de tamanho do renderizador e aspecto da câmera
+    function resize() {
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+    
+    container.appendChild(renderer.domElement);
+    resize();
+
+    // Função de construção dos poliedros
+    function buildSolid(index) {
+      // Remove todas as malhas existentes da cena
+      while (scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+      }
+
+      var mesh;
+
+      if (index == 0) {
+        // Tetraedro
+        var geo = new THREE.TetrahedronGeometry(2.5, 0);
+        mesh = new THREE.Mesh(geo, material);
+        scene.add(mesh);
+      } else if (index == 1) {
+        // Cubo
+        var geo = new THREE.BoxGeometry(2.8, 2.8, 2.8);
+        mesh = new THREE.Mesh(geo, material);
+        scene.add(mesh);
+      } else if (index == 2) {
+        // Octaedro
+        var geo = new THREE.OctahedronGeometry(2.8, 0);
+        mesh = new THREE.Mesh(geo, material);
+        scene.add(mesh);
+      } else if (index == 3) {
+        // Dodecaedro
+        var geo = new THREE.DodecahedronGeometry(2.2, 0);
+        mesh = new THREE.Mesh(geo, material);
+        scene.add(mesh);
+      } else if (index == 4) {
+        // Icosaedro
+        var geo = new THREE.IcosahedronGeometry(2.4, 0);
+        mesh = new THREE.Mesh(geo, material);
+        scene.add(mesh);
+      }
+
+      return mesh;
+    }
+
+    var currentSolid = 0;
+    var polyhedron = buildSolid(currentSolid);
+
+    var mouseX = 0;
+    var mouseY = 0;
+
+    // Atualização dos eixos com mouse
+    document.addEventListener('mousemove', (event) => {
+      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    // Atualização dos eixos com toque em mobile
+    document.addEventListener('touchmove', (event) => {
+      if (event.touches.length > 0) {
+        var touch = event.touches[0];
+        mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
+      }
+    }, { passive: true });
+
+    // Eventos de clique nos botões dos poliedros
+    const buttons = document.querySelectorAll('.solid-btn');
+    const infoTitle = document.getElementById('info-title');
+    const infoSchlafli = document.getElementById('info-schlafli');
+    const infoSubtitle = document.getElementById('info-subtitle');
+    const infoDescription = document.getElementById('info-description');
+    const statFaces = document.getElementById('stat-faces');
+    const statVertices = document.getElementById('stat-vertices');
+    const statEdges = document.getElementById('stat-edges');
+
+    function updateInfoCard(index) {
+      const data = solidInfo[index.toString()];
+      if (data) {
+        infoTitle.textContent = data.title;
+        infoSchlafli.textContent = data.schlafli;
+        infoSubtitle.textContent = data.subtitle;
+        infoDescription.textContent = data.description;
+        statFaces.textContent = data.faces;
+        statVertices.textContent = data.vertices;
+        statEdges.textContent = data.edges;
+      }
+    }
+
+    buttons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        buttons.forEach(function(b) { b.classList.remove('active'); });
+        this.classList.add('active');
+        currentSolid = parseInt(this.getAttribute('data-solid'));
+        polyhedron = buildSolid(currentSolid);
+        updateInfoCard(currentSolid);
+      });
+    });
+
+    // Loop de Animação
+    var animate = function () {
+      requestAnimationFrame(animate);
+
+      if (polyhedron) {
+        polyhedron.rotation.y = mouseX * Math.PI;
+        polyhedron.rotation.x = mouseY * Math.PI;
+      }
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Redimensionamento responsivo
+    window.addEventListener('resize', resize);
+  </script>
+</body>
+</html>
