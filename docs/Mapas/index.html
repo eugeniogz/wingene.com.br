@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Desafio do Caminho Oculto - 12 Mapas Fixos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="info">
+        <h1>MAPA #<span id="map-number">0</span></h1>
+        <h2>PONTOS: <span id="score-value">0</span></h2>
+        <h3>LANTERNAS: <span id="flashlight-value">🔦 🔦 🔦 🔦 🔦</span></h3>
+        <p>USE AS SETAS PARA LEVAR O 🐶 ATÉ A 🏡</p>
+    </div>
+
+    <div id="grid-container"></div>
+    <div id="message"></div>
+
+    <div id="controls">
+        <div class="btn-wrapper">
+            <svg class="progress-ring" width="80" height="80">
+                <circle id="ring-reiniciar" class="ring-circle" stroke="#2196F3" stroke-width="5" fill="transparent" r="35" cx="40" cy="40"/>
+            </svg>
+            <button id="btn-reiniciar" class="control-btn">REPETIR<br>MAPA</button>
+        </div>
+
+        <div class="btn-wrapper">
+            <svg class="progress-ring" width="80" height="80">
+                <circle id="ring-novo" class="ring-circle" stroke="#4CAF50" stroke-width="5" fill="transparent" r="35" cx="40" cy="40"/>
+            </svg>
+            <button id="btn-novo" class="control-btn">NOVO<br>MAPA</button>
+        </div>
+    </div>
+
+    <script src="gerarmapa.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

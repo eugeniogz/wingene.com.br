@@ -1,0 +1,50 @@
+body { font-family: sans-serif; margin: 0; }
+#print-container { display: flex; flex-wrap: wrap; gap: 0; justify-content: center; }
+.map-wrapper { 
+    width: 45%; 
+    break-inside: avoid; 
+    page-break-inside: avoid; 
+    margin-bottom: 0; 
+    margin-left: 0; /* Garante margem esquerda mínima */
+    overflow: visible;
+}
+.map-header { text-align: center; font-weight: bold; margin-bottom: 5px; }
+.grid-container { 
+    display: grid; 
+    grid-template-columns: repeat(8, 40px);
+    grid-template-rows: repeat(8, 40px);
+    border: 2px solid #000;
+    margin: 0 auto; 
+    position: relative; /* Para posicionar as linhas laterais */
+}
+.cell { 
+    width: 40px;
+    height: 40px;
+    border: 1px solid #000; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 24px;
+    box-sizing: border-box;
+    line-height: 1; 
+}
+
+/* Linhas laterais estendidas para o topo e fim da página */
+.grid-container::before, .grid-container::after {
+    content: '';
+    position: absolute;
+    top: -5mm; bottom: -5mm;
+    width: 2px;
+    background-color: #000;
+    z-index: 1;
+}
+.grid-container::before { left: -2px; }
+.grid-container::after { right: -2px; }
+
+@media print {
+    @page {
+        size: A4;
+        margin: 5mm; 
+    }
+    .map-wrapper { width: 45%; margin-left: 0; }
+}

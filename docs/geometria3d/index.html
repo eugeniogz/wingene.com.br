@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEOMETRIA 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+
+        #tutorial {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="tutorial">
+    </div>
+    <script type="module">
+        import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.module.js';
+
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        let mobile = /iPhone|iPad|iPod|Android|BlackBerry|Windows Phone/i.test(userAgent);
+        if (!mobile) {
+            document.getElementById("tutorial").innerHTML = 
+            "<p><b>MOUSE:</b> MOVA PARA ROTACIONAR A FIGURA 3 D</p>" +
+            "<p><b>TECLA ESPAÇO:</b> TROCA A GEOMETRIA DA FIGURA ENTRE ESFERA, CONE, CILINDRO, CUBO E PIRÂMIDE</p>"+
+            "<p><b>TECLA +:</b> AVANÇA PARA A PRÓXIMA TEXTURA</p>"+
+            "<p><b>TECLA -:</b> VOLTA PARA A TEXTURA ANTERIOR</p>";
+        } else {
+            document.getElementById("tutorial").innerHTML = 
+            "<p><b>ARRASTAR:</b> MOVER PARA ROTACIONAR A FIGURA 3D</p>"+
+            "<p><b>TOQUE SIMPLES</b> MUDA A TEXTURA</p>"+
+            "<p><b>TOQUE COM DOIS DEDOS:</b> TROCA A GEOMETRIA DA FIGURA ENTRE ESFERA, CONE, CILINDRO, CUBO E PIRÂMIDE</p>"; 
+        }
+        // Scene setup
+        const scene = new THREE.Scene();
+        const raycaster = new THREE.Raycaster();
+        // Camera setup
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        // Renderer setup
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const textureLoader = new THREE.TextureLoader();
+        const textureUrls =
+            [
+                "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+                "https://threejs.org/examples/textures/brick_diffuse.jpg",
+                "https://threejs.org/examples/textures/terrain/grasslight-big.jpg",
+                "https://threejs.org/examples/textures/waternormals.jpg",
+                "https://threejs.org/examples/textures/planets/earth_specular_2048.jpg",
+                "https://threejs.org/examples/textures/planets/moon_1024.jpg",
+                "Beatriz.png",
+                "Arthur.png",
+                "Lorenzo.png",
+                "Lucca.png",
+                "Nicole1.png",
+                "Nicole2.png",
+                "Pedro1.png",
+                "Pedro2.png"
+                //"https://threejs.org/examples/textures/checker.png"
+            ];
+        let currentTextureIndex = 0;
+
+        const texture = textureLoader.load(textureUrls[0]); // URL da textura
+        const geometries = [new THREE.SphereGeometry(1, 32, 32),
+        new THREE.ConeGeometry(1, 2, 32),
+        new THREE.CylinderGeometry(1, 1, 2, 32),
+        new THREE.BoxGeometry(2, 2, 2),
+        new THREE.ConeGeometry(1, 2, 4)];
+        let currentGeometryIndex = 0;
+        let geometry = geometries[0];
+
+
+        // Aplicando a textura ao material
+        const material = new THREE.MeshBasicMaterial({ map: texture });
+
+        let mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        // Variables to track mouse position
+        let mouseX = 0;
+        let mouseY = 0;
+        
+        // Variables for touch gestures
+        let isTouching = false;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let lastTap = 0;
+
+        // Function to handle single tap (texture change)
+        function handleSingleTap() {
+            if (currentTextureIndex>=textureUrls.length) {
+                currentTextureIndex=0;
+                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
+            material.needsUpdate = true;
+            } else 
+                changeTexture(1);
+        }
+
+        // Function to handle double tap (geometry change)
+        function handleDoubleTap() {
+            changeGeometry();
+        }
+
+         // Change texture
+         function changeTexture(direction) {
+            currentTextureIndex = (currentTextureIndex + direction + textureUrls.length) % textureUrls.length;
+            material.map = textureLoader.load(textureUrls[currentTextureIndex]);
+            material.needsUpdate = true;
+        }
+
+        // Change geometry
+        function changeGeometry() {
+            currentGeometryIndex = (currentGeometryIndex + 1) % geometries.length;
+            scene.remove(mesh);
+            geometry = geometries[currentGeometryIndex];
+            mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+        }
+
+
+        // Handle touch events for rotation and pinch zoom
+        document.addEventListener('touchstart', (event) => {
+            if (event.touches.length === 1) {
+                event.preventDefault();
+                handleSingleTap();
+                isTouching = true;
+                lastTouchX = event.touches[0].clientX;
+                lastTouchY = event.touches[0].clientY;
+            } else if (event.touches.length === 2) {
+                event.preventDefault();
+                handleDoubleTap();
+            }
+        });
+
+        document.addEventListener('touchmove', (event) => {
+            if (event.touches.length === 1 && isTouching) {
+                event.preventDefault();
+                // Rotation based on single touch move
+                const deltaX = event.touches[0].clientX - lastTouchX;
+                const deltaY = event.touches[0].clientY - lastTouchY;
+
+                mesh.rotation.y += deltaX * 0.01;
+                mesh.rotation.x += deltaY * 0.01;
+
+                lastTouchX = event.touches[0].clientX;
+                lastTouchY = event.touches[0].clientY;
+            } else if (event.touches.length === 2) {
+                event.preventDefault();
+                // Pinch zoom handling
+                // const newDistance = getDistance(event.touches[0], event.touches[1]);
+                // const zoomFactor = newDistance - touchZoomDistance;
+                // camera.position.z -= zoomFactor * 0.01;
+                // touchZoomDistance = newDistance;
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isTouching = false;
+        });
+
+        // Helper function to calculate the distance between two touch points
+        function getDistance(touch1, touch2) {
+            const dx = touch2.clientX - touch1.clientX;
+            const dy = touch2.clientY - touch1.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        // Event listener for keydown to switch textures
+        document.addEventListener('keydown', (event) => {
+            if (event.key === '+') {
+                currentTextureIndex = (currentTextureIndex + 1) % textureUrls.length;
+                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
+                material.needsUpdate = true;
+            } else if (event.key === '-') {
+                currentTextureIndex =
+                    (currentTextureIndex - 1 + textureUrls.length) % textureUrls.length;
+                material.map = textureLoader.load(textureUrls[currentTextureIndex]);
+                material.needsUpdate = true;
+            }
+            else if (event.key === ' ') {
+                currentGeometryIndex++;
+                if (currentGeometryIndex > geometries.length - 1) currentGeometryIndex = 0;
+                scene.remove(mesh);
+                geometry = geometries[currentGeometryIndex];
+                mesh = new THREE.Mesh(geometry, material);
+                scene.add(mesh);
+            }
+        });
+
+        // Event listener to update mouse position
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!mobile) {
+                // Rotate the cone based on mouse position
+                mesh.rotation.x = mouseY * Math.PI;
+                mesh.rotation.y = mouseX * Math.PI;
+            }
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+
+        // Responsividade ao redimensionar a janela
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+
+        
+    </script>
+</body>
+
+</html>
