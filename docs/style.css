@@ -687,6 +687,7 @@ h1, h2, h3, h4 {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    text-decoration: none;
 }
 
 .vida-card h3 {
@@ -708,6 +709,10 @@ h1, h2, h3, h4 {
     color: var(--text-secondary);
     margin-bottom: 2rem;
     flex-grow: 1;
+}
+
+.vida-card p:last-child {
+    margin-bottom: 0;
 }
 
 .card-pillar-tag {
