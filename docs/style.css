@@ -823,6 +823,8 @@ h1, h2, h3, h4 {
 .topic-card {
     padding: 1.8rem;
     border-radius: 12px;
+    display: block;
+    text-decoration: none;
 }
 
 .topic-card h4 {
@@ -836,6 +838,10 @@ h1, h2, h3, h4 {
     color: var(--text-secondary);
     margin-bottom: 1.2rem;
     min-height: 54px; /* Garante alinhamento dos links */
+}
+
+.topic-card p:last-child {
+    margin-bottom: 0;
 }
 
 .btn-text {
@@ -1063,5 +1069,26 @@ h1, h2, h3, h4 {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Microanimação de seta nos cards */
+.card-arrow {
+    display: inline-block;
+    transition: transform var(--transition-quick);
+    margin-left: 0.35rem;
+    color: inherit;
+}
+
+.vida-card:hover .card-arrow, .topic-card:hover .card-arrow {
+    transform: translateX(4px);
+}
+
+/* Feedback tátil ao toque em dispositivos móveis */
+@media (hover: none) {
+    .vida-card:active, .topic-card:active {
+        transform: scale(0.98);
+        background: var(--bg-card-hover);
+        border-color: var(--border-glass-hover);
     }
 }

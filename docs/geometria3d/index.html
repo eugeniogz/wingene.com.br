@@ -166,18 +166,21 @@
     }
 
     .card-arrow {
-      align-self: flex-start;
-      font-size: 13px;
-      font-weight: 700;
+      display: inline-block;
+      transition: transform 0.2s ease;
+      margin-left: 0.35rem;
       color: #818cf8;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: gap 0.2s ease;
     }
 
     .menu-card:hover .card-arrow {
-      gap: 10px;
+      transform: translateX(4px);
+    }
+
+    @media (hover: none) {
+      .menu-card:active {
+        transform: scale(0.98);
+        background: rgba(15, 23, 42, 0.65);
+      }
     }
 
     .footer {
@@ -199,29 +202,25 @@
       
       <a href="polygons.html" class="menu-card">
         <div class="card-icon">⬡</div>
-        <h2 class="card-title">Polígonos 2D</h2>
+        <h2 class="card-title">Polígonos 2D <span class="card-arrow">→</span></h2>
         <p class="card-desc">Visualizador e gerador bidimensional de polígonos e estrelas regulares usando desenho em canvas HTML5.</p>
-        <span class="card-arrow">Explorar 2D <span>→</span></span>
       </a>
       <a href="basicPoly.html" class="menu-card">
         <div class="card-icon">■</div>
-        <h2 class="card-title">Formas Básicas & Texturas</h2>
+        <h2 class="card-title">Formas Básicas & Texturas <span class="card-arrow">→</span></h2>
         <p class="card-desc">Esfera, Cone, Cilindro, Cubo e Pirâmide revestidos com diferentes materiais, incluindo desenhos infantis, texturas da Terra e da Lua.</p>
-        <span class="card-arrow">Explorar 3D <span>→</span></span>
       </a>
 
       <a href="platoPoly.html" class="menu-card">
         <div class="card-icon">▲</div>
-        <h2 class="card-title">Poliedros de Platão</h2>
+        <h2 class="card-title">Poliedros de Platão <span class="card-arrow">→</span></h2>
         <p class="card-desc">Os 5 sólidos regulares convexos: Tetraedro, Cubo, Octaedro, Dodecaedro e Icosaedro. Explore sua simetria e dualidades clássicas.</p>
-        <span class="card-arrow">Explorar 3D <span>→</span></span>
       </a>
 
       <a href="compositePoly.html" class="menu-card">
         <div class="card-icon">★</div>
-        <h2 class="card-title">Estrelas & Compostos</h2>
+        <h2 class="card-title">Estrelas & Compostos <span class="card-arrow">→</span></h2>
         <p class="card-desc">Compostos de interpenetração clássicos (como a Stella Octangula) e os 4 sólidos regulares estrelados de Kepler-Poinsot.</p>
-        <span class="card-arrow">Explorar 3D <span>→</span></span>
       </a>
     </main>
 
