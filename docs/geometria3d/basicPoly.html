@@ -2,7 +2,7 @@
 <html xmlns='http://www.w3.org/1999/xhtml'>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Geometrias Básicas e Texturas em 3D</title>
   <style id='page-skin-1' type='text/css'>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
@@ -33,6 +33,7 @@
       padding: 0;
       margin: 0;
       height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       -webkit-text-size-adjust: none;
       -moz-text-size-adjust: none;
@@ -43,6 +44,7 @@
       display: flex;
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
       position: relative;
     }
 
@@ -60,6 +62,7 @@
       background: rgba(255, 255, 255, 0.03);
       transition: all 0.2s ease;
       width: fit-content;
+      flex-shrink: 0;
     }
     .back-link:hover {
       color: var(--text-primary);
@@ -77,10 +80,11 @@
       padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 12px;
       z-index: 10;
       box-shadow: 10px 0 30px var(--shadow-color);
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .sidebar::-webkit-scrollbar {
@@ -116,9 +120,10 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-primary);
-      margin: 10px 0 5px 0;
+      margin: 4px 0 2px 0;
       opacity: 0.8;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     /* Control groups and buttons */
@@ -132,6 +137,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
+      flex-shrink: 0;
     }
 
     .btn {
@@ -150,6 +156,8 @@
       overflow: hidden;
       outline: none;
       flex-shrink: 0;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .btn::before {
@@ -179,16 +187,25 @@
       opacity: 1;
     }
 
+    /* Texture list - scrollable */
+    #group-textures {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 60px;
+      padding-right: 4px;
+    }
+
     /* Info Card */
     .info-card {
       background: rgba(2, 6, 23, 0.35);
       border: 1px solid var(--panel-border);
       border-radius: var(--radius-lg);
       padding: 18px;
-      margin-top: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      flex-shrink: 0;
     }
 
     .info-card h2 {
@@ -233,6 +250,7 @@
       opacity: 0.6;
       padding-top: 8px;
       border-top: 1px solid rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
     }
 
     /* Viewport Container */
@@ -250,20 +268,22 @@
     }
 
     /* Responsive design */
-    @media (max-width: 960px) {
+    @media (max-width: 960px), (pointer: coarse) and (max-width: 1024px) {
       .app-container {
         flex-direction: column-reverse;
       }
       
       .sidebar {
         width: 100%;
-        height: 50%;
+        height: 55%;
         min-height: 380px;
+        max-height: 55vh;
+        max-height: 55dvh;
         border-right: none;
         border-top: 1px solid var(--panel-border);
         box-shadow: 0 -10px 30px var(--shadow-color);
-        padding: 20px;
-        gap: 12px;
+        padding: 14px;
+        gap: 8px;
       }
       
       .header {
@@ -271,9 +291,35 @@
       }
       
       .info-card {
-        margin-top: 0;
-        padding: 14px;
-        gap: 6px;
+        padding: 10px;
+        gap: 4px;
+      }
+
+      .info-card h2 {
+        font-size: 15px;
+      }
+
+      .info-desc {
+        font-size: 12px;
+        display: none;
+      }
+
+      .sidebar-footer {
+        display: none;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+
+      #group-textures {
+        flex: 1 1 auto;
+        min-height: 40px;
+      }
+
+      .section-title {
+        margin: 2px 0;
       }
     }
   </style>
@@ -300,7 +346,7 @@
       </div>
 
       <div class="section-title">2. Textura</div>
-      <div class="control-group" id="group-textures" style="max-height: 200px; overflow-y: auto; padding-right: 4px;">
+      <div class="control-group" id="group-textures">
         <button class="btn active" data-tex="0">Terra</button>
         <button class="btn" data-tex="1">Tijolo</button>
         <button class="btn" data-tex="2">Grama</button>
@@ -407,6 +453,8 @@
       mesh = new THREE.Mesh(geometries[currentGeometryIndex], material);
       scene.add(mesh);
       updateInfo();
+      // Scroll texture list to top when geometry changes
+      document.getElementById('group-textures').scrollTop = 0;
     }
 
     function updateTexture(texIndex) {
@@ -458,7 +506,7 @@
       });
     });
 
-    // Teclado (suporte mantido por retrocompatibilidade)
+    // Teclado
     document.addEventListener('keydown', (event) => {
       if (event.key === '+') {
         let nextTex = (currentTextureIndex + 1) % textureUrls.length;

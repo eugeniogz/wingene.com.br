@@ -165,6 +165,21 @@ function setupLongPress(btnId, ringId, callback) {
 
 setupLongPress('btn-reiniciar', 'ring-reiniciar', () => initGame(false, false));
 setupLongPress('btn-novo', 'ring-novo', () => initGame(true, false));
+
+// D-Pad para celular
+function simulateKey(key) {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: key }));
+}
+
+document.getElementById('dpad-up').addEventListener('click', () => simulateKey('ArrowUp'));
+document.getElementById('dpad-down').addEventListener('click', () => simulateKey('ArrowDown'));
+document.getElementById('dpad-left').addEventListener('click', () => simulateKey('ArrowLeft'));
+document.getElementById('dpad-right').addEventListener('click', () => simulateKey('ArrowRight'));
+
+// Previne rolagem da página ao tocar no D-Pad
+document.getElementById('dpad').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+}, { passive: false });
 document.onkeydown = function (e) {
     // Bloqueia as teclas de função (F1-F12) usando a propriedade 'key' em vez da obsoleta 'keyCode'.
     if (/^F([1-9]|1[0-2])$/.test(e.key)) return false;
