@@ -50,17 +50,26 @@ document.addEventListener('DOMContentLoaded', () => {
   renderApp();
   setupPwaInstallation();
 
-  // Registrar retorno do Google Drive
+  // Registrar retorno do Google Drive com inteligência de sincronização por data
   window.onDriveDataLoaded = (remoteData) => {
     if (remoteData && (Array.isArray(remoteData.rendaFixa) || Array.isArray(remoteData.acoes))) {
-      appState = {
-        rendaFixa: remoteData.rendaFixa || [],
-        acoes: remoteData.acoes || [],
-        lastUpdated: remoteData.lastUpdated || new Date().toISOString()
-      };
-      saveLocalState(false);
-      renderApp();
-      showToast('Dados sincronizados com o Google Drive!', 'success');
+      const localTime = new Date(appState.lastUpdated || 0).getTime();
+      const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+
+      // Só substitui os dados se o arquivo do Drive for mais recente que as edições locais
+      if (remoteTime >= localTime || (!appState.rendaFixa.length && !appState.acoes.length)) {
+        appState = {
+          rendaFixa: remoteData.rendaFixa || [],
+          acoes: remoteData.acoes || [],
+          lastUpdated: remoteData.lastUpdated || new Date().toISOString()
+        };
+        saveLocalState(false);
+        renderApp();
+        showToast('Dados sincronizados com o Google Drive!', 'success');
+      } else {
+        console.log('Dados locais mais recentes detectados. Enviando atualização para o Google Drive...');
+        saveToDrive(appState);
+      }
     }
   };
 });
