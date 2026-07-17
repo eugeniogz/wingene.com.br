@@ -44,6 +44,7 @@ function initGoogleAuth(clientId = null) {
       if (tokenResponse.error) {
         console.error('Erro de Autenticação Google:', tokenResponse);
         updateDriveUIStatus('Erro na Autenticação', true);
+        showToast('Erro de autenticação no Google: ' + (tokenResponse.error_description || tokenResponse.error), 'error');
         return;
       }
       accessToken = tokenResponse.access_token;
@@ -51,10 +52,21 @@ function initGoogleAuth(clientId = null) {
       
       // Obter dados do usuário
       await fetchGoogleUserInfo();
-      updateDriveUIStatus(`Conectado como ${googleUser ? googleUser.name : 'Google Drive'}`);
+      updateDriveUIStatus(`Conectado como ${googleUser ? (googleUser.name || googleUser.email) : 'Google Drive'}`);
       
       // Tentar carregar dados salvos no Drive automaticamente
       await syncFromDrive();
+    },
+    error_callback: (error) => {
+      console.error('GIS Error Callback:', error);
+      updateDriveUIStatus('Erro ao abrir Login Google', true);
+      if (error.type === 'popup_closed') {
+        showToast('Janela de login do Google fechada antes de concluir.', 'warning');
+      } else if (error.type === 'popup_failed_to_open') {
+        showToast('Pop-up bloqueado pelo navegador mobile. Habilite pop-ups para fazer login.', 'error');
+      } else {
+        showToast('Falha no Google Auth. Verifique se o domínio está autorizado no Google Cloud Console.', 'error');
+      }
     }
   });
 
@@ -81,7 +93,8 @@ function requestGoogleLogin() {
   }
 
   if (tokenClient) {
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    // Usar prompt: '' no mobile para evitar exigir consentimento forçado a cada login (evita tela branca em PWAs/Safari Mobile)
+    tokenClient.requestAccessToken({ prompt: '' });
   } else {
     initGoogleAuth();
     if (tokenClient) tokenClient.requestAccessToken({ prompt: '' });
