@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="WinGene Investimentos — Acompanhamento de Renda Fixa, Carteira de Ações, Percentuais e Metas de Rebalanceamento com Sincronização Google Drive." />
+  <meta name="theme-color" content="#0f0f13" />
+
+  <title>WinGene Investimentos — Carteira & Metas</title>
+
+  <!-- Google Fonts & Favicon -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Estilos da Aplicação -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <!-- CABEÇALHO PRINCIPAL DA PWA -->
+  <header class="app-header">
+    <div class="header-container">
+      <a href="../index.html" class="brand-area">
+        <img src="icon.svg" alt="WinGene Icon" class="brand-logo-img" />
+        <div>
+          <div class="brand-title">WINGENE</div>
+          <div class="brand-subtitle">Investimentos & Rebalanceamento</div>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <span id="driveSyncStatus" class="drive-status-badge">Carregando...</span>
+        
+        <div id="googleUserContainer"></div>
+        
+        <button id="btnGoogleLogin" class="btn btn-secondary" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+          Conectar Drive
+        </button>
+
+        <button id="btnGoogleLogout" class="btn btn-secondary" style="display: none;">Sair</button>
+        <button id="btnInstallPwa" class="btn btn-primary" style="display: none;">📥 Instalar App</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="app-container">
+
+    <!-- NAVEGAÇÃO POR ABAS -->
+    <nav class="tab-navigation" aria-label="Abas de Navegação">
+      <button class="tab-btn active" data-tab="overview">📊 Visão Geral</button>
+      <button class="tab-btn" data-tab="rendafixa">💰 Renda Fixa</button>
+      <button class="tab-btn" data-tab="acoes">📈 Carteira de Ações</button>
+      <button class="tab-btn" data-tab="rebalanceamento">🎯 Metas & Rebalanceamento</button>
+      <button class="tab-btn" data-tab="config">⚙️ Google Drive & Config</button>
+    </nav>
+
+    <!-- ABA 1: VISÃO GERAL -->
+    <section id="tab-overview" class="tab-pane active">
+      <div class="grid-stats">
+        <div class="stat-card primary">
+          <div class="stat-label">Patrimônio Total</div>
+          <div id="statPatrimonioTotal" class="stat-value">R$ 0,00</div>
+          <div class="stat-subvalue">Atualizado em <span id="lastUpdatedSpan">-</span></div>
+        </div>
+
+        <div class="stat-card green">
+          <div class="stat-label">Renda Fixa</div>
+          <div id="statRendaFixaTotal" class="stat-value">R$ 0,00</div>
+          <div id="statRendaFixaPct" class="stat-subvalue">0% do Patrimônio</div>
+        </div>
+
+        <div class="stat-card gold">
+          <div class="stat-label">Carteira de Ações</div>
+          <div id="statAcoesTotal" class="stat-value">R$ 0,00</div>
+          <div id="statAcoesPct" class="stat-subvalue">0% do Patrimônio</div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-title mb-3">Alocação de Ativos</div>
+          <div id="chartAssetAllocation"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title mb-3">Distribuição por Ação</div>
+          <div id="chartStockBreakdown"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: RENDA FIXA -->
+    <section id="tab-rendafixa" class="tab-pane">
+      <div class="card">
+        <div class="card-header-flex">
+          <div>
+            <h2 class="card-title">Ativos de Renda Fixa</h2>
+            <p class="text-muted text-small">RDB, Fundos de Investimento, Tesouro Direto, CDB, etc.</p>
+          </div>
+          <button id="btnAddRendaFixa" class="btn btn-primary">+ Novo Ativo de Renda Fixa</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Emissor / Corretora</th>
+                <th>Nome do Ativo</th>
+                <th>Taxa / Rendimento</th>
+                <th class="text-right">Valor Atual (R$)</th>
+                <th class="text-right">Data Atualização</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyRendaFixa"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-right"><strong>Total Investido em Renda Fixa:</strong></td>
+                <td class="text-right"><strong id="totalRfFooter" class="text-success">R$ 0,00</strong></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 3: CARTEIRA DE AÇÕES -->
+    <section id="tab-acoes" class="tab-pane">
+      <div class="card">
+        <div class="card-header-flex">
+          <div>
+            <h2 class="card-title">Carteira de Ações</h2>
+            <p class="text-muted text-small">Acompanhe quantidade, valor unitário, valor total e participação percentual.</p>
+          </div>
+          <button id="btnAddAcao" class="btn btn-primary">+ Cadastrar Ação</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Código (Ticker)</th>
+                <th>Empresa</th>
+                <th class="text-right">Quantidade</th>
+                <th class="text-right">Valor Unit. (R$)</th>
+                <th class="text-right">Valor Total (R$)</th>
+                <th class="text-right">% Atual</th>
+                <th class="text-right">Meta (%)</th>
+                <th class="text-right">Data Cadastro</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyAcoes"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-right"><strong>Total em Ações:</strong></td>
+                <td class="text-right"><strong id="totalAcoesFooter" class="text-primary">R$ 0,00</strong></td>
+                <td colspan="4"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 4: REBALANCEAMENTO & METAS -->
+    <section id="tab-rebalanceamento" class="tab-pane">
+      <div class="card">
+        <div class="card-title">Plano de Rebalanceamento por Metas</div>
+        <p class="text-muted text-small mb-3">Defina o % ideal para cada ação na carteira. O sistema calcula a diferença e indica a necessidade de aporte.</p>
+        
+        <div id="alertMetasTotal" class="card" style="display: none; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);"></div>
+
+        <div id="rebalanceamentoContainer"></div>
+      </div>
+    </section>
+
+    <!-- ABA 5: GOOGLE DRIVE & CONFIGURAÇÕES -->
+    <section id="tab-config" class="tab-pane">
+      <div class="card">
+        <h2 class="card-title mb-2">☁️ Sincronização Google Drive</h2>
+        <p class="text-muted text-small mb-4">Seus dados financeiros são salvos diretamente em um arquivo privado (<code>wingene_investimentos_data.json</code>) na pasta oculta <code>appDataFolder</code> da sua própria conta do Google Drive.</p>
+
+        <div class="form-group">
+          <label class="form-label">Google OAuth Client ID (Opcional se desejar configurar Client ID personalizado)</label>
+          <input type="text" id="cfgClientId" class="form-control" placeholder="ex: 123456789-abcdef.apps.googleusercontent.com" />
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button id="btnForceDriveSync" class="btn btn-secondary">🔄 Sincronizar com o Drive Agora</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title mb-2">💾 Backup Local & Importar/Exportar JSON</h2>
+        <p class="text-muted text-small mb-4">Caso prefira gerenciar arquivos manualmente ou trabalhar 100% offline.</p>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <button id="btnExportJson" class="btn btn-secondary">⬇️ Exportar Backup JSON</button>
+          <button id="btnImportJsonTrigger" class="btn btn-secondary">⬆️ Importar Backup JSON</button>
+          <input type="file" id="fileImportJson" accept=".json" style="display: none;" />
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CADASTRAR/EDITAR RENDA FIXA -->
+  <div id="modalRendaFixa" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalRfTitle" class="modal-title">Ativo de Renda Fixa</h3>
+        <button class="btn-icon" onclick="closeRendaFixaModal()">✕</button>
+      </div>
+      <form id="formRendaFixa">
+        <input type="hidden" id="rfId" />
+        <div class="form-group">
+          <label class="form-label">Tipo de Aplicação</label>
+          <select id="rfTipo" class="form-control">
+            <option value="RDB">RDB</option>
+            <option value="Fundos de Investimento">Fundo de Investimento</option>
+            <option value="Tesouro Direto">Tesouro Direto</option>
+            <option value="CDB">CDB</option>
+            <option value="LCI/LCA">LCI / LCA</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instituição / Emissor *</label>
+          <input type="text" id="rfEmissor" class="form-control" placeholder="ex: Banco Nubank, XP, Tesouro Nacional" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do Ativo *</label>
+          <input type="text" id="rfNome" class="form-control" placeholder="ex: RDB Liquidez Diária, Tesouro IPCA+ 2035" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor Atual Aplicado (R$) *</label>
+          <input type="number" step="0.01" id="rfValor" class="form-control" placeholder="0.00" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Taxa / Rendimento (Opcional)</label>
+          <input type="text" id="rfTaxa" class="form-control" placeholder="ex: 100% CDI, IPCA + 6.2%" />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeRendaFixaModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRAR/EDITAR AÇÃO -->
+  <div id="modalAcao" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalAcaoTitle" class="modal-title">Cadastrar Ação</h3>
+        <button class="btn-icon" onclick="closeAcaoModal()">✕</button>
+      </div>
+      <form id="formAcao">
+        <input type="hidden" id="acaoId" />
+        <div class="form-group">
+          <label class="form-label">Código / Ticker da Ação *</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="acaoTicker" class="form-control" placeholder="ex: PETR4, VALE3, ITUB4" required style="text-transform: uppercase;" />
+            <button type="button" id="btnFetchPrice" class="btn btn-secondary" title="Buscar cotação atual">🔍 Buscar</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome da Empresa / Ativo *</label>
+          <input type="text" id="acaoNome" class="form-control" placeholder="ex: Petrobras PN" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantidade de Ações *</label>
+          <input type="number" step="1" id="acaoQuantidade" class="form-control" placeholder="0" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor Unitário Atual (R$) *</label>
+          <input type="number" step="0.01" id="acaoPreco" class="form-control" placeholder="0.00" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meta (%) na Carteira de Ações</label>
+          <input type="number" step="0.1" id="acaoMeta" class="form-control" placeholder="ex: 20" required />
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAcaoModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar Ação</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts da Aplicação -->
+  <script src="drive-sync.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

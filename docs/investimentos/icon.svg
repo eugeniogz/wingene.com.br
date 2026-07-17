@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1f1b2e" />
+      <stop offset="100%" stop-color="#0f0f13" />
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fundo Circular -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)" />
+  <rect width="496" height="496" x="8" y="8" rx="92" fill="none" stroke="rgba(255, 255, 255, 0.1)" stroke-width="4" />
+
+  <!-- Estrela WinGene (Geometria 12 vértices simplificada) -->
+  <g transform="translate(256, 210) scale(1.6)">
+    <!-- Diamante Central Decisões -->
+    <polygon points="0,-75 75,0 0,75 -75,0" fill="#10b981" opacity="0.85" />
+    <!-- Estrela Valores -->
+    <polygon points="0,-85 24,-24 85,0 24,24 0,85 -24,24 -85,0 -24,-24" fill="#b01010" opacity="0.7" />
+    <circle cx="0" cy="0" r="28" fill="#0f0f13" />
+    <circle cx="0" cy="0" r="16" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Gráfico de Tendência e Crescimento da Carteira -->
+  <path d="M 96 380 L 192 310 L 272 340 L 416 210" fill="none" stroke="url(#greenGrad)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  <polygon points="416,210 370,210 416,256" fill="#10b981" />
+
+  <!-- Texto WinGene Invest -->
+  <text x="256" y="445" font-family="'Outfit', sans-serif" font-weight="800" font-size="38" fill="#ffffff" text-anchor="middle" letter-spacing="2">INVESTIMENTOS</text>
+</svg>
