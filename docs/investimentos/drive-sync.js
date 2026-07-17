@@ -395,48 +395,157 @@ function logoutGoogleDrive() {
   updateDriveUIStatus('Desconectado do Google Drive');
 }
 
+// Fallback do helper escapeHtml caso drive-sync carregue antes do app.js
+if (typeof escapeHtml !== 'function') {
+  window.escapeHtml = function(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+}
+
+let currentSyncStatus = { message: 'Conectado ao Drive', isError: false, isSuccess: true, isSyncing: false };
+
 /**
- * Atualiza o status visual da integração no cabeçalho/sidebar
+ * Atualiza o status visual da integração no badge do avatar e no menu dropdown
  */
 function updateDriveUIStatus(message, isError = false, isSuccess = false) {
+  const msgLower = (message || '').toLowerCase();
+  const isSyncing = msgLower.includes('sincronizando') || msgLower.includes('enviando');
+  currentSyncStatus = { message, isError, isSuccess, isSyncing };
+
+  // Atualiza mensagem no menu dropdown do usuário
   const statusEl = document.getElementById('driveSyncStatus');
   if (statusEl) {
     statusEl.textContent = message;
-    statusEl.className = 'drive-status-badge ' + (isError ? 'error' : isSuccess ? 'success' : 'info');
+    statusEl.className = 'user-dropdown-status ' + (isError ? 'error' : isSuccess ? 'success' : isSyncing ? 'syncing' : 'info');
+  }
+
+  // Atualiza estado do badge circular no avatar
+  const avatarBadge = document.getElementById('avatarStatusBadge');
+  if (avatarBadge) {
+    avatarBadge.className = 'avatar-status-badge ' + (isSyncing ? 'is-syncing' : isError ? 'is-error' : 'is-success');
+    avatarBadge.title = message;
   }
 }
 
 /**
- * Renderiza informações do perfil do usuário logado
+ * Alterna a visibilidade do menu dropdown do perfil
+ */
+function toggleUserDropdown(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('userDropdownMenu');
+  const btn = document.getElementById('btnUserAvatar');
+  if (dropdown) {
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    if (btn) btn.setAttribute('aria-expanded', !isVisible);
+  }
+}
+
+/**
+ * Fecha o menu dropdown do perfil
+ */
+function closeUserDropdown() {
+  const dropdown = document.getElementById('userDropdownMenu');
+  const btn = document.getElementById('btnUserAvatar');
+  if (dropdown) {
+    dropdown.style.display = 'none';
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
+/**
+ * Navega para a aba de configurações
+ */
+function switchToConfigTab() {
+  const configBtn = document.querySelector('.tab-btn[data-tab="config"]');
+  if (configBtn) configBtn.click();
+}
+
+/**
+ * Renderiza informações do perfil do usuário logado (Avatar Circular + Dropdown)
  */
 function renderUserProfileUI() {
   const userContainer = document.getElementById('googleUserContainer');
   const loginBtn = document.getElementById('btnGoogleLogin');
   const loginBtnConfig = document.getElementById('btnGoogleLoginConfig');
-  const logoutBtn = document.getElementById('btnGoogleLogout');
 
   if (accessToken) {
     if (userContainer) {
-      if (googleUser && googleUser.email) {
-        userContainer.innerHTML = `
-          <div class="user-email-badge">
-            <span class="user-email-text">${escapeHtml(googleUser.email)}</span>
+      const userName = googleUser ? (googleUser.name || 'Conta Google') : 'Conta Google';
+      const userEmail = googleUser ? (googleUser.email || '') : '';
+      const userPicture = googleUser ? googleUser.picture : null;
+      const initialLetter = (userName ? userName[0] : 'G').toUpperCase();
+
+      const badgeClass = currentSyncStatus.isSyncing ? 'is-syncing' : currentSyncStatus.isError ? 'is-error' : 'is-success';
+      const statusClass = currentSyncStatus.isError ? 'error' : currentSyncStatus.isSuccess ? 'success' : currentSyncStatus.isSyncing ? 'syncing' : 'info';
+
+      userContainer.innerHTML = `
+        <div class="user-profile-wrapper" id="userProfileWrapper">
+          <button type="button" class="user-avatar-btn" id="btnUserAvatar" onclick="toggleUserDropdown(event)" aria-label="Perfil de ${escapeHtml(userName)}" aria-expanded="false">
+            ${userPicture ? `
+              <img src="${escapeHtml(userPicture)}" alt="${escapeHtml(userName)}" class="user-avatar-img" />
+            ` : `
+              <div class="user-avatar-fallback">${escapeHtml(initialLetter)}</div>
+            `}
+            <span class="avatar-status-badge ${badgeClass}" id="avatarStatusBadge" title="${escapeHtml(currentSyncStatus.message)}">
+              <svg class="sync-spin-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/></svg>
+            </span>
+          </button>
+
+          <div class="user-dropdown-menu" id="userDropdownMenu" style="display: none;" onclick="event.stopPropagation()">
+            <div class="user-dropdown-header">
+              <div class="user-dropdown-name">${escapeHtml(userName)}</div>
+              ${userEmail ? `<div class="user-dropdown-email">${escapeHtml(userEmail)}</div>` : ''}
+              <div class="user-dropdown-status ${statusClass}" id="driveSyncStatus">
+                ${escapeHtml(currentSyncStatus.message)}
+              </div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <button type="button" class="user-dropdown-item" onclick="syncFromDrive(); closeUserDropdown();">
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/></svg>
+              Sincronizar Agora
+            </button>
+            <button type="button" class="user-dropdown-item" onclick="switchToConfigTab(); closeUserDropdown();">
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94c0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6s-1.62 3.6-3.6 3.6z"/></svg>
+              Configurações
+            </button>
+            <div class="user-dropdown-divider"></div>
+            <button type="button" class="user-dropdown-item danger" onclick="logoutGoogleDrive(); closeUserDropdown();">
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+              Sair
+            </button>
           </div>
-        `;
-      } else {
-        userContainer.innerHTML = '<span class="text-success text-small">☁️ Drive Conectado</span>';
-      }
+        </div>
+      `;
     }
     if (loginBtn) loginBtn.style.display = 'none';
     if (loginBtnConfig) loginBtnConfig.style.display = 'none';
-    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
   } else {
-    if (userContainer) userContainer.innerHTML = '<span class="text-muted text-small">Modo Local</span>';
+    if (userContainer) userContainer.innerHTML = '';
     if (loginBtn) loginBtn.style.display = 'inline-flex';
     if (loginBtnConfig) loginBtnConfig.style.display = 'inline-flex';
-    if (logoutBtn) logoutBtn.style.display = 'none';
   }
 }
+
+// Fechar menu dropdown ao clicar fora ou ao pressionar ESC
+document.addEventListener('click', (e) => {
+  const profileWrapper = document.getElementById('userProfileWrapper');
+  if (profileWrapper && !profileWrapper.contains(e.target)) {
+    closeUserDropdown();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeUserDropdown();
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   renderUserProfileUI();
