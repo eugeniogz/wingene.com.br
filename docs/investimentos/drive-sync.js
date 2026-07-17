@@ -277,6 +277,65 @@ async function saveToDrive(appData) {
 }
 
 /**
+ * Lista o histórico de revisões/versões do arquivo no Google Drive
+ */
+async function listDriveRevisions() {
+  if (!accessToken) {
+    showToast('Conecte a conta do Google primeiro.', 'error');
+    return null;
+  }
+  const fileId = driveFileId || await findDriveFile();
+  if (!fileId) {
+    showToast('Nenhum arquivo encontrado no Google Drive.', 'error');
+    return null;
+  }
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/revisions?fields=revisions(id,modifiedTime,size)`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.revisions || [];
+    }
+  } catch (err) {
+    console.error('Erro ao listar revisões no Google Drive:', err);
+  }
+  return null;
+}
+
+/**
+ * Restaura uma versão histórica do arquivo no Google Drive pelo ID da revisão
+ */
+async function restoreDriveRevision(revisionId) {
+  if (!accessToken || !revisionId) return false;
+  const fileId = driveFileId || await findDriveFile();
+  if (!fileId) return false;
+
+  try {
+    updateDriveUIStatus('Restaurando versão histórica...');
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/revisions/${revisionId}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (res.ok) {
+      const previousData = await res.json();
+      if (previousData && (Array.isArray(previousData.rendaFixa) || Array.isArray(previousData.acoes))) {
+        if (window.onDriveDataLoaded && typeof window.onDriveDataLoaded === 'function') {
+          window.onDriveDataLoaded(previousData);
+        }
+        showToast('Versão anterior do Google Drive restaurada com sucesso!', 'success');
+        return true;
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao restaurar revisão:', err);
+    showToast('Erro ao restaurar versão do Drive.', 'error');
+  }
+  return false;
+}
+
+/**
  * Desconecta a conta do Google Drive
  */
 function logoutGoogleDrive() {

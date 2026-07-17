@@ -50,15 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
   renderApp();
   setupPwaInstallation();
 
-  // Registrar retorno do Google Drive com inteligência de sincronização por data
+  // Registrar retorno do Google Drive com proteção contra sobreposição de dados de demonstração
   window.onDriveDataLoaded = (remoteData) => {
     if (remoteData && (Array.isArray(remoteData.rendaFixa) || Array.isArray(remoteData.acoes))) {
-      const localTime = new Date(appState.lastUpdated || 0).getTime();
+      const localTime = appState.isDemo ? 0 : new Date(appState.lastUpdated || 0).getTime();
       const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
 
-      // Só substitui os dados se o arquivo do Drive for mais recente que as edições locais
-      if (remoteTime >= localTime || (!appState.rendaFixa.length && !appState.acoes.length)) {
+      // Se for dado de demonstração local ou se o arquivo do Drive for mais recente, aceita os dados do Drive
+      if (appState.isDemo || remoteTime >= localTime || (!appState.rendaFixa.length && !appState.acoes.length)) {
         appState = {
+          isDemo: false,
           rendaFixa: remoteData.rendaFixa || [],
           acoes: remoteData.acoes || [],
           lastUpdated: remoteData.lastUpdated || new Date().toISOString()
@@ -67,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderApp();
         showToast('Dados sincronizados com o Google Drive!', 'success');
       } else {
-        console.log('Dados locais mais recentes detectados. Enviando atualização para o Google Drive...');
+        console.log('Dados reais locais mais recentes detectados. Enviando atualização para o Google Drive...');
         saveToDrive(appState);
       }
     }
@@ -86,8 +87,9 @@ function loadLocalState() {
       console.error('Erro ao ler estado local:', e);
     }
   } else {
-    // Dados de demonstração inicial com histórico mensal e anual
+    // Dados de demonstração inicial — marcados como isDemo: true e lastUpdated: 0
     appState = {
+      isDemo: true,
       rendaFixa: [
         { id: 'rf-1', tipo: 'Tesouro Direto', emissor: 'Tesouro Nacional', nome: 'Tesouro IPCA+ 2035', valor: 15000, valorMesAnterior: 14750, valorAnoAnterior: 13800, taxa: 'IPCA + 6.1%', data: new Date().toLocaleDateString('pt-BR') },
         { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, valorMesAnterior: 8420, valorAnoAnterior: 7750, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
@@ -98,17 +100,20 @@ function loadLocalState() {
         { id: 'ac-3', ticker: 'ITUB4', nome: 'Itaú Unibanco PN', quantidade: 250, preco: 33.20, precoMesAnterior: 32.50, precoAnoAnterior: 27.80, meta: 20, data: new Date().toLocaleDateString('pt-BR') },
         { id: 'ac-4', ticker: 'WEGE3', nome: 'Weg S.A.', quantidade: 120, preco: 42.00, precoMesAnterior: 40.50, precoAnoAnterior: 34.20, meta: 20, data: new Date().toLocaleDateString('pt-BR') }
       ],
-      lastUpdated: new Date().toISOString()
+      lastUpdated: 0
     };
     saveLocalState(false);
   }
 }
 
 function saveLocalState(syncDrive = true) {
-  appState.lastUpdated = new Date().toISOString();
+  if (!appState.isDemo) {
+    appState.lastUpdated = new Date().toISOString();
+  }
   localStorage.setItem('wingene_investimentos_state', JSON.stringify(appState));
   
-  if (syncDrive && typeof saveToDrive === 'function') {
+  // Nunca enviar dados de demonstração iniciais para o Google Drive
+  if (syncDrive && !appState.isDemo && typeof saveToDrive === 'function') {
     saveToDrive(appState);
   }
 }
@@ -148,6 +153,36 @@ function setupEventListeners() {
   document.getElementById('btnGoogleLoginConfig')?.addEventListener('click', () => requestGoogleLogin());
   document.getElementById('btnGoogleLogout')?.addEventListener('click', () => logoutGoogleDrive());
   document.getElementById('btnForceDriveSync')?.addEventListener('click', () => syncFromDrive());
+  
+  // Restaurar Versão Histórica do Google Drive
+  document.getElementById('btnRestoreDriveVersion')?.addEventListener('click', async () => {
+    if (typeof listDriveRevisions !== 'function') return;
+    showToast('Buscando histórico de versões no Google Drive...', 'info');
+    const revisions = await listDriveRevisions();
+    if (!revisions || revisions.length <= 1) {
+      showToast('Nenhuma versão anterior encontrada no Google Drive.', 'info');
+      return;
+    }
+    
+    const options = revisions.slice(0, -1).reverse().map((rev, index) => {
+      const dateStr = new Date(rev.modifiedTime).toLocaleString('pt-BR');
+      return `${index + 1} - Salvo em ${dateStr}`;
+    }).join('\n');
+
+    const selectedIdx = prompt(
+      `Selecione o número da versão anterior que deseja restaurar do Google Drive:\n\n` + options
+    );
+
+    if (selectedIdx) {
+      const revsReversed = revisions.slice(0, -1).reverse();
+      const idx = parseInt(selectedIdx.trim(), 10) - 1;
+      if (idx >= 0 && idx < revsReversed.length) {
+        restoreDriveRevision(revsReversed[idx].id);
+      } else {
+        showToast('Opção de versão inválida.', 'error');
+      }
+    }
+  });
 
   // Exportar / Importar JSON Backup
   document.getElementById('btnExportJson')?.addEventListener('click', exportJsonBackup);
@@ -459,6 +494,7 @@ function handleAddRfInline(e) {
   document.getElementById('newRfTaxa').value = '';
   document.getElementById('newRfValor').value = '';
 
+  appState.isDemo = false;
   saveLocalState();
   renderApp();
   showToast('Ativo de Renda Fixa adicionado!', 'success');
@@ -562,6 +598,7 @@ function saveRfInline(id) {
   item.data = new Date().toLocaleDateString('pt-BR');
 
   editingRfId = null;
+  appState.isDemo = false;
   saveLocalState();
   renderApp();
   showToast('Renda Fixa atualizada!', 'success');
@@ -610,6 +647,7 @@ function handleAddAcaoInline(e) {
   document.getElementById('newAcaoPreco').value = '';
   document.getElementById('newAcaoMeta').value = '';
 
+  appState.isDemo = false;
   saveLocalState();
   renderApp();
   showToast(`Ação ${ticker} adicionada!`, 'success');
@@ -716,6 +754,7 @@ function saveAcaoInline(id) {
   item.data = new Date().toLocaleDateString('pt-BR');
 
   editingAcaoId = null;
+  appState.isDemo = false;
   saveLocalState();
   renderApp();
   showToast(`Ação ${ticker} atualizada!`, 'success');
