@@ -1130,6 +1130,92 @@ function showToast(msg, type = 'info') {
   }, 3500);
 }
 
+// --- GERADOR DE PROMPT PARA IA (AGNÓSTICO) ---
+function formatDiffValText(diff) {
+  if (diff > 0) return `+${formatCurrency(diff)}`;
+  if (diff < 0) return `${formatCurrency(diff)}`;
+  return 'R$ 0,00';
+}
+
+function formatDiffPctText(diffPct) {
+  if (diffPct > 0) return `+${diffPct.toFixed(1)}%`;
+  if (diffPct < 0) return `${diffPct.toFixed(1)}%`;
+  return '0.0%';
+}
+
+function generateAIPromptText() {
+  const fin = calculateFinancials();
+  const lastUpdate = new Date().toLocaleDateString('pt-BR');
+
+  let prompt = `Você é um analista financeiro sênior especialista em alocação de ativos, renda fixa, ações e gestão de portfólio pessoal.
+
+Por favor, faça um diagnóstico completo, analise a saúde da minha carteira de investimentos e forneça recomendações práticas com base nos dados reais abaixo (data de referência: ${lastUpdate}):
+
+---
+### 1. RESUMO PATRIMONIAL & ALOCAÇÃO
+- **Patrimônio Total**: ${formatCurrency(fin.patrimonioTotal)}
+- **Renda Fixa Total**: ${formatCurrency(fin.totalRendaFixa)} (${fin.pctRendaFixa.toFixed(1)}%)
+- **Ações Total**: ${formatCurrency(fin.totalAcoes)} (${fin.pctAcoes.toFixed(1)}%)
+
+### 2. HISTÓRICO DE DESEMPENHO E VARIAÇÃO
+- **Variação Mensal do Patrimônio**: ${formatDiffValText(fin.diffTotalMesVal)} (${formatDiffPctText(fin.diffTotalMesPct)})
+- **Variação Anual do Patrimônio**: ${formatDiffValText(fin.diffTotalAnoVal)} (${formatDiffPctText(fin.diffTotalAnoPct)})
+- **Variação Mensal (Renda Fixa)**: ${formatDiffValText(fin.diffRfMesVal)} (${formatDiffPctText(fin.diffRfMesPct)})
+- **Variação Anual (Renda Fixa)**: ${formatDiffValText(fin.diffRfAnoVal)} (${formatDiffPctText(fin.diffRfAnoPct)})
+- **Variação Mensal (Ações)**: ${formatDiffValText(fin.diffAcoesMesVal)} (${formatDiffPctText(fin.diffAcoesMesPct)})
+- **Variação Anual (Ações)**: ${formatDiffValText(fin.diffAcoesAnoVal)} (${formatDiffPctText(fin.diffAcoesAnoPct)})
+
+### 3. DETALHAMENTO DOS ATIVOS DE RENDA FIXA
+${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'} | Var. Mês: ${formatDiffValText(rf.diffMesVal)} (${formatDiffPctText(rf.diffMesPct)}) | Var. Ano: ${formatDiffValText(rf.diffAnoVal)} (${formatDiffPctText(rf.diffAnoPct)})`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
+
+### 4. DETALHAMENTO DA CARTEIRA DE AÇÕES & METAS DE REBALANCEAMENTO
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})`).join('\n') || 'Nenhuma ação registrada.'}
+
+---
+
+### INSTRUÇÕES PARA A ANÁLISE:
+1. **Diagnóstico de Alocação e Diversificação**: Comente sobre a divisão entre Renda Fixa e Ações e a diversificação entre empresas/setores.
+2. **Avaliação da Rentabilidade e Evolução**: Destaque pontos positivos e alertas na evolução patrimonial recente.
+3. **Plano de Rebalanceamento Inteligente**: Quais ações estão mais abaixo da meta cadastrada e deveriam ser priorizadas nos próximos aportes?
+4. **Análise de Risco & Recomendações Práticas**: Identifique possíveis pontos céticos ou riscos de concentração de forma clara e estruturada.`;
+
+  return prompt;
+}
+
+function openAIPromptModal() {
+  const backdrop = document.getElementById('aiPromptModalBackdrop');
+  const textarea = document.getElementById('aiPromptTextarea');
+  if (!backdrop || !textarea) return;
+
+  textarea.value = generateAIPromptText();
+  backdrop.style.display = 'flex';
+}
+
+function closeAIPromptModal() {
+  const backdrop = document.getElementById('aiPromptModalBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function copyAIPromptToClipboard() {
+  const textarea = document.getElementById('aiPromptTextarea');
+  if (!textarea) return;
+
+  textarea.select();
+  textarea.setSelectionRange(0, 99999);
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(textarea.value).then(() => {
+      showToast('Prompt para IA copiado com sucesso!', 'success');
+    }).catch(() => {
+      document.execCommand('copy');
+      showToast('Prompt para IA copiado!', 'success');
+    });
+  } else {
+    document.execCommand('copy');
+    showToast('Prompt para IA copiado!', 'success');
+  }
+}
+
 // --- REGISTRO DO SERVICE WORKER E PWA INSTALL ---
 function setupPwaInstallation() {
   if ('serviceWorker' in navigator) {

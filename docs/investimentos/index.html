@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=1.2.8" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=1.2.9" />
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.2.8" />
+  <link rel="stylesheet" href="style.css?v=1.2.9" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -153,6 +153,19 @@
         <div class="card">
           <div class="card-title mb-3">Distribuição por Ação</div>
           <div id="chartStockBreakdown"></div>
+        </div>
+      </div>
+
+      <!-- CARD ANÁLISE COM INTELIGÊNCIA ARTIFICIAL -->
+      <div class="card mt-4" style="background: linear-gradient(135deg, rgba(16, 64, 176, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%); border-color: rgba(96, 165, 250, 0.3);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+              <span>🤖</span> Análise da Carteira com Inteligência Artificial
+            </h2>
+            <p class="text-muted text-small mb-0">Gere um prompt otimizado com a foto da sua carteira para enviar ao Gemini, ChatGPT, Claude ou sua IA preferida.</p>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="openAIPromptModal()">✨ Gerar Prompt para IA</button>
         </div>
       </div>
     </section>
@@ -439,8 +452,42 @@
     </div>
   </div>
 
+  <!-- MODAL DE PROMPT GERADOR PARA IA (AGNÓSTICO) -->
+  <div class="modal-backdrop" id="aiPromptModalBackdrop" style="display: none;" onclick="closeAIPromptModal()">
+    <div class="modal-card" style="max-width: 620px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          🤖 Prompt para Análise de IA
+        </h3>
+        <button type="button" class="modal-close" onclick="closeAIPromptModal()" aria-label="Fechar Modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-small text-muted mb-3">
+          O Winvest gerou o raio-x da sua carteira (patrimônio, rentabilidade e metas). Copie o texto e cole na sua IA de preferência:
+        </p>
+
+        <!-- Links para IAs -->
+        <div class="ai-links-bar mb-3">
+          <span class="text-small text-muted" style="margin-right: 4px;">Abrir IA:</span>
+          <a href="https://gemini.google.com" target="_blank" rel="noopener" class="ai-link-pill">⚡ Gemini</a>
+          <a href="https://chatgpt.com" target="_blank" rel="noopener" class="ai-link-pill">💬 ChatGPT</a>
+          <a href="https://claude.ai" target="_blank" rel="noopener" class="ai-link-pill">🧠 Claude</a>
+          <a href="https://www.perplexity.ai" target="_blank" rel="noopener" class="ai-link-pill">🔮 Perplexity</a>
+        </div>
+
+        <div class="form-group mb-3">
+          <textarea id="aiPromptTextarea" class="form-control" rows="12" style="font-family: monospace; font-size: 0.82rem; line-height: 1.4; resize: vertical;"></textarea>
+        </div>
+
+        <button type="button" id="btnCopyAIPrompt" class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="copyAIPromptToClipboard()">
+          📋 Copiar Prompt para a Área de Transferência
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.2.8"></script>
-  <script src="app.js?v=1.2.8"></script>
+  <script src="drive-sync.js?v=1.2.9"></script>
+  <script src="app.js?v=1.2.9"></script>
 </body>
 </html>
