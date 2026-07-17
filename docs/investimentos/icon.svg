@@ -32,6 +32,6 @@
   <path d="M 96 380 L 192 310 L 272 340 L 416 210" fill="none" stroke="url(#greenGrad)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
   <polygon points="416,210 370,210 416,256" fill="#10b981" />
 
-  <!-- Texto WinGene Invest -->
-  <text x="256" y="445" font-family="'Outfit', sans-serif" font-weight="800" font-size="38" fill="#ffffff" text-anchor="middle" letter-spacing="2">INVESTIMENTOS</text>
+  <!-- Texto Winvest -->
+  <text x="256" y="445" font-family="'Outfit', sans-serif" font-weight="800" font-size="46" fill="#ffffff" text-anchor="middle" letter-spacing="3">WINVEST</text>
 </svg>
