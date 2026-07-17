@@ -5,7 +5,7 @@
 
 const DRIVE_CONFIG = {
   // CLIENT_ID configurável via UI ou constante
-  CLIENT_ID: localStorage.getItem('wingene_drive_client_id') || '',
+  CLIENT_ID: localStorage.getItem('wingene_drive_client_id') || '568890387136-7633o3djo84878srldube4rca4hg1r3h.apps.googleusercontent.com',
   SCOPES: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
   FILE_NAME: 'wingene_investimentos_data.json'
 };

@@ -1,20 +1,21 @@
-const CACHE_NAME = 'wingene-investimentos-v1';
+const CACHE_NAME = 'wingene-investimentos-v1.0.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './drive-sync.js',
+  './style.css?v=1.0.3',
+  './app.js?v=1.0.3',
+  './drive-sync.js?v=1.0.3',
   './manifest.json',
   './icon.svg'
 ];
 
-// Instalação do Service Worker e precache dos ativos principais
+// Instalação do Service Worker e forçar ativação imediata
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -25,6 +26,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Removendo cache antigo do PWA:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -33,18 +35,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Estratégia de Fetch: Stale-While-Revalidate para recursos estáticos, e Network First para APIs externas
+// Estratégia de Fetch: Network-First para a própria aplicação (garante atualização automática online)
+// e fallback para Cache quando estiver offline.
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Não intercetar requisições do Google Identity Services ou APIs externas
+  // Não intercetar APIs externas do Google ou Cotações
   if (url.origin.includes('google') || url.origin.includes('googleapis') || url.origin.includes('brapi')) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -52,9 +55,10 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => cachedResponse);
-
-      return cachedResponse || fetchPromise;
-    })
+      })
+      .catch(() => {
+        // Se estiver offline, entrega a versão em cache
+        return caches.match(event.request);
+      })
   );
 });

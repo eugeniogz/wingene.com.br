@@ -1,6 +1,6 @@
 /**
- * WinGene Investimentos — Lógica Principal da PWA
- * Gerenciamento de Renda Fixa, Ações, Percentuais e Metas de Rebalanceamento.
+ * WinGene Investimentos — Lógica Principal da PWA (Edição Inline)
+ * Gerenciamento de Renda Fixa, Ações, Percentuais e Metas com Edição Direta nas Tabelas.
  */
 
 // Estado da Aplicação
@@ -9,6 +9,10 @@ let appState = {
   acoes: [],
   lastUpdated: new Date().toISOString()
 };
+
+// ID do item atualmente em edição inline (null se nenhum)
+let editingRfId = null;
+let editingAcaoId = null;
 
 // Dicionário offline de tickers B3 para auto-completar nomes das empresas
 const B3_POPULAR_STOCKS = {
@@ -114,26 +118,21 @@ function setupEventListeners() {
     });
   });
 
-  // Modal Renda Fixa
-  document.getElementById('btnAddRendaFixa')?.addEventListener('click', () => openRendaFixaModal());
-  document.getElementById('formRendaFixa')?.addEventListener('submit', handleSaveRendaFixa);
+  // Form de Adição Rápida Inline Renda Fixa
+  document.getElementById('formAddRfInline')?.addEventListener('submit', handleAddRfInline);
 
-  // Modal Ações
-  document.getElementById('btnAddAcao')?.addEventListener('click', () => openAcaoModal());
-  document.getElementById('formAcao')?.addEventListener('submit', handleSaveAcao);
-  
-  // Auto-fill nome da empresa ao digitar Ticker
-  document.getElementById('acaoTicker')?.addEventListener('input', (e) => {
+  // Form de Adição Rápida Inline Ações
+  document.getElementById('formAddAcaoInline')?.addEventListener('submit', handleAddAcaoInline);
+
+  // Auto-fill nome da empresa ao digitar Ticker na barra inline de ações
+  document.getElementById('newAcaoTicker')?.addEventListener('input', (e) => {
     const ticker = e.target.value.toUpperCase().trim();
     e.target.value = ticker;
-    const nomeInput = document.getElementById('acaoNome');
+    const nomeInput = document.getElementById('newAcaoNome');
     if (ticker && B3_POPULAR_STOCKS[ticker] && !nomeInput.value) {
       nomeInput.value = B3_POPULAR_STOCKS[ticker];
     }
   });
-
-  // Tentar buscar cotação de mercado online
-  document.getElementById('btnFetchPrice')?.addEventListener('click', fetchMarketPrice);
 
   // Google Login / Logout
   document.getElementById('btnGoogleLogin')?.addEventListener('click', () => requestGoogleLogin());
@@ -165,7 +164,7 @@ function calculateFinancials() {
   const acoesComPercentual = acoesComTotais.map(acao => {
     const percentualAtual = totalAcoes > 0 ? (acao.valorTotal / totalAcoes) * 100 : 0;
     const valorAlvoMeta = totalAcoes > 0 ? (totalAcoes * (acao.meta / 100)) : 0;
-    const valorDiferenca = valorAlvoMeta - acao.valorTotal; // Positivo = Comprar, Negativo = Excesso
+    const valorDiferenca = valorAlvoMeta - acao.valorTotal;
 
     return {
       ...acao,
@@ -215,14 +214,49 @@ function renderApp() {
     color: getPaletteColor(idx)
   })));
 
-  // 2. Renderizar Tabela de Renda Fixa
+  // 2. Renderizar Tabela de Renda Fixa com Suporte a Edição Inline
   renderRendaFixaTable(fin);
 
-  // 3. Renderizar Tabela de Ações
+  // 3. Renderizar Tabela de Ações com Suporte a Edição Inline
   renderAcoesTable(fin);
 
   // 4. Renderizar Rebalanceamento & Metas
   renderRebalanceamentoSection(fin);
+}
+
+// --- RENDA FIXA (EDIÇÃO E ADIÇÃO INLINE) ---
+function handleAddRfInline(e) {
+  e.preventDefault();
+  const tipo = document.getElementById('newRfTipo').value;
+  const emissor = document.getElementById('newRfEmissor').value.trim();
+  const nome = document.getElementById('newRfNome').value.trim();
+  const taxa = document.getElementById('newRfTaxa').value.trim();
+  const valor = parseFloat(document.getElementById('newRfValor').value);
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+
+  if (!emissor || !nome || isNaN(valor)) {
+    showToast('Preencha os campos obrigatórios.', 'error');
+    return;
+  }
+
+  appState.rendaFixa.push({
+    id: 'rf-' + Date.now(),
+    tipo,
+    emissor,
+    nome,
+    taxa,
+    valor,
+    data: currentDate
+  });
+
+  document.getElementById('newRfEmissor').value = '';
+  document.getElementById('newRfNome').value = '';
+  document.getElementById('newRfTaxa').value = '';
+  document.getElementById('newRfValor').value = '';
+
+  saveLocalState();
+  renderApp();
+  showToast('Ativo de Renda Fixa adicionado!', 'success');
 }
 
 function renderRendaFixaTable(fin) {
@@ -230,26 +264,140 @@ function renderRendaFixaTable(fin) {
   if (!tbody) return;
 
   if (appState.rendaFixa.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = appState.rendaFixa.map(item => `
-    <tr>
-      <td><span class="badge badge-rf">${item.tipo}</span></td>
-      <td><strong>${escapeHtml(item.emissor)}</strong></td>
-      <td>${escapeHtml(item.nome)}</td>
-      <td>${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
-      <td class="text-right"><strong>${formatCurrency(item.valor)}</strong></td>
-      <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
-      <td class="text-center">
-        <button class="btn-icon" onclick="editRendaFixa('${item.id}')" title="Editar">✏️</button>
-        <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = appState.rendaFixa.map(item => {
+    if (editingRfId === item.id) {
+      // MODO EDIÇÃO INLINE NA LINHA DA TABELA
+      return `
+        <tr class="row-editing">
+          <td>
+            <select id="editRfTipo_${item.id}" class="table-input-sm">
+              <option value="RDB" ${item.tipo === 'RDB' ? 'selected' : ''}>RDB</option>
+              <option value="Fundos de Investimento" ${item.tipo === 'Fundos de Investimento' ? 'selected' : ''}>Fundo de Investimento</option>
+              <option value="Tesouro Direto" ${item.tipo === 'Tesouro Direto' ? 'selected' : ''}>Tesouro Direto</option>
+              <option value="CDB" ${item.tipo === 'CDB' ? 'selected' : ''}>CDB</option>
+              <option value="LCI/LCA" ${item.tipo === 'LCI/LCA' ? 'selected' : ''}>LCI / LCA</option>
+              <option value="Outro" ${item.tipo === 'Outro' ? 'selected' : ''}>Outro</option>
+            </select>
+          </td>
+          <td><input type="text" id="editRfEmissor_${item.id}" class="table-input-sm" value="${escapeHtml(item.emissor)}" /></td>
+          <td><input type="text" id="editRfNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
+          <td><input type="text" id="editRfTaxa_${item.id}" class="table-input-sm" value="${escapeHtml(item.taxa || '')}" /></td>
+          <td><input type="number" step="0.01" id="editRfValor_${item.id}" class="table-input-sm text-right" value="${item.valor}" /></td>
+          <td class="text-right"><span class="text-muted text-small">${new Date().toLocaleDateString('pt-BR')}</span></td>
+          <td class="text-center">
+            <button class="btn-icon success" onclick="saveRfInline('${item.id}')" title="Salvar Alteração">✅</button>
+            <button class="btn-icon danger" onclick="cancelRfInline()" title="Cancelar">✕</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    // MODO LEITURA NORMAL
+    return `
+      <tr>
+        <td><span class="badge badge-rf">${item.tipo}</span></td>
+        <td><strong>${escapeHtml(item.emissor)}</strong></td>
+        <td>${escapeHtml(item.nome)}</td>
+        <td>${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
+        <td class="text-right"><strong>${formatCurrency(item.valor)}</strong></td>
+        <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
+        <td class="text-center">
+          <button class="btn-icon" onclick="startEditRfInline('${item.id}')" title="Editar Inline">✏️</button>
+          <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   document.getElementById('totalRfFooter').textContent = formatCurrency(fin.totalRendaFixa);
+}
+
+function startEditRfInline(id) {
+  editingRfId = id;
+  renderApp();
+}
+
+function cancelRfInline() {
+  editingRfId = null;
+  renderApp();
+}
+
+function saveRfInline(id) {
+  const item = appState.rendaFixa.find(r => r.id === id);
+  if (!item) return;
+
+  const tipo = document.getElementById(`editRfTipo_${id}`).value;
+  const emissor = document.getElementById(`editRfEmissor_${id}`).value.trim();
+  const nome = document.getElementById(`editRfNome_${id}`).value.trim();
+  const taxa = document.getElementById(`editRfTaxa_${id}`).value.trim();
+  const valor = parseFloat(document.getElementById(`editRfValor_${id}`).value);
+
+  if (!emissor || !nome || isNaN(valor)) {
+    showToast('Preencha os campos obrigatórios.', 'error');
+    return;
+  }
+
+  item.tipo = tipo;
+  item.emissor = emissor;
+  item.nome = nome;
+  item.taxa = taxa;
+  item.valor = valor;
+  item.data = new Date().toLocaleDateString('pt-BR');
+
+  editingRfId = null;
+  saveLocalState();
+  renderApp();
+  showToast('Renda Fixa atualizada!', 'success');
+}
+
+function deleteRendaFixa(id) {
+  if (confirm('Deseja realmente remover este ativo de Renda Fixa?')) {
+    appState.rendaFixa = appState.rendaFixa.filter(r => r.id !== id);
+    if (editingRfId === id) editingRfId = null;
+    saveLocalState();
+    renderApp();
+    showToast('Ativo removido.', 'info');
+  }
+}
+
+// --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE) ---
+function handleAddAcaoInline(e) {
+  e.preventDefault();
+  const ticker = document.getElementById('newAcaoTicker').value.toUpperCase().trim();
+  const nome = document.getElementById('newAcaoNome').value.trim();
+  const quantidade = parseFloat(document.getElementById('newAcaoQtd').value);
+  const preco = parseFloat(document.getElementById('newAcaoPreco').value);
+  const meta = parseFloat(document.getElementById('newAcaoMeta').value) || 0;
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+
+  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
+    showToast('Preencha os campos obrigatórios da ação.', 'error');
+    return;
+  }
+
+  appState.acoes.push({
+    id: 'ac-' + Date.now(),
+    ticker,
+    nome,
+    quantidade,
+    preco,
+    meta,
+    data: currentDate
+  });
+
+  document.getElementById('newAcaoTicker').value = '';
+  document.getElementById('newAcaoNome').value = '';
+  document.getElementById('newAcaoQtd').value = '';
+  document.getElementById('newAcaoPreco').value = '';
+  document.getElementById('newAcaoMeta').value = '';
+
+  saveLocalState();
+  renderApp();
+  showToast(`Ação ${ticker} adicionada!`, 'success');
 }
 
 function renderAcoesTable(fin) {
@@ -257,36 +405,107 @@ function renderAcoesTable(fin) {
   if (!tbody) return;
 
   if (fin.acoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma ação cadastrada na carteira.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma ação cadastrada na carteira.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = fin.acoes.map((item, idx) => `
-    <tr>
-      <td>
-        <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
-          <strong>${item.ticker}</strong>
-        </div>
-      </td>
-      <td>${escapeHtml(item.nome)}</td>
-      <td class="text-right">${item.quantidade}</td>
-      <td class="text-right">${formatCurrency(item.preco)}</td>
-      <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
-      <td class="text-right">
-        <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
-      </td>
-      <td class="text-right">
-        <span class="meta-pill">${item.meta.toFixed(1)}%</span>
-      </td>
-      <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
-      <td class="text-center">
-        <button class="btn-icon" onclick="editAcao('${item.id}')" title="Editar">✏️</button>
-        <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = fin.acoes.map((item, idx) => {
+    if (editingAcaoId === item.id) {
+      // MODO EDIÇÃO INLINE NA TABELA DE AÇÕES
+      return `
+        <tr class="row-editing">
+          <td><input type="text" id="editAcaoTicker_${item.id}" class="table-input-sm" value="${item.ticker}" style="text-transform: uppercase;" /></td>
+          <td><input type="text" id="editAcaoNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
+          <td><input type="number" step="1" id="editAcaoQtd_${item.id}" class="table-input-sm text-right" value="${item.quantidade}" /></td>
+          <td><input type="number" step="0.01" id="editAcaoPreco_${item.id}" class="table-input-sm text-right" value="${item.preco}" /></td>
+          <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+          <td class="text-right"><span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span></td>
+          <td><input type="number" step="0.1" id="editAcaoMeta_${item.id}" class="table-input-sm text-right" value="${item.meta}" /></td>
+          <td class="text-right"><span class="text-muted text-small">${new Date().toLocaleDateString('pt-BR')}</span></td>
+          <td class="text-center">
+            <button class="btn-icon success" onclick="saveAcaoInline('${item.id}')" title="Salvar Alteração">✅</button>
+            <button class="btn-icon danger" onclick="cancelAcaoInline()" title="Cancelar">✕</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    // MODO LEITURA NORMAL
+    return `
+      <tr>
+        <td>
+          <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
+            <strong>${item.ticker}</strong>
+          </div>
+        </td>
+        <td>${escapeHtml(item.nome)}</td>
+        <td class="text-right">${item.quantidade}</td>
+        <td class="text-right">${formatCurrency(item.preco)}</td>
+        <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+        <td class="text-right">
+          <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
+        </td>
+        <td class="text-right">
+          <span class="meta-pill">${item.meta.toFixed(1)}%</span>
+        </td>
+        <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
+        <td class="text-center">
+          <button class="btn-icon" onclick="startEditAcaoInline('${item.id}')" title="Editar Inline">✏️</button>
+          <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   document.getElementById('totalAcoesFooter').textContent = formatCurrency(fin.totalAcoes);
+}
+
+function startEditAcaoInline(id) {
+  editingAcaoId = id;
+  renderApp();
+}
+
+function cancelAcaoInline() {
+  editingAcaoId = null;
+  renderApp();
+}
+
+function saveAcaoInline(id) {
+  const item = appState.acoes.find(a => a.id === id);
+  if (!item) return;
+
+  const ticker = document.getElementById(`editAcaoTicker_${id}`).value.toUpperCase().trim();
+  const nome = document.getElementById(`editAcaoNome_${id}`).value.trim();
+  const quantidade = parseFloat(document.getElementById(`editAcaoQtd_${id}`).value);
+  const preco = parseFloat(document.getElementById(`editAcaoPreco_${id}`).value);
+  const meta = parseFloat(document.getElementById(`editAcaoMeta_${id}`).value) || 0;
+
+  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
+    showToast('Preencha os campos obrigatórios.', 'error');
+    return;
+  }
+
+  item.ticker = ticker;
+  item.nome = nome;
+  item.quantidade = quantidade;
+  item.preco = preco;
+  item.meta = meta;
+  item.data = new Date().toLocaleDateString('pt-BR');
+
+  editingAcaoId = null;
+  saveLocalState();
+  renderApp();
+  showToast(`Ação ${ticker} atualizada!`, 'success');
+}
+
+function deleteAcao(id) {
+  if (confirm('Deseja realmente remover esta ação da carteira?')) {
+    appState.acoes = appState.acoes.filter(a => a.id !== id);
+    if (editingAcaoId === id) editingAcaoId = null;
+    saveLocalState();
+    renderApp();
+    showToast('Ação removida.', 'info');
+  }
 }
 
 function renderRebalanceamentoSection(fin) {
@@ -350,176 +569,6 @@ function renderRebalanceamentoSection(fin) {
       </div>
     `;
   }).join('');
-}
-
-// --- HANDLERS RENDA FIXA ---
-function openRendaFixaModal(item = null) {
-  const modal = document.getElementById('modalRendaFixa');
-  document.getElementById('rfId').value = item ? item.id : '';
-  document.getElementById('rfTipo').value = item ? item.tipo : 'RDB';
-  document.getElementById('rfEmissor').value = item ? item.emissor : '';
-  document.getElementById('rfNome').value = item ? item.nome : '';
-  document.getElementById('rfValor').value = item ? item.valor : '';
-  document.getElementById('rfTaxa').value = item ? item.taxa || '' : '';
-  document.getElementById('modalRfTitle').textContent = item ? 'Editar Renda Fixa' : 'Nova Renda Fixa';
-  modal.classList.add('active');
-}
-
-function closeRendaFixaModal() {
-  document.getElementById('modalRendaFixa').classList.remove('active');
-}
-
-function handleSaveRendaFixa(e) {
-  e.preventDefault();
-  const id = document.getElementById('rfId').value;
-  const tipo = document.getElementById('rfTipo').value;
-  const emissor = document.getElementById('rfEmissor').value.trim();
-  const nome = document.getElementById('rfNome').value.trim();
-  const valor = parseFloat(document.getElementById('rfValor').value);
-  const taxa = document.getElementById('rfTaxa').value.trim();
-  const currentDate = new Date().toLocaleDateString('pt-BR');
-
-  if (!emissor || !nome || isNaN(valor)) {
-    showToast('Preencha os campos obrigatórios.', 'error');
-    return;
-  }
-
-  if (id) {
-    const idx = appState.rendaFixa.findIndex(r => r.id === id);
-    if (idx !== -1) {
-      appState.rendaFixa[idx] = { id, tipo, emissor, nome, valor, taxa, data: currentDate };
-    }
-  } else {
-    appState.rendaFixa.push({
-      id: 'rf-' + Date.now(),
-      tipo,
-      emissor,
-      nome,
-      valor,
-      taxa,
-      data: currentDate
-    });
-  }
-
-  saveLocalState();
-  renderApp();
-  closeRendaFixaModal();
-  showToast('Ativo de Renda Fixa salvo com sucesso!', 'success');
-}
-
-function editRendaFixa(id) {
-  const item = appState.rendaFixa.find(r => r.id === id);
-  if (item) openRendaFixaModal(item);
-}
-
-function deleteRendaFixa(id) {
-  if (confirm('Deseja realmente remover este ativo de Renda Fixa?')) {
-    appState.rendaFixa = appState.rendaFixa.filter(r => r.id !== id);
-    saveLocalState();
-    renderApp();
-    showToast('Ativo removido.', 'info');
-  }
-}
-
-// --- HANDLERS AÇÕES ---
-function openAcaoModal(item = null) {
-  const modal = document.getElementById('modalAcao');
-  document.getElementById('acaoId').value = item ? item.id : '';
-  document.getElementById('acaoTicker').value = item ? item.ticker : '';
-  document.getElementById('acaoNome').value = item ? item.nome : '';
-  document.getElementById('acaoQuantidade').value = item ? item.quantidade : '';
-  document.getElementById('acaoPreco').value = item ? item.preco : '';
-  document.getElementById('acaoMeta').value = item ? item.meta : '10';
-  document.getElementById('modalAcaoTitle').textContent = item ? 'Editar Ação' : 'Cadastrar Nova Ação';
-  modal.classList.add('active');
-}
-
-function closeAcaoModal() {
-  document.getElementById('modalAcao').classList.remove('active');
-}
-
-function handleSaveAcao(e) {
-  e.preventDefault();
-  const id = document.getElementById('acaoId').value;
-  const ticker = document.getElementById('acaoTicker').value.toUpperCase().trim();
-  const nome = document.getElementById('acaoNome').value.trim();
-  const quantidade = parseFloat(document.getElementById('acaoQuantidade').value);
-  const preco = parseFloat(document.getElementById('acaoPreco').value);
-  const meta = parseFloat(document.getElementById('acaoMeta').value) || 0;
-  const currentDate = new Date().toLocaleDateString('pt-BR');
-
-  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
-    showToast('Preencha os campos obrigatórios da ação.', 'error');
-    return;
-  }
-
-  if (id) {
-    const idx = appState.acoes.findIndex(a => a.id === id);
-    if (idx !== -1) {
-      appState.acoes[idx] = { id, ticker, nome, quantidade, preco, meta, data: currentDate };
-    }
-  } else {
-    appState.acoes.push({
-      id: 'ac-' + Date.now(),
-      ticker,
-      nome,
-      quantidade,
-      preco,
-      meta,
-      data: currentDate
-    });
-  }
-
-  saveLocalState();
-  renderApp();
-  closeAcaoModal();
-  showToast(`Ação ${ticker} salva com sucesso!`, 'success');
-}
-
-function editAcao(id) {
-  const item = appState.acoes.find(a => a.id === id);
-  if (item) openAcaoModal(item);
-}
-
-function deleteAcao(id) {
-  if (confirm('Deseja realmente remover esta ação da carteira?')) {
-    appState.acoes = appState.acoes.filter(a => a.id !== id);
-    saveLocalState();
-    renderApp();
-    showToast('Ação removida da carteira.', 'info');
-  }
-}
-
-// --- BUSCA DE COTAÇÃO DE MERCADO (ONLINE / API BRAPI) ---
-async function fetchMarketPrice() {
-  const ticker = document.getElementById('acaoTicker').value.toUpperCase().trim();
-  if (!ticker) {
-    showToast('Digite o código/ticker da ação para buscar a cotação.', 'error');
-    return;
-  }
-
-  showToast(`Buscando cotação de ${ticker}...`, 'info');
-  try {
-    const res = await fetch(`https://brapi.dev/api/quote/${ticker}?token=public`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
-        if (result.regularMarketPrice) {
-          document.getElementById('acaoPreco').value = result.regularMarketPrice;
-        }
-        if (result.shortName || result.longName) {
-          document.getElementById('acaoNome').value = result.shortName || result.longName;
-        }
-        showToast(`Preço de ${ticker} atualizado: R$ ${result.regularMarketPrice}`, 'success');
-        return;
-      }
-    }
-  } catch (err) {
-    console.warn('Erro ao consultar API Brapi:', err);
-  }
-
-  showToast(`Não foi possível obter cotação automática para ${ticker}. Digite o preço manualmente.`, 'info');
 }
 
 // --- EXPORTAR E IMPORTAR JSON BACKUP ---
@@ -642,7 +691,11 @@ function showToast(msg, type = 'info') {
 function setupPwaInstallation() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker WinGene registrado:', reg.scope))
+      .then(reg => {
+        console.log('Service Worker WinGene registrado:', reg.scope);
+        // Forçar verificação de atualizações no servidor a cada acesso
+        reg.update();
+      })
       .catch(err => console.warn('Erro ao registrar Service Worker:', err));
   }
 

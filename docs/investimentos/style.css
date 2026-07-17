@@ -1,5 +1,5 @@
 /* ==========================================================================
-   WINGENE INVESTIMENTOS PWA — DESIGN SYSTEM & STYLESHEET
+   WINGENE INVESTIMENTOS PWA — DESIGN SYSTEM & STYLESHEET (INLINE EDITING)
    ========================================================================== */
 
 :root {
@@ -263,6 +263,64 @@ body::before {
   font-weight: 700;
 }
 
+/* --- INLINE ADD BAR & INLINE EDITING --- */
+.inline-add-bar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.inline-add-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 1.8fr 1.2fr 1.2fr 1.2fr;
+  gap: 10px;
+}
+
+.inline-add-grid-acoes {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr 1fr 1.2fr 1fr 1.4fr;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .inline-add-grid,
+  .inline-add-grid-acoes {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 550px) {
+  .inline-add-grid,
+  .inline-add-grid-acoes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-input-sm {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--primary-blue);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+}
+
+.table-input-sm:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+tr.row-editing {
+  background: rgba(16, 64, 176, 0.15) !important;
+}
+
+tr.row-editing td {
+  padding: 6px 8px !important;
+}
+
 /* --- TABELAS RESPONSIVAS --- */
 .table-responsive {
   width: 100%;
@@ -411,6 +469,12 @@ body::before {
   white-space: nowrap;
 }
 
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+}
+
 .btn-primary {
   background: var(--primary-blue);
   color: #ffffff;
@@ -449,6 +513,10 @@ body::before {
   background: rgba(176, 16, 16, 0.2);
 }
 
+.btn-icon.success:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
 /* Form inputs */
 .form-group {
   margin-bottom: 16px;
@@ -474,59 +542,16 @@ body::before {
   transition: border-color 0.2s ease;
 }
 
+.form-control-sm {
+  padding: 6px 10px;
+  font-size: 0.88rem;
+  border-radius: 8px;
+}
+
 .form-control:focus {
   outline: none;
   border-color: var(--primary-blue);
   box-shadow: 0 0 0 3px var(--border-focus);
-}
-
-/* --- MODAIS --- */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.modal.active {
-  display: flex;
-  animation: modalFadeIn 0.2s ease-out;
-}
-
-@keyframes modalFadeIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-.modal-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: 20px;
-  width: 100%;
-  max-width: 500px;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.modal-title {
-  font-family: var(--font-heading);
-  font-size: 1.3rem;
-  font-weight: 700;
 }
 
 /* --- GRÁFICOS DONUT SVG --- */
@@ -622,6 +647,9 @@ body::before {
 .text-muted { color: var(--text-muted); }
 .text-small { font-size: 0.8rem; }
 .m-0 { margin: 0; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
 .mt-1 { margin-top: 4px; }
 .mt-3 { margin-top: 12px; }
 .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }

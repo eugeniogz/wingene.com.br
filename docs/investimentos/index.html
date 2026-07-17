@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=1.0.3" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -97,28 +97,63 @@
       </div>
     </section>
 
-    <!-- ABA 2: RENDA FIXA -->
+    <!-- ABA 2: RENDA FIXA (EDIÇÃO INLINE) -->
     <section id="tab-rendafixa" class="tab-pane">
       <div class="card">
         <div class="card-header-flex">
           <div>
             <h2 class="card-title">Ativos de Renda Fixa</h2>
-            <p class="text-muted text-small">RDB, Fundos de Investimento, Tesouro Direto, CDB, etc.</p>
+            <p class="text-muted text-small">Adicione e edite os valores diretamente na tabela abaixo (Edição Inline).</p>
           </div>
-          <button id="btnAddRendaFixa" class="btn btn-primary">+ Novo Ativo de Renda Fixa</button>
         </div>
+
+        <!-- FORMULÁRIO DE ADIÇÃO RÁPIDA INLINE -->
+        <form id="formAddRfInline" class="inline-add-bar mb-3">
+          <div class="inline-add-grid">
+            <div>
+              <label class="form-label text-small">Tipo</label>
+              <select id="newRfTipo" class="form-control form-control-sm">
+                <option value="RDB">RDB</option>
+                <option value="Fundos de Investimento">Fundo de Investimento</option>
+                <option value="Tesouro Direto">Tesouro Direto</option>
+                <option value="CDB">CDB</option>
+                <option value="LCI/LCA">LCI / LCA</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label text-small">Emissor / Corretora *</label>
+              <input type="text" id="newRfEmissor" class="form-control form-control-sm" placeholder="ex: Nubank, XP" required />
+            </div>
+            <div>
+              <label class="form-label text-small">Nome do Ativo *</label>
+              <input type="text" id="newRfNome" class="form-control form-control-sm" placeholder="ex: RDB Liquidez" required />
+            </div>
+            <div>
+              <label class="form-label text-small">Taxa / Rendimento</label>
+              <input type="text" id="newRfTaxa" class="form-control form-control-sm" placeholder="ex: 100% CDI" />
+            </div>
+            <div>
+              <label class="form-label text-small">Valor Aplicado (R$) *</label>
+              <input type="number" step="0.01" id="newRfValor" class="form-control form-control-sm" placeholder="0.00" required />
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">+ Adicionar</button>
+            </div>
+          </div>
+        </form>
 
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Tipo</th>
-                <th>Emissor / Corretora</th>
-                <th>Nome do Ativo</th>
-                <th>Taxa / Rendimento</th>
-                <th class="text-right">Valor Atual (R$)</th>
-                <th class="text-right">Data Atualização</th>
-                <th class="text-center">Ações</th>
+                <th style="width: 14%;">Tipo</th>
+                <th style="width: 20%;">Emissor / Corretora</th>
+                <th style="width: 24%;">Nome do Ativo</th>
+                <th style="width: 16%;">Taxa / Rendimento</th>
+                <th style="width: 16%;" class="text-right">Valor Atual (R$)</th>
+                <th style="width: 10%;" class="text-right">Data</th>
+                <th style="width: 10%;" class="text-center">Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyRendaFixa"></tbody>
@@ -134,30 +169,58 @@
       </div>
     </section>
 
-    <!-- ABA 3: CARTEIRA DE AÇÕES -->
+    <!-- ABA 3: CARTEIRA DE AÇÕES (EDIÇÃO INLINE) -->
     <section id="tab-acoes" class="tab-pane">
       <div class="card">
         <div class="card-header-flex">
           <div>
             <h2 class="card-title">Carteira de Ações</h2>
-            <p class="text-muted text-small">Acompanhe quantidade, valor unitário, valor total e participação percentual.</p>
+            <p class="text-muted text-small">Cadastre e altere código, preço, quantidade e metas diretamente na linha da tabela.</p>
           </div>
-          <button id="btnAddAcao" class="btn btn-primary">+ Cadastrar Ação</button>
         </div>
+
+        <!-- FORMULÁRIO DE ADIÇÃO RÁPIDA INLINE AÇÕES -->
+        <form id="formAddAcaoInline" class="inline-add-bar mb-3">
+          <div class="inline-add-grid-acoes">
+            <div>
+              <label class="form-label text-small">Código / Ticker *</label>
+              <input type="text" id="newAcaoTicker" class="form-control form-control-sm" placeholder="ex: PETR4" required style="text-transform: uppercase;" />
+            </div>
+            <div>
+              <label class="form-label text-small">Nome da Empresa *</label>
+              <input type="text" id="newAcaoNome" class="form-control form-control-sm" placeholder="ex: Petrobras PN" required />
+            </div>
+            <div>
+              <label class="form-label text-small">Qtd *</label>
+              <input type="number" step="1" id="newAcaoQtd" class="form-control form-control-sm" placeholder="0" required />
+            </div>
+            <div>
+              <label class="form-label text-small">Preço Unit. (R$) *</label>
+              <input type="number" step="0.01" id="newAcaoPreco" class="form-control form-control-sm" placeholder="0.00" required />
+            </div>
+            <div>
+              <label class="form-label text-small">Meta (%)</label>
+              <input type="number" step="0.1" id="newAcaoMeta" class="form-control form-control-sm" placeholder="10" required />
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">+ Cadastrar Ação</button>
+            </div>
+          </div>
+        </form>
 
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Código (Ticker)</th>
-                <th>Empresa</th>
-                <th class="text-right">Quantidade</th>
-                <th class="text-right">Valor Unit. (R$)</th>
-                <th class="text-right">Valor Total (R$)</th>
-                <th class="text-right">% Atual</th>
-                <th class="text-right">Meta (%)</th>
-                <th class="text-right">Data Cadastro</th>
-                <th class="text-center">Ações</th>
+                <th style="width: 12%;">Ticker</th>
+                <th style="width: 22%;">Empresa</th>
+                <th style="width: 10%;" class="text-right">Qtd</th>
+                <th style="width: 13%;" class="text-right">Preço Unit. (R$)</th>
+                <th style="width: 15%;" class="text-right">Valor Total (R$)</th>
+                <th style="width: 9%;" class="text-right">% Atual</th>
+                <th style="width: 9%;" class="text-right">Meta (%)</th>
+                <th style="width: 10%;" class="text-right">Data</th>
+                <th style="width: 10%;" class="text-center">Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyAcoes"></tbody>
@@ -215,92 +278,8 @@
 
   </main>
 
-  <!-- MODAL: CADASTRAR/EDITAR RENDA FIXA -->
-  <div id="modalRendaFixa" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalRfTitle" class="modal-title">Ativo de Renda Fixa</h3>
-        <button class="btn-icon" onclick="closeRendaFixaModal()">✕</button>
-      </div>
-      <form id="formRendaFixa">
-        <input type="hidden" id="rfId" />
-        <div class="form-group">
-          <label class="form-label">Tipo de Aplicação</label>
-          <select id="rfTipo" class="form-control">
-            <option value="RDB">RDB</option>
-            <option value="Fundos de Investimento">Fundo de Investimento</option>
-            <option value="Tesouro Direto">Tesouro Direto</option>
-            <option value="CDB">CDB</option>
-            <option value="LCI/LCA">LCI / LCA</option>
-            <option value="Outro">Outro</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Instituição / Emissor *</label>
-          <input type="text" id="rfEmissor" class="form-control" placeholder="ex: Banco Nubank, XP, Tesouro Nacional" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nome do Ativo *</label>
-          <input type="text" id="rfNome" class="form-control" placeholder="ex: RDB Liquidez Diária, Tesouro IPCA+ 2035" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Valor Atual Aplicado (R$) *</label>
-          <input type="number" step="0.01" id="rfValor" class="form-control" placeholder="0.00" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Taxa / Rendimento (Opcional)</label>
-          <input type="text" id="rfTaxa" class="form-control" placeholder="ex: 100% CDI, IPCA + 6.2%" />
-        </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-          <button type="button" class="btn btn-secondary" onclick="closeRendaFixaModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Ativo</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: CADASTRAR/EDITAR AÇÃO -->
-  <div id="modalAcao" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalAcaoTitle" class="modal-title">Cadastrar Ação</h3>
-        <button class="btn-icon" onclick="closeAcaoModal()">✕</button>
-      </div>
-      <form id="formAcao">
-        <input type="hidden" id="acaoId" />
-        <div class="form-group">
-          <label class="form-label">Código / Ticker da Ação *</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="acaoTicker" class="form-control" placeholder="ex: PETR4, VALE3, ITUB4" required style="text-transform: uppercase;" />
-            <button type="button" id="btnFetchPrice" class="btn btn-secondary" title="Buscar cotação atual">🔍 Buscar</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nome da Empresa / Ativo *</label>
-          <input type="text" id="acaoNome" class="form-control" placeholder="ex: Petrobras PN" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Quantidade de Ações *</label>
-          <input type="number" step="1" id="acaoQuantidade" class="form-control" placeholder="0" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Valor Unitário Atual (R$) *</label>
-          <input type="number" step="0.01" id="acaoPreco" class="form-control" placeholder="0.00" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Meta (%) na Carteira de Ações</label>
-          <input type="number" step="0.1" id="acaoMeta" class="form-control" placeholder="ex: 20" required />
-        </div>
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-          <button type="button" class="btn btn-secondary" onclick="closeAcaoModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Ação</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js"></script>
-  <script src="app.js"></script>
+  <script src="drive-sync.js?v=1.0.3"></script>
+  <script src="app.js?v=1.0.3"></script>
 </body>
 </html>
