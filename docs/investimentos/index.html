@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.1.9" />
+  <link rel="stylesheet" href="style.css?v=1.2.0" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -26,13 +26,23 @@
   <!-- CABEÇALHO PRINCIPAL DA PWA -->
   <header class="app-header">
     <div class="header-container">
-      <a href="../index.html" class="brand-area">
-        <img src="icon.svg" alt="WinGene Icon" class="brand-logo-img" />
-        <div>
-          <div class="brand-title">WINGENE</div>
-          <div class="brand-subtitle">Investimentos & Rebalanceamento</div>
-        </div>
-      </a>
+      <div class="brand-area">
+        <button type="button" class="btn-hamburger" id="btnHamburgerNav" aria-label="Abrir Menu de Navegação" aria-expanded="false" onclick="toggleNavDrawer(event)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <a href="../index.html" class="brand-link">
+          <img src="icon.svg" alt="WinGene Icon" class="brand-logo-img" />
+          <div>
+            <div class="brand-title">WINGENE</div>
+            <div class="brand-subtitle" id="currentScreenSubtitle">📊 Visão Geral</div>
+          </div>
+        </a>
+      </div>
 
       <div class="header-actions">
         <div id="googleUserContainer"></div>
@@ -47,18 +57,57 @@
     </div>
   </header>
 
+  <!-- OVERLAY & GAVETA DO MENU SANDUÍCHE -->
+  <div class="nav-drawer-backdrop" id="navDrawerBackdrop" onclick="closeNavDrawer()"></div>
+
+  <aside class="nav-drawer" id="navDrawerMenu" aria-label="Menu de Navegação Principal">
+    <div class="nav-drawer-header">
+      <div class="nav-drawer-brand">
+        <img src="icon.svg" alt="WinGene Icon" width="24" height="24" />
+        <span class="nav-drawer-title">Telas do Sistema</span>
+      </div>
+      <button type="button" class="nav-drawer-close" id="btnCloseNavDrawer" onclick="closeNavDrawer()" aria-label="Fechar Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+
+    <div class="nav-drawer-body">
+      <div class="nav-drawer-section-label">Navegação Principal</div>
+      <button class="nav-drawer-item tab-btn active" data-tab="overview">
+        <span class="nav-item-icon">📊</span>
+        <span class="nav-item-text">Visão Geral</span>
+      </button>
+      <button class="nav-drawer-item tab-btn" data-tab="evolucao">
+        <span class="nav-item-icon">📈</span>
+        <span class="nav-item-text">Evolução (Mensal/Anual)</span>
+      </button>
+      <button class="nav-drawer-item tab-btn" data-tab="rendafixa">
+        <span class="nav-item-icon">💰</span>
+        <span class="nav-item-text">Renda Fixa</span>
+      </button>
+      <button class="nav-drawer-item tab-btn" data-tab="acoes">
+        <span class="nav-item-icon">📈</span>
+        <span class="nav-item-text">Carteira de Ações</span>
+      </button>
+      <button class="nav-drawer-item tab-btn" data-tab="rebalanceamento">
+        <span class="nav-item-icon">🎯</span>
+        <span class="nav-item-text">Metas & Rebalanceamento</span>
+      </button>
+
+      <div class="nav-drawer-section-label mt-3">Configurações & Sincronização</div>
+      <button class="nav-drawer-item tab-btn" data-tab="config">
+        <span class="nav-item-icon">⚙️</span>
+        <span class="nav-item-text">Google Drive & Config</span>
+      </button>
+    </div>
+
+    <div class="nav-drawer-footer">
+      <span class="text-muted text-small">WinGene Investimentos</span>
+    </div>
+  </aside>
+
   <!-- CONTEÚDO PRINCIPAL -->
   <main class="app-container">
-
-    <!-- NAVEGAÇÃO POR ABAS -->
-    <nav class="tab-navigation" aria-label="Abas de Navegação">
-      <button class="tab-btn active" data-tab="overview">📊 Visão Geral</button>
-      <button class="tab-btn" data-tab="evolucao">📈 Evolução (Mensal/Anual)</button>
-      <button class="tab-btn" data-tab="rendafixa">💰 Renda Fixa</button>
-      <button class="tab-btn" data-tab="acoes">📈 Carteira de Ações</button>
-      <button class="tab-btn" data-tab="rebalanceamento">🎯 Metas & Rebalanceamento</button>
-      <button class="tab-btn" data-tab="config">⚙️ Google Drive & Config</button>
-    </nav>
 
     <!-- ABA 1: VISÃO GERAL -->
     <section id="tab-overview" class="tab-pane active">
@@ -359,7 +408,7 @@
   </main>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.1.9"></script>
-  <script src="app.js?v=1.1.9"></script>
+  <script src="drive-sync.js?v=1.2.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>

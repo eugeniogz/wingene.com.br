@@ -118,17 +118,65 @@ function saveLocalState(syncDrive = true) {
   }
 }
 
+// --- NAVEGAÇÃO E MENU SANDUÍCHE ---
+function toggleNavDrawer(e) {
+  if (e) e.stopPropagation();
+  const drawer = document.getElementById('navDrawerMenu');
+  const backdrop = document.getElementById('navDrawerBackdrop');
+  const btn = document.getElementById('btnHamburgerNav');
+  if (drawer && backdrop) {
+    const isOpen = drawer.classList.contains('is-open');
+    if (isOpen) {
+      closeNavDrawer();
+    } else {
+      drawer.classList.add('is-open');
+      backdrop.classList.add('is-open');
+      if (btn) btn.setAttribute('aria-expanded', 'true');
+    }
+  }
+}
+
+function closeNavDrawer() {
+  const drawer = document.getElementById('navDrawerMenu');
+  const backdrop = document.getElementById('navDrawerBackdrop');
+  const btn = document.getElementById('btnHamburgerNav');
+  if (drawer) drawer.classList.remove('is-open');
+  if (backdrop) backdrop.classList.remove('is-open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+// Fechar menu gaveta ao pressionar ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeNavDrawer();
+  }
+});
+
 // --- CONFIGURAÇÃO DE EVENT LISTENERS ---
 function setupEventListeners() {
-  // Navegação por Abas
+  // Navegação por Abas / Menu Sanduíche
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
       const targetTab = e.currentTarget.dataset.tab;
-      e.currentTarget.classList.add('active');
-      document.getElementById(`tab-${targetTab}`).classList.add('active');
+      
+      // Ativa o botão selecionado na gaveta
+      const matchingBtns = document.querySelectorAll(`.tab-btn[data-tab="${targetTab}"]`);
+      matchingBtns.forEach(b => b.classList.add('active'));
+
+      const targetPane = document.getElementById(`tab-${targetTab}`);
+      if (targetPane) targetPane.classList.add('active');
+
+      // Atualiza o subtítulo no cabeçalho com o nome da tela ativa
+      const screenTitleEl = document.getElementById('currentScreenSubtitle');
+      if (screenTitleEl) {
+        screenTitleEl.textContent = e.currentTarget.textContent.trim();
+      }
+
+      // Fecha o menu gaveta ao selecionar uma opção
+      closeNavDrawer();
     });
   });
 
