@@ -314,7 +314,7 @@ function handleGoogleAuthError(status) {
 }
 
 /**
- * Lista o histórico de revisões/versões do arquivo no Google Drive
+ * Lista o histórico de revisões/versões do arquivo no Google Drive (limitado às 12 mais recentes)
  */
 async function listDriveRevisions() {
   if (!accessToken) {
@@ -333,7 +333,14 @@ async function listDriveRevisions() {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.revisions || [];
+      const revisions = data.revisions || [];
+
+      // Limitar e expurgar revisões antigas no Drive caso excedam 12
+      if (revisions.length > 12) {
+        cleanupOldDriveRevisions(fileId, revisions);
+        return revisions.slice(-12);
+      }
+      return revisions;
     } else if (handleGoogleAuthError(res.status)) {
       return null;
     }
@@ -341,6 +348,24 @@ async function listDriveRevisions() {
     console.error('Erro ao listar revisões no Google Drive:', err);
   }
   return null;
+}
+
+/**
+ * Remove revisões antigas no Google Drive mantendo apenas as 12 mais recentes
+ */
+async function cleanupOldDriveRevisions(fileId, revisions) {
+  if (!revisions || revisions.length <= 12 || !accessToken) return;
+  const toDelete = revisions.slice(0, revisions.length - 12);
+  for (const rev of toDelete) {
+    try {
+      await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/revisions/${rev.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+    } catch (e) {
+      console.warn('Falha ao expurgar revisão antiga do Google Drive:', rev.id, e);
+    }
+  }
 }
 
 /**

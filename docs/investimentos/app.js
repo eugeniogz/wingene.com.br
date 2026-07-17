@@ -438,7 +438,7 @@ function renderEvolucaoTab(fin) {
   if (tbodyGrupos) {
     tbodyGrupos.innerHTML = `
       <tr style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
-        <td>🏢 PATRIMÔNIO TOTAL</td>
+        <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg></span> PATRIMÔNIO TOTAL</td>
         <td class="text-right">${formatCurrency(fin.patrimonioTotal)}</td>
         <td class="text-right">${formatDiffVal(fin.diffTotalMesVal)}</td>
         <td class="text-right">${formatDiffPct(fin.diffTotalMesPct)}</td>
@@ -446,7 +446,7 @@ function renderEvolucaoTab(fin) {
         <td class="text-right">${formatDiffPct(fin.diffTotalAnoPct)}</td>
       </tr>
       <tr>
-        <td>💰 Grupo Renda Fixa</td>
+        <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg></span> Grupo Renda Fixa</td>
         <td class="text-right">${formatCurrency(fin.totalRendaFixa)}</td>
         <td class="text-right">${formatDiffVal(fin.diffRfMesVal)}</td>
         <td class="text-right">${formatDiffPct(fin.diffRfMesPct)}</td>
@@ -454,7 +454,7 @@ function renderEvolucaoTab(fin) {
         <td class="text-right">${formatDiffPct(fin.diffRfAnoPct)}</td>
       </tr>
       <tr>
-        <td>📈 Grupo Ações</td>
+        <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Grupo Ações</td>
         <td class="text-right">${formatCurrency(fin.totalAcoes)}</td>
         <td class="text-right">${formatDiffVal(fin.diffAcoesMesVal)}</td>
         <td class="text-right">${formatDiffPct(fin.diffAcoesMesPct)}</td>
@@ -534,7 +534,10 @@ function handleAddRfInline(e) {
     valor,
     valorMesAnterior: valor,
     valorAnoAnterior: valor,
-    data: currentDate
+    data: currentDate,
+    historico: [
+      { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), valor: valor }
+    ]
   });
 
   document.getElementById('newRfEmissor').value = '';
@@ -599,6 +602,7 @@ function renderRendaFixaTable(fin) {
         <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
         <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
         <td class="text-center">
+          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico de Alterações">📜</button>
           <button class="btn-icon" onclick="startEditRfInline('${item.id}')" title="Editar Inline">✏️</button>
           <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
         </td>
@@ -636,6 +640,9 @@ function saveRfInline(id) {
     return;
   }
 
+  const now = new Date();
+  const dateTimeStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
   item.tipo = tipo;
   item.emissor = emissor;
   item.nome = nome;
@@ -643,7 +650,15 @@ function saveRfInline(id) {
   item.valorMesAnterior = isNaN(valMes) ? valor : valMes;
   item.valorAnoAnterior = isNaN(valAno) ? valor : valAno;
   item.valor = valor;
-  item.data = new Date().toLocaleDateString('pt-BR');
+  item.data = now.toLocaleDateString('pt-BR');
+
+  if (!Array.isArray(item.historico)) {
+    item.historico = [];
+  }
+  const lastHist = item.historico[item.historico.length - 1];
+  if (!lastHist || lastHist.valor !== valor) {
+    item.historico.push({ data: dateTimeStr, valor: valor });
+  }
 
   editingRfId = null;
   appState.isDemo = false;
@@ -686,7 +701,10 @@ function handleAddAcaoInline(e) {
     precoMesAnterior: preco,
     precoAnoAnterior: preco,
     meta,
-    data: currentDate
+    data: currentDate,
+    historico: [
+      { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), preco: preco, quantidade: quantidade, valorTotal: preco * quantidade }
+    ]
   });
 
   document.getElementById('newAcaoTicker').value = '';
@@ -755,6 +773,7 @@ function renderAcoesTable(fin) {
         </td>
         <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
         <td class="text-center">
+          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
           <button class="btn-icon" onclick="startEditAcaoInline('${item.id}')" title="Editar Inline">✏️</button>
           <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
         </td>
@@ -792,6 +811,9 @@ function saveAcaoInline(id) {
     return;
   }
 
+  const now = new Date();
+  const dateTimeStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
   item.ticker = ticker;
   item.nome = nome;
   item.quantidade = quantidade;
@@ -799,7 +821,15 @@ function saveAcaoInline(id) {
   item.precoAnoAnterior = isNaN(precoAno) ? preco : precoAno;
   item.preco = preco;
   item.meta = meta;
-  item.data = new Date().toLocaleDateString('pt-BR');
+  item.data = now.toLocaleDateString('pt-BR');
+
+  if (!Array.isArray(item.historico)) {
+    item.historico = [];
+  }
+  const lastHist = item.historico[item.historico.length - 1];
+  if (!lastHist || lastHist.preco !== preco || lastHist.quantidade !== quantidade) {
+    item.historico.push({ data: dateTimeStr, preco: preco, quantidade: quantidade, valorTotal: preco * quantidade });
+  }
 
   editingAcaoId = null;
   appState.isDemo = false;
@@ -816,6 +846,82 @@ function deleteAcao(id) {
     renderApp();
     showToast('Ação removida.', 'info');
   }
+}
+
+// --- MODAL HISTÓRICO DE ALTERAÇÕES DO ATIVO ---
+function showAssetHistoryModal(id, type) {
+  const backdrop = document.getElementById('assetHistoryModalBackdrop');
+  const titleEl = document.getElementById('assetHistoryTitle');
+  const bodyEl = document.getElementById('assetHistoryBody');
+  if (!backdrop || !bodyEl) return;
+
+  let item = null;
+  if (type === 'rf') {
+    item = appState.rendaFixa.find(r => r.id === id);
+  } else {
+    item = appState.acoes.find(a => a.id === id);
+  }
+
+  if (!item) return;
+
+  const itemName = type === 'rf' ? `${item.nome} (${item.emissor})` : `${item.ticker} - ${item.nome}`;
+  if (titleEl) titleEl.textContent = `📜 Histórico: ${itemName}`;
+
+  const hist = (Array.isArray(item.historico) && item.historico.length > 0) ? item.historico : [
+    type === 'rf'
+      ? { data: item.data || 'Cadastro', valor: item.valor }
+      : { data: item.data || 'Cadastro', preco: item.preco, quantidade: item.quantidade, valorTotal: item.preco * item.quantidade }
+  ];
+
+  const histReversed = [...hist].reverse();
+
+  bodyEl.innerHTML = `
+    <div class="history-timeline">
+      ${histReversed.map((entry, idx) => {
+        const prevEntry = histReversed[idx + 1];
+        let diffText = '';
+
+        if (type === 'rf') {
+          if (prevEntry && prevEntry.valor !== undefined) {
+            const diff = entry.valor - prevEntry.valor;
+            const pct = prevEntry.valor > 0 ? (diff / prevEntry.valor) * 100 : 0;
+            diffText = `<span class="${diff >= 0 ? 'evol-positive' : 'evol-negative'}">${diff >= 0 ? '+' : ''}${formatCurrency(diff)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</span>`;
+          }
+          return `
+            <div class="history-item">
+              <div>
+                <div class="history-val">${formatCurrency(entry.valor)}</div>
+                <div class="history-date">${entry.data}</div>
+              </div>
+              <div class="text-right">${diffText || '<span class="text-muted text-small">Registro Inicial</span>'}</div>
+            </div>
+          `;
+        } else {
+          if (prevEntry && prevEntry.valorTotal !== undefined) {
+            const diff = entry.valorTotal - prevEntry.valorTotal;
+            const pct = prevEntry.valorTotal > 0 ? (diff / prevEntry.valorTotal) * 100 : 0;
+            diffText = `<span class="${diff >= 0 ? 'evol-positive' : 'evol-negative'}">${diff >= 0 ? '+' : ''}${formatCurrency(diff)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</span>`;
+          }
+          return `
+            <div class="history-item">
+              <div>
+                <div class="history-val">${formatCurrency(entry.valorTotal)} <small class="text-muted">(${entry.quantidade}x ${formatCurrency(entry.preco)})</small></div>
+                <div class="history-date">${entry.data}</div>
+              </div>
+              <div class="text-right">${diffText || '<span class="text-muted text-small">Registro Inicial</span>'}</div>
+            </div>
+          `;
+        }
+      }).join('')}
+    </div>
+  `;
+
+  backdrop.style.display = 'flex';
+}
+
+function closeAssetHistoryModal() {
+  const backdrop = document.getElementById('assetHistoryModalBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
 }
 
 function renderRebalanceamentoSection(fin) {
