@@ -318,7 +318,10 @@ function renderApp() {
 
   // Data do sistema
   const lastUpdateFormatted = new Date(appState.lastUpdated).toLocaleString('pt-BR');
-  document.getElementById('lastUpdatedSpan').textContent = lastUpdateFormatted;
+  const lastUpdateEl = document.getElementById('lastUpdatedSpan');
+  if (lastUpdateEl) {
+    lastUpdateEl.textContent = lastUpdateFormatted;
+  }
 
   // Gráficos de Visão Geral (Donut Charts SVG)
   renderDonutChart('chartAssetAllocation', [

@@ -1,10 +1,10 @@
-const CACHE_NAME = 'wingene-investimentos-v1.1.1';
+const CACHE_NAME = 'wingene-investimentos-v1.1.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=1.1.1',
-  './app.js?v=1.1.1',
-  './drive-sync.js?v=1.1.1',
+  './style.css?v=1.1.2',
+  './app.js?v=1.1.2',
+  './drive-sync.js?v=1.1.2',
   './manifest.json',
   './icon.svg'
 ];
