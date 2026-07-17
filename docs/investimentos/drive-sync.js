@@ -102,6 +102,7 @@ async function fetchGoogleUserInfo() {
       localStorage.setItem('wingene_drive_user', JSON.stringify(googleUser));
       renderUserProfileUI();
     } else {
+      if (handleGoogleAuthError(res.status)) return;
       // Se não tiver permissão para o perfil, mantém o login no Drive silenciosamente
       googleUser = null;
       localStorage.removeItem('wingene_drive_user');
@@ -113,9 +114,6 @@ async function fetchGoogleUserInfo() {
   }
 }
 
-/**
- * Procura o arquivo de dados na pasta appDataFolder ou raiz do Google Drive
- */
 /**
  * Procura o arquivo de dados na pasta appDataFolder ou raiz do Google Drive
  */
@@ -146,6 +144,8 @@ async function findDriveFile() {
         localStorage.setItem('wingene_drive_file_id', driveFileId);
         return driveFileId;
       }
+    } else if (handleGoogleAuthError(res.status)) {
+      return null;
     } else if (res.status === 403) {
       showToast('Erro 403: Ative a "Google Drive API" no Google Cloud Console.', 'error');
     }
@@ -321,6 +321,8 @@ async function listDriveRevisions() {
     if (res.ok) {
       const data = await res.json();
       return data.revisions || [];
+    } else if (handleGoogleAuthError(res.status)) {
+      return null;
     }
   } catch (err) {
     console.error('Erro ao listar revisões no Google Drive:', err);
@@ -351,6 +353,8 @@ async function restoreDriveRevision(revisionId) {
         showToast('Versão anterior do Google Drive restaurada com sucesso!', 'success');
         return true;
       }
+    } else if (handleGoogleAuthError(res.status)) {
+      return false;
     }
   } catch (err) {
     console.error('Erro ao restaurar revisão:', err);
