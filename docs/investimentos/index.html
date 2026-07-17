@@ -12,11 +12,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=1.3.3" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=1.3.4" />
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.3.3" />
+  <link rel="stylesheet" href="style.css?v=1.3.4" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -254,48 +254,13 @@
     <!-- ABA 3: RENDA FIXA (EDIÇÃO INLINE) -->
     <section id="tab-rendafixa" class="tab-pane">
       <div class="card">
-        <div class="card-header-flex">
+        <div class="card-header-flex mb-3">
           <div>
             <h2 class="card-title">Ativos de Renda Fixa</h2>
-            <p class="text-muted text-small">Adicione e edite os valores atuais e históricos (Mês/Ano Ant.) diretamente na tabela.</p>
+            <p class="text-muted text-small mb-0">Adicione e edite os valores atuais e históricos (Mês/Ano Ant.) diretamente na tabela.</p>
           </div>
+          <button type="button" class="btn btn-primary" onclick="openAddRfModal()">+ Adicionar Renda Fixa</button>
         </div>
-
-        <!-- FORMULÁRIO DE ADIÇÃO RÁPIDA INLINE RENDA FIXA -->
-        <form id="formAddRfInline" class="inline-add-bar mb-3">
-          <div class="inline-add-grid">
-            <div>
-              <label class="form-label text-small">Tipo</label>
-              <select id="newRfTipo" class="form-control form-control-sm">
-                <option value="RDB">RDB</option>
-                <option value="Fundos de Investimento">Fundo de Investimento</option>
-                <option value="Tesouro Direto">Tesouro Direto</option>
-                <option value="CDB">CDB</option>
-                <option value="LCI/LCA">LCI / LCA</option>
-                <option value="Outro">Outro</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label text-small">Emissor / Corretora *</label>
-              <input type="text" id="newRfEmissor" class="form-control form-control-sm" placeholder="ex: Nubank, XP" required />
-            </div>
-            <div>
-              <label class="form-label text-small">Nome do Ativo *</label>
-              <input type="text" id="newRfNome" class="form-control form-control-sm" placeholder="ex: RDB Liquidez" required />
-            </div>
-            <div>
-              <label class="form-label text-small">Taxa / Rendimento</label>
-              <input type="text" id="newRfTaxa" class="form-control form-control-sm" placeholder="ex: 100% CDI" />
-            </div>
-            <div>
-              <label class="form-label text-small">Valor Atual (R$) *</label>
-              <input type="number" step="0.01" id="newRfValor" class="form-control form-control-sm" placeholder="0.00" required />
-            </div>
-            <div style="display: flex; align-items: flex-end;">
-              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">+ Adicionar</button>
-            </div>
-          </div>
-        </form>
 
         <div class="table-responsive">
           <table class="data-table">
@@ -328,41 +293,13 @@
     <!-- ABA 4: CARTEIRA DE AÇÕES (EDIÇÃO INLINE) -->
     <section id="tab-acoes" class="tab-pane">
       <div class="card">
-        <div class="card-header-flex">
+        <div class="card-header-flex mb-3">
           <div>
             <h2 class="card-title">Carteira de Ações</h2>
-            <p class="text-muted text-small">Cadastre e altere código, preço atual, preços anteriores (Mês/Ano Ant.) e metas inline.</p>
+            <p class="text-muted text-small mb-0">Cadastre e altere código, preço atual, preços anteriores (Mês/Ano Ant.) e metas inline.</p>
           </div>
+          <button type="button" class="btn btn-primary" onclick="openAddAcaoModal()">+ Cadastrar Ação</button>
         </div>
-
-        <!-- FORMULÁRIO DE ADIÇÃO RÁPIDA INLINE AÇÕES -->
-        <form id="formAddAcaoInline" class="inline-add-bar mb-3">
-          <div class="inline-add-grid-acoes">
-            <div>
-              <label class="form-label text-small">Código / Ticker *</label>
-              <input type="text" id="newAcaoTicker" class="form-control form-control-sm" placeholder="ex: PETR4" required style="text-transform: uppercase;" />
-            </div>
-            <div>
-              <label class="form-label text-small">Nome da Empresa *</label>
-              <input type="text" id="newAcaoNome" class="form-control form-control-sm" placeholder="ex: Petrobras PN" required />
-            </div>
-            <div>
-              <label class="form-label text-small">Qtd *</label>
-              <input type="number" step="1" id="newAcaoQtd" class="form-control form-control-sm" placeholder="0" required />
-            </div>
-            <div>
-              <label class="form-label text-small">Preço Unit. (R$) *</label>
-              <input type="number" step="0.01" id="newAcaoPreco" class="form-control form-control-sm" placeholder="0.00" required />
-            </div>
-            <div>
-              <label class="form-label text-small">Meta (%)</label>
-              <input type="number" step="0.1" id="newAcaoMeta" class="form-control form-control-sm" placeholder="10" required />
-            </div>
-            <div style="display: flex; align-items: flex-end;">
-              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">+ Cadastrar Ação</button>
-            </div>
-          </div>
-        </form>
 
         <div class="table-responsive">
           <table class="data-table">
@@ -483,11 +420,100 @@
           📋 Copiar Prompt para a Área de Transferência
         </button>
       </div>
+  <!-- FLOATING ACTION BUTTON (FAB +) -->
+  <button id="btnFabAdd" class="fab-btn" title="Adicionar Ativo" style="display: none;" onclick="openAddModalForCurrentTab()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  </button>
+
+  <!-- MODAL ADICIONAR RENDA FIXA -->
+  <div class="modal-backdrop" id="modalAddRfBackdrop" style="display: none;" onclick="closeAddRfModal()">
+    <div class="modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>💰</span> Adicionar Renda Fixa
+        </h3>
+        <button type="button" class="modal-close" onclick="closeAddRfModal()" aria-label="Fechar Modal">✕</button>
+      </div>
+      <form id="formAddRfModal" onsubmit="handleAddRfModalSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group mb-3">
+            <label class="form-label">Tipo de Aplicação</label>
+            <select id="modalRfTipo" class="form-control">
+              <option value="RDB">RDB</option>
+              <option value="Fundos de Investimento">Fundo de Investimento</option>
+              <option value="Tesouro Direto">Tesouro Direto</option>
+              <option value="CDB">CDB</option>
+              <option value="LCI/LCA">LCI / LCA</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Emissor / Corretora *</label>
+            <input type="text" id="modalRfEmissor" class="form-control" placeholder="ex: Nubank, XP, Banco Inter" required />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Nome do Ativo *</label>
+            <input type="text" id="modalRfNome" class="form-control" placeholder="ex: RDB Resgate Imediato" required />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Taxa / Rendimento</label>
+            <input type="text" id="modalRfTaxa" class="form-control" placeholder="ex: 100% CDI ou IPCA + 6.1%" />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Valor Atual Investido (R$) *</label>
+            <input type="number" step="0.01" id="modalRfValor" class="form-control" placeholder="0.00" required />
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddRfModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Inserir Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ADICIONAR AÇÃO -->
+  <div class="modal-backdrop" id="modalAddAcaoBackdrop" style="display: none;" onclick="closeAddAcaoModal()">
+    <div class="modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>📈</span> Cadastrar Nova Ação
+        </h3>
+        <button type="button" class="modal-close" onclick="closeAddAcaoModal()" aria-label="Fechar Modal">✕</button>
+      </div>
+      <form id="formAddAcaoModal" onsubmit="handleAddAcaoModalSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group mb-3">
+            <label class="form-label">Código / Ticker *</label>
+            <input type="text" id="modalAcaoTicker" class="form-control" placeholder="ex: PETR4" required style="text-transform: uppercase;" />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Nome da Empresa *</label>
+            <input type="text" id="modalAcaoNome" class="form-control" placeholder="ex: Petrobras PN" required />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Quantidade de Ações *</label>
+            <input type="number" step="1" id="modalAcaoQtd" class="form-control" placeholder="100" required />
+          </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Preço Unitário Atual (R$) *</label>
+            <input type="number" step="0.01" id="modalAcaoPreco" class="form-control" placeholder="0.00" required />
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Meta de Rebalanceamento (%) *</label>
+            <input type="number" step="0.1" id="modalAcaoMeta" class="form-control" placeholder="10" required />
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" onclick="closeAddAcaoModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Inserir Ação</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.3.3"></script>
-  <script src="app.js?v=1.3.3"></script>
+  <script src="drive-sync.js?v=1.3.4"></script>
+  <script src="app.js?v=1.3.4"></script>
 </body>
 </html>

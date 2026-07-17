@@ -175,6 +175,16 @@ function switchTab(targetTab) {
     screenTitleEl.textContent = activeDrawerBtn.textContent.trim();
   }
 
+  // Exibir ou ocultar o Floating Action Button (+) dependendo da tela
+  const fabBtn = document.getElementById('btnFabAdd');
+  if (fabBtn) {
+    if (targetTab === 'rendafixa' || targetTab === 'acoes') {
+      fabBtn.style.display = 'flex';
+    } else {
+      fabBtn.style.display = 'none';
+    }
+  }
+
   closeNavDrawer();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -277,17 +287,11 @@ function setupEventListeners() {
     });
   });
 
-  // Form de Adição Rápida Inline Renda Fixa
-  document.getElementById('formAddRfInline')?.addEventListener('submit', handleAddRfInline);
-
-  // Form de Adição Rápida Inline Ações
-  document.getElementById('formAddAcaoInline')?.addEventListener('submit', handleAddAcaoInline);
-
-  // Auto-fill nome da empresa ao digitar Ticker na barra inline de ações
-  document.getElementById('newAcaoTicker')?.addEventListener('input', (e) => {
+  // Auto-fill nome da empresa ao digitar Ticker na modal de ações
+  document.getElementById('modalAcaoTicker')?.addEventListener('input', (e) => {
     const ticker = e.target.value.toUpperCase().trim();
     e.target.value = ticker;
-    const nomeInput = document.getElementById('newAcaoNome');
+    const nomeInput = document.getElementById('modalAcaoNome');
     if (ticker && B3_POPULAR_STOCKS[ticker] && !nomeInput.value) {
       nomeInput.value = B3_POPULAR_STOCKS[ticker];
     }
@@ -608,13 +612,28 @@ function renderEvolucaoTab(fin) {
 }
 
 // --- RENDA FIXA (EDIÇÃO INLINE COM HISTÓRICO) ---
-function handleAddRfInline(e) {
+function openAddRfModal() {
+  const backdrop = document.getElementById('modalAddRfBackdrop');
+  if (!backdrop) return;
+  document.getElementById('modalRfEmissor').value = '';
+  document.getElementById('modalRfNome').value = '';
+  document.getElementById('modalRfTaxa').value = '';
+  document.getElementById('modalRfValor').value = '';
+  backdrop.style.display = 'flex';
+}
+
+function closeAddRfModal() {
+  const backdrop = document.getElementById('modalAddRfBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function handleAddRfModalSubmit(e) {
   e.preventDefault();
-  const tipo = document.getElementById('newRfTipo').value;
-  const emissor = document.getElementById('newRfEmissor').value.trim();
-  const nome = document.getElementById('newRfNome').value.trim();
-  const taxa = document.getElementById('newRfTaxa').value.trim();
-  const valor = parseFloat(document.getElementById('newRfValor').value);
+  const tipo = document.getElementById('modalRfTipo').value;
+  const emissor = document.getElementById('modalRfEmissor').value.trim();
+  const nome = document.getElementById('modalRfNome').value.trim();
+  const taxa = document.getElementById('modalRfTaxa').value.trim();
+  const valor = parseFloat(document.getElementById('modalRfValor').value);
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
   if (!emissor || !nome || isNaN(valor)) {
@@ -637,11 +656,7 @@ function handleAddRfInline(e) {
     ]
   });
 
-  document.getElementById('newRfEmissor').value = '';
-  document.getElementById('newRfNome').value = '';
-  document.getElementById('newRfTaxa').value = '';
-  document.getElementById('newRfValor').value = '';
-
+  closeAddRfModal();
   appState.isDemo = false;
   saveLocalState();
   renderApp();
@@ -775,13 +790,29 @@ function deleteRendaFixa(id) {
 }
 
 // --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE COM HISTÓRICO) ---
-function handleAddAcaoInline(e) {
+function openAddAcaoModal() {
+  const backdrop = document.getElementById('modalAddAcaoBackdrop');
+  if (!backdrop) return;
+  document.getElementById('modalAcaoTicker').value = '';
+  document.getElementById('modalAcaoNome').value = '';
+  document.getElementById('modalAcaoQtd').value = '';
+  document.getElementById('modalAcaoPreco').value = '';
+  document.getElementById('modalAcaoMeta').value = '';
+  backdrop.style.display = 'flex';
+}
+
+function closeAddAcaoModal() {
+  const backdrop = document.getElementById('modalAddAcaoBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function handleAddAcaoModalSubmit(e) {
   e.preventDefault();
-  const ticker = document.getElementById('newAcaoTicker').value.toUpperCase().trim();
-  const nome = document.getElementById('newAcaoNome').value.trim();
-  const quantidade = parseFloat(document.getElementById('newAcaoQtd').value);
-  const preco = parseFloat(document.getElementById('newAcaoPreco').value);
-  const meta = parseFloat(document.getElementById('newAcaoMeta').value) || 0;
+  const ticker = document.getElementById('modalAcaoTicker').value.toUpperCase().trim();
+  const nome = document.getElementById('modalAcaoNome').value.trim();
+  const quantidade = parseFloat(document.getElementById('modalAcaoQtd').value);
+  const preco = parseFloat(document.getElementById('modalAcaoPreco').value);
+  const meta = parseFloat(document.getElementById('modalAcaoMeta').value) || 0;
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
@@ -804,16 +835,22 @@ function handleAddAcaoInline(e) {
     ]
   });
 
-  document.getElementById('newAcaoTicker').value = '';
-  document.getElementById('newAcaoNome').value = '';
-  document.getElementById('newAcaoQtd').value = '';
-  document.getElementById('newAcaoPreco').value = '';
-  document.getElementById('newAcaoMeta').value = '';
-
+  closeAddAcaoModal();
   appState.isDemo = false;
   saveLocalState();
   renderApp();
   showToast(`Ação ${ticker} adicionada!`, 'success');
+}
+
+function openAddModalForCurrentTab() {
+  const activePane = document.querySelector('.tab-pane.active');
+  if (!activePane) return;
+  const currentTab = activePane.id.replace('tab-', '');
+  if (currentTab === 'rendafixa') {
+    openAddRfModal();
+  } else if (currentTab === 'acoes') {
+    openAddAcaoModal();
+  }
 }
 
 function renderAcoesTable(fin) {

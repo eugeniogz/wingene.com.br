@@ -1110,6 +1110,35 @@ tr.row-editing td {
   transform: translateY(-1px);
 }
 
+/* --- FLOATING ACTION BUTTON (FAB) --- */
+.fab-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.fab-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.5);
+}
+
+.fab-btn:active {
+  transform: scale(0.96);
+}
+
 .history-val {
   font-weight: 700;
   font-size: 0.92rem;
