@@ -409,7 +409,7 @@ function renderApp() {
   // Gráficos de Visão Geral (Donut Charts SVG)
   renderDonutChart('chartAssetAllocation', [
     { label: 'Renda Fixa', value: fin.totalRendaFixa, color: '#10b981' },
-    { label: 'Ações', value: fin.totalAcoes, color: '#1040b0' }
+    { label: 'Ações', value: fin.totalAcoes, color: '#f59e0b' }
   ]);
 
   renderDonutChart('chartStockBreakdown', fin.acoes.map((ac, idx) => ({
