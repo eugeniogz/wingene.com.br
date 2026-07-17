@@ -1116,7 +1116,7 @@ function exportJsonBackup() {
   const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(appState, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute('href', dataStr);
-  downloadAnchor.setAttribute('download', `wingene_investimentos_${new Date().toISOString().slice(0,10)}.json`);
+  downloadAnchor.setAttribute('download', `winvest_${new Date().toISOString().slice(0,10)}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -1318,7 +1318,7 @@ function setupPwaInstallation() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
-        console.log('Service Worker WinGene registrado:', reg.scope);
+        console.log('Service Worker Winvest registrado:', reg.scope);
         // Forçar verificação de atualizações no servidor a cada acesso
         reg.update();
       })

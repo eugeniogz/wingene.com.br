@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
     <!-- Fundo Escuro com Brilho Radial -->
-    <radialGradient id="bgGrad" cx="50%" cy="42%" r="55%">
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="55%">
       <stop offset="0%" stop-color="#1e1b2e" />
       <stop offset="60%" stop-color="#111017" />
       <stop offset="100%" stop-color="#08080b" />
@@ -29,7 +29,7 @@
 
     <!-- Brilho Glow para a Linha de Crescimento -->
     <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feGaussianBlur stdDeviation="8" result="blur" />
       <feComposite in="SourceGraphic" in2="blur" operator="over" />
     </filter>
   </defs>
@@ -39,10 +39,10 @@
   <rect width="496" height="496" x="8" y="8" rx="96" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="3" />
 
   <!-- AURA DE BRILHO CENTRAL -->
-  <circle cx="256" cy="205" r="130" fill="#10b981" opacity="0.12" filter="url(#glow)" />
+  <circle cx="256" cy="256" r="165" fill="#10b981" opacity="0.12" filter="url(#glow)" />
 
-  <!-- EMBLEMA DA ESTRELA DE 6 PONTAS FACETADA (3D) -->
-  <g transform="translate(256, 205) scale(1.4)">
+  <!-- EMBLEMA DA ESTRELA DE 6 PONTAS FACETADA (3D AMPLIAÇÃO PROPORCIONAL) -->
+  <g transform="translate(256, 256) scale(1.85)">
     <!-- Ponta 1: Superior (Norte) -->
     <polygon points="0,0 0,-85 -18,-31.18" fill="url(#goldLightGrad)" />
     <polygon points="0,0 0,-85 18,-31.18" fill="url(#goldGrad)" />
@@ -73,9 +73,6 @@
   </g>
 
   <!-- LINHA DE TENDÊNCIA E CRESCIMENTO PATRIMONIAL -->
-  <path d="M 88 385 L 184 315 L 264 345 L 424 205" fill="none" stroke="url(#greenGrad)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
-  <polygon points="424,205 376,205 424,253" fill="#34d399" />
-
-  <!-- TEXTO WINVEST -->
-  <text x="256" y="450" font-family="'Outfit', sans-serif" font-weight="800" font-size="46" fill="#ffffff" text-anchor="middle" letter-spacing="4">WINVEST</text>
+  <path d="M 72 420 L 180 335 L 268 370 L 440 190" fill="none" stroke="url(#greenGrad)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+  <polygon points="440,190 385,190 440,245" fill="#34d399" />
 </svg>
