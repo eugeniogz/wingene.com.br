@@ -47,6 +47,7 @@ const B3_POPULAR_STOCKS = {
 document.addEventListener('DOMContentLoaded', () => {
   loadLocalState();
   setupEventListeners();
+  setupSwipeNavigation();
   renderApp();
   setupPwaInstallation();
 
@@ -152,31 +153,127 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Ordem das telas/abas da PWA
+const TAB_ORDER = ['overview', 'evolucao', 'rendafixa', 'acoes', 'rebalanceamento', 'config'];
+
+function switchTab(targetTab) {
+  const tabIdx = TAB_ORDER.indexOf(targetTab);
+  if (tabIdx === -1) return;
+
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+  const matchingBtns = document.querySelectorAll(`.tab-btn[data-tab="${targetTab}"]`);
+  matchingBtns.forEach(b => b.classList.add('active'));
+
+  const targetPane = document.getElementById(`tab-${targetTab}`);
+  if (targetPane) targetPane.classList.add('active');
+
+  const activeDrawerBtn = document.querySelector(`.nav-drawer-item.tab-btn[data-tab="${targetTab}"]`);
+  const screenTitleEl = document.getElementById('currentScreenSubtitle');
+  if (screenTitleEl && activeDrawerBtn) {
+    screenTitleEl.textContent = activeDrawerBtn.textContent.trim();
+  }
+
+  closeNavDrawer();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setupSwipeNavigation() {
+  const mainContent = document.querySelector('main.app-main') || document.body;
+  if (!mainContent) return;
+
+  let startX = 0;
+  let startY = 0;
+  let isSwiping = false;
+
+  function getCurrentTabId() {
+    const activePane = document.querySelector('.tab-pane.active');
+    if (!activePane) return 'overview';
+    return activePane.id.replace('tab-', '');
+  }
+
+  function isValidSwipeTarget(target) {
+    if (!target) return false;
+    // Evitar deslizar ao interagir com modais, formulários, tabelas roláveis ou menu gaveta
+    return !target.closest('.modal-backdrop, input, textarea, select, button, a, .table-responsive, .nav-drawer, .user-dropdown-menu');
+  }
+
+  // --- TOUCH EVENTS (CELULAR / TABLET) ---
+  mainContent.addEventListener('touchstart', (e) => {
+    if (!isValidSwipeTarget(e.target)) {
+      isSwiping = false;
+      return;
+    }
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    isSwiping = true;
+  }, { passive: true });
+
+  mainContent.addEventListener('touchend', (e) => {
+    if (!isSwiping) return;
+    isSwiping = false;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+      const currentTab = getCurrentTabId();
+      const currentIdx = TAB_ORDER.indexOf(currentTab);
+
+      if (deltaX < 0 && currentIdx < TAB_ORDER.length - 1) {
+        // Deslizar para a esquerda -> Próxima Tela
+        switchTab(TAB_ORDER[currentIdx + 1]);
+      } else if (deltaX > 0 && currentIdx > 0) {
+        // Deslizar para a direita -> Tela Anterior
+        switchTab(TAB_ORDER[currentIdx - 1]);
+      }
+    }
+  }, { passive: true });
+
+  // --- MOUSE DRAG / SWIPE EVENTS (WEB DESKTOP) ---
+  let isMouseDown = false;
+
+  mainContent.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (!isValidSwipeTarget(e.target)) {
+      isMouseDown = false;
+      return;
+    }
+    startX = e.clientX;
+    startY = e.clientY;
+    isMouseDown = true;
+  });
+
+  mainContent.addEventListener('mouseup', (e) => {
+    if (!isMouseDown) return;
+    isMouseDown = false;
+
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+
+    if (Math.abs(deltaX) > 70 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+      const currentTab = getCurrentTabId();
+      const currentIdx = TAB_ORDER.indexOf(currentTab);
+
+      if (deltaX < 0 && currentIdx < TAB_ORDER.length - 1) {
+        switchTab(TAB_ORDER[currentIdx + 1]);
+      } else if (deltaX > 0 && currentIdx > 0) {
+        switchTab(TAB_ORDER[currentIdx - 1]);
+      }
+    }
+  });
+}
+
 // --- CONFIGURAÇÃO DE EVENT LISTENERS ---
 function setupEventListeners() {
   // Navegação por Abas / Menu Sanduíche
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-
       const targetTab = e.currentTarget.dataset.tab;
-      
-      // Ativa o botão selecionado na gaveta
-      const matchingBtns = document.querySelectorAll(`.tab-btn[data-tab="${targetTab}"]`);
-      matchingBtns.forEach(b => b.classList.add('active'));
-
-      const targetPane = document.getElementById(`tab-${targetTab}`);
-      if (targetPane) targetPane.classList.add('active');
-
-      // Atualiza o subtítulo no cabeçalho com o nome da tela ativa
-      const screenTitleEl = document.getElementById('currentScreenSubtitle');
-      if (screenTitleEl) {
-        screenTitleEl.textContent = e.currentTarget.textContent.trim();
-      }
-
-      // Fecha o menu gaveta ao selecionar uma opção
-      closeNavDrawer();
+      switchTab(targetTab);
     });
   });
 
