@@ -317,14 +317,10 @@ function renderUserProfileUI() {
 
   if (accessToken) {
     if (userContainer) {
-      if (googleUser && googleUser.name) {
+      if (googleUser && googleUser.email) {
         userContainer.innerHTML = `
-          <div class="user-profile-badge">
-            <img src="${googleUser.picture || './icon.svg'}" alt="${googleUser.name}" class="user-avatar" />
-            <div class="user-info">
-              <span class="user-name">${escapeHtml(googleUser.name)}</span>
-              <span class="user-email">${escapeHtml(googleUser.email)}</span>
-            </div>
+          <div class="user-email-badge">
+            <span class="user-email-text">${escapeHtml(googleUser.email)}</span>
           </div>
         `;
       } else {
