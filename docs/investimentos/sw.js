@@ -2,9 +2,9 @@ const CACHE_NAME = 'wingene-investimentos-v1.2.3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=1.2.2',
-  './app.js?v=1.2.2',
-  './drive-sync.js?v=1.2.2',
+  './style.css?v=1.2.3',
+  './app.js?v=1.2.3',
+  './drive-sync.js?v=1.2.3',
   './manifest.json',
   './icon.svg'
 ];
