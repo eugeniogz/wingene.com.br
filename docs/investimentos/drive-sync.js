@@ -182,6 +182,8 @@ async function syncFromDrive() {
       }
       updateDriveUIStatus('Dados sincronizados com sucesso!', false, true);
       return true;
+    } else if (handleGoogleAuthError(res.status)) {
+      return false;
     } else if (res.status === 403) {
       updateDriveUIStatus('Erro 403: Acesso ao Drive Negado', true);
       showToast('Erro 403: Certifique-se de que a Google Drive API está ATIVADA no Google Cloud Console.', 'error');
@@ -222,6 +224,8 @@ async function saveToDrive(appData) {
       if (res.ok) {
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
+      } else if (handleGoogleAuthError(res.status)) {
+        return false;
       } else if (res.status === 403) {
         updateDriveUIStatus('Erro 403 no Drive', true);
         showToast('Erro 403: Ative a Google Drive API no Cloud Console.', 'error');
@@ -264,6 +268,8 @@ async function saveToDrive(appData) {
         localStorage.setItem('wingene_drive_file_id', driveFileId);
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
+      } else if (handleGoogleAuthError(res.status)) {
+        return false;
       } else if (res.status === 403) {
         updateDriveUIStatus('Erro 403 (Permissão do Drive)', true);
         showToast('Erro 403: Acesse o Google Cloud Console e ative a "Google Drive API" no projeto.', 'error');
@@ -272,6 +278,24 @@ async function saveToDrive(appData) {
   } catch (err) {
     console.error('Erro ao salvar no Google Drive:', err);
     updateDriveUIStatus('Erro ao enviar para o Drive', true);
+  }
+  return false;
+}
+
+/**
+ *Trata erro 401 (Token Expirado) limpando a sessão e avisando o usuário
+ */
+function handleGoogleAuthError(status) {
+  if (status === 401) {
+    console.warn('Token de acesso Google expirou (401). Limpando sessão...');
+    accessToken = null;
+    googleUser = null;
+    localStorage.removeItem('wingene_drive_access_token');
+    localStorage.removeItem('wingene_drive_user');
+    renderUserProfileUI();
+    updateDriveUIStatus('Sessão expirada (Offline)', true);
+    showToast('Sua sessão do Google Drive expirou. Clique em "Conectar Drive" para renovar o acesso.', 'warning');
+    return true;
   }
   return false;
 }
