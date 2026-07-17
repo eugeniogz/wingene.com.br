@@ -264,11 +264,27 @@ body::before {
   transform: translateX(2px);
 }
 
+.nav-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: color 0.18s ease;
+}
+
+.nav-drawer-item.tab-btn:hover .nav-item-icon {
+  color: #ffffff;
+}
+
 .nav-drawer-item.tab-btn.active {
   background: linear-gradient(135deg, rgba(16, 64, 176, 0.35) 0%, rgba(16, 64, 176, 0.18) 100%);
   color: #60a5fa;
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 4px 12px rgba(16, 64, 176, 0.2);
+}
+
+.nav-drawer-item.tab-btn.active .nav-item-icon {
+  color: #60a5fa;
 }
 
 .nav-drawer-footer {
