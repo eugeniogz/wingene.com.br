@@ -641,7 +641,44 @@ tr.row-editing td {
 .toast-success { border-left: 4px solid var(--primary-green); }
 .toast-error { border-left: 4px solid var(--primary-red); }
 
-/* --- RESPONSIVIDADE UTILS --- */
+/* --- ESTILOS DE EVOLUÇÃO (MENSAL E ANUAL) --- */
+.evol-positive {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.evol-negative {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.evol-pill-positive {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.evol-pill-negative {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* --- RESPONSIVIDADE UTILS & MEDIA QUERIES --- */
 .text-right { text-align: right; }
 .text-center { text-align: center; }
 .text-muted { color: var(--text-muted); }
@@ -654,3 +691,117 @@ tr.row-editing td {
 .mt-3 { margin-top: 12px; }
 .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
 .py-5 { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+
+/* ==========================================================================
+   OTIMIZAÇÕES RESPONSIVAS PARA DISPOSITIVOS MÓVEIS (SMARTPHONES E TABLETS)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .app-header {
+    padding: 10px 0;
+  }
+
+  .header-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .brand-area {
+    justify-content: center;
+  }
+
+  .header-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .app-container {
+    margin: 12px auto;
+    padding: 0 10px;
+  }
+
+  .grid-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-chart-wrapper {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .donut-legend {
+    width: 100%;
+  }
+
+  .inline-add-grid,
+  .inline-add-grid-acoes {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 8px;
+    font-size: 0.82rem;
+  }
+
+  .table-input-sm {
+    font-size: 0.82rem;
+    padding: 4px 6px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-title {
+    font-size: 1.2rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    text-align: center;
+    font-size: 0.82rem;
+  }
+}

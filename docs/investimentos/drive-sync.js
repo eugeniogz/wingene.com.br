@@ -6,7 +6,7 @@
 const DRIVE_CONFIG = {
   // CLIENT_ID configurável via UI ou constante
   CLIENT_ID: localStorage.getItem('wingene_drive_client_id') || '568890387136-7633o3djo84878srldube4rca4hg1r3h.apps.googleusercontent.com',
-  SCOPES: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+  SCOPES: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
   FILE_NAME: 'wingene_investimentos_data.json'
 };
 
@@ -101,6 +101,11 @@ async function fetchGoogleUserInfo() {
       googleUser = await res.json();
       localStorage.setItem('wingene_drive_user', JSON.stringify(googleUser));
       renderUserProfileUI();
+    } else if (res.status === 401) {
+      console.warn('Token de acesso Google expirou ou precisa de novos escopos.');
+      accessToken = null;
+      localStorage.removeItem('wingene_drive_access_token');
+      renderUserProfileUI();
     }
   } catch (err) {
     console.warn('Erro ao obter perfil do usuário Google:', err);
@@ -110,18 +115,29 @@ async function fetchGoogleUserInfo() {
 /**
  * Procura o arquivo de dados na pasta appDataFolder ou raiz do Google Drive
  */
+/**
+ * Procura o arquivo de dados na pasta appDataFolder ou raiz do Google Drive
+ */
 async function findDriveFile() {
   if (!accessToken) return null;
   
   try {
     // Procura na pasta reservada appDataFolder primeiro
     const q = `name = '${DRIVE_CONFIG.FILE_NAME}' and trashed = false`;
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=appDataFolder,drive&fields=files(id, name, modifiedTime)`;
+    let url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=appDataFolder,drive&fields=files(id, name, modifiedTime)`;
     
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     
+    if (res.status === 403) {
+      console.warn('Escopo appDataFolder negado (403). Tentando buscar na pasta principal do Drive...');
+      url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id, name, modifiedTime)`;
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+    }
+
     if (res.ok) {
       const data = await res.json();
       if (data.files && data.files.length > 0) {
@@ -129,6 +145,8 @@ async function findDriveFile() {
         localStorage.setItem('wingene_drive_file_id', driveFileId);
         return driveFileId;
       }
+    } else if (res.status === 403) {
+      showToast('Erro 403: Ative a "Google Drive API" no Google Cloud Console.', 'error');
     }
   } catch (err) {
     console.error('Erro ao procurar arquivo no Google Drive:', err);
@@ -163,6 +181,9 @@ async function syncFromDrive() {
       }
       updateDriveUIStatus('Dados sincronizados com sucesso!', false, true);
       return true;
+    } else if (res.status === 403) {
+      updateDriveUIStatus('Erro 403: Acesso ao Drive Negado', true);
+      showToast('Erro 403: Certifique-se de que a Google Drive API está ATIVADA no Google Cloud Console.', 'error');
     }
   } catch (err) {
     console.error('Falha ao baixar dados do Drive:', err);
@@ -200,30 +221,51 @@ async function saveToDrive(appData) {
       if (res.ok) {
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
+      } else if (res.status === 403) {
+        updateDriveUIStatus('Erro 403 no Drive', true);
+        showToast('Erro 403: Ative a Google Drive API no Cloud Console.', 'error');
       }
     } else {
-      // Cria novo arquivo na pasta appDataFolder
-      const metadata = {
+      // Tentar criar novo arquivo na pasta appDataFolder primeiro, com fallback para o Drive principal
+      let metadata = {
         name: DRIVE_CONFIG.FILE_NAME,
         parents: ['appDataFolder']
       };
 
-      const form = new FormData();
+      let form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
       form.append('file', new Blob([fileContent], { type: 'application/json' }));
 
-      const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      let res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },
         body: form
       });
 
+      // Se appDataFolder der 403 Forbidden, tentar salvar na raiz do Drive do usuário
+      if (res.status === 403) {
+        console.warn('Criar em appDataFolder deu 403. Tentando criar na pasta raiz do Google Drive...');
+        metadata = { name: DRIVE_CONFIG.FILE_NAME };
+        form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+        res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: form
+        });
+      }
+
       if (res.ok) {
         const createdFile = await res.json();
         driveFileId = createdFile.id;
         localStorage.setItem('wingene_drive_file_id', driveFileId);
-        updateDriveUIStatus('Arquivo criado e salvo no Google Drive!', false, true);
+        updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
+      } else if (res.status === 403) {
+        updateDriveUIStatus('Erro 403 (Permissão do Drive)', true);
+        showToast('Erro 403: Acesse o Google Cloud Console e ative a "Google Drive API" no projeto.', 'error');
       }
     }
   } catch (err) {
@@ -272,17 +314,21 @@ function renderUserProfileUI() {
   const loginBtnConfig = document.getElementById('btnGoogleLoginConfig');
   const logoutBtn = document.getElementById('btnGoogleLogout');
 
-  if (googleUser && accessToken) {
+  if (accessToken) {
     if (userContainer) {
-      userContainer.innerHTML = `
-        <div class="user-profile-badge">
-          <img src="${googleUser.picture || './icon.svg'}" alt="${googleUser.name}" class="user-avatar" />
-          <div class="user-info">
-            <span class="user-name">${googleUser.name}</span>
-            <span class="user-email">${googleUser.email}</span>
+      if (googleUser && googleUser.name) {
+        userContainer.innerHTML = `
+          <div class="user-profile-badge">
+            <img src="${googleUser.picture || './icon.svg'}" alt="${googleUser.name}" class="user-avatar" />
+            <div class="user-info">
+              <span class="user-name">${escapeHtml(googleUser.name)}</span>
+              <span class="user-email">${escapeHtml(googleUser.email)}</span>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        userContainer.innerHTML = '<span class="text-success text-small">☁️ Drive Conectado</span>';
+      }
     }
     if (loginBtn) loginBtn.style.display = 'none';
     if (loginBtnConfig) loginBtnConfig.style.display = 'none';

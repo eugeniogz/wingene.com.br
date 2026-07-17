@@ -1,6 +1,6 @@
 /**
- * WinGene Investimentos — Lógica Principal da PWA (Edição Inline)
- * Gerenciamento de Renda Fixa, Ações, Percentuais e Metas com Edição Direta nas Tabelas.
+ * WinGene Investimentos — Lógica Principal da PWA
+ * Gestão da Carteira, Rebalanceamento por Metas e Cálculo de Evolução Mensal e Anual.
  */
 
 // Estado da Aplicação
@@ -77,17 +77,17 @@ function loadLocalState() {
       console.error('Erro ao ler estado local:', e);
     }
   } else {
-    // Dados de demonstração inicial
+    // Dados de demonstração inicial com histórico mensal e anual
     appState = {
       rendaFixa: [
-        { id: 'rf-1', tipo: 'Tesouro Direto', emissor: 'Tesouro Nacional', nome: 'Tesouro IPCA+ 2035', valor: 15000, taxa: 'IPCA + 6.1%', data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
+        { id: 'rf-1', tipo: 'Tesouro Direto', emissor: 'Tesouro Nacional', nome: 'Tesouro IPCA+ 2035', valor: 15000, valorMesAnterior: 14750, valorAnoAnterior: 13800, taxa: 'IPCA + 6.1%', data: new Date().toLocaleDateString('pt-BR') },
+        { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, valorMesAnterior: 8420, valorAnoAnterior: 7750, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
       ],
       acoes: [
-        { id: 'ac-1', ticker: 'PETR4', nome: 'Petrobras PN', quantidade: 200, preco: 38.50, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-2', ticker: 'VALE3', nome: 'Vale S.A.', quantidade: 100, preco: 62.10, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-3', ticker: 'ITUB4', nome: 'Itaú Unibanco PN', quantidade: 250, preco: 33.20, meta: 20, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-4', ticker: 'WEGE3', nome: 'Weg S.A.', quantidade: 120, preco: 42.00, meta: 20, data: new Date().toLocaleDateString('pt-BR') }
+        { id: 'ac-1', ticker: 'PETR4', nome: 'Petrobras PN', quantidade: 200, preco: 38.50, precoMesAnterior: 36.80, precoAnoAnterior: 32.10, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
+        { id: 'ac-2', ticker: 'VALE3', nome: 'Vale S.A.', quantidade: 100, preco: 62.10, precoMesAnterior: 64.00, precoAnoAnterior: 58.50, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
+        { id: 'ac-3', ticker: 'ITUB4', nome: 'Itaú Unibanco PN', quantidade: 250, preco: 33.20, precoMesAnterior: 32.50, precoAnoAnterior: 27.80, meta: 20, data: new Date().toLocaleDateString('pt-BR') },
+        { id: 'ac-4', ticker: 'WEGE3', nome: 'Weg S.A.', quantidade: 120, preco: 42.00, precoMesAnterior: 40.50, precoAnoAnterior: 34.20, meta: 20, data: new Date().toLocaleDateString('pt-BR') }
       ],
       lastUpdated: new Date().toISOString()
     };
@@ -146,25 +146,99 @@ function setupEventListeners() {
   document.getElementById('fileImportJson')?.addEventListener('change', importJsonBackup);
 }
 
-// --- CÁLCULOS FINANCEIROS E REBALANCEAMENTO ---
+// --- CÁLCULOS FINANCIALS & EVOLUÇÃO (MENSAL E ANUAL) ---
 function calculateFinancials() {
-  const totalRendaFixa = appState.rendaFixa.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
-  
-  const acoesComTotais = appState.acoes.map(acao => {
-    const qty = parseFloat(acao.quantidade) || 0;
-    const price = parseFloat(acao.preco) || 0;
-    const valorTotal = qty * price;
-    const meta = parseFloat(acao.meta) || 0;
-    return { ...acao, valorTotal, meta };
+  // --- RENDA FIXA ---
+  const rendaFixaProcessada = appState.rendaFixa.map(item => {
+    const valorAtual = parseFloat(item.valor) || 0;
+    const valorMesAnt = parseFloat(item.valorMesAnterior) !== undefined && !isNaN(parseFloat(item.valorMesAnterior)) ? parseFloat(item.valorMesAnterior) : valorAtual;
+    const valorAnoAnt = parseFloat(item.valorAnoAnterior) !== undefined && !isNaN(parseFloat(item.valorAnoAnterior)) ? parseFloat(item.valorAnoAnterior) : valorAtual;
+
+    const diffMesVal = valorAtual - valorMesAnt;
+    const diffMesPct = valorMesAnt > 0 ? (diffMesVal / valorMesAnt) * 100 : 0;
+    const diffAnoVal = valorAtual - valorAnoAnt;
+    const diffAnoPct = valorAnoAnt > 0 ? (diffAnoVal / valorAnoAnt) * 100 : 0;
+
+    return {
+      ...item,
+      valorAtual,
+      valorMesAnt,
+      valorAnoAnt,
+      diffMesVal,
+      diffMesPct,
+      diffAnoVal,
+      diffAnoPct
+    };
   });
 
-  const totalAcoes = acoesComTotais.reduce((acc, item) => acc + item.valorTotal, 0);
-  const patrimonioTotal = totalRendaFixa + totalAcoes;
+  const totalRfAtual = rendaFixaProcessada.reduce((acc, i) => acc + i.valorAtual, 0);
+  const totalRfMesAnt = rendaFixaProcessada.reduce((acc, i) => acc + i.valorMesAnt, 0);
+  const totalRfAnoAnt = rendaFixaProcessada.reduce((acc, i) => acc + i.valorAnoAnt, 0);
 
-  // Calcular percentual de cada ação na carteira de Ações e metas
-  const acoesComPercentual = acoesComTotais.map(acao => {
-    const percentualAtual = totalAcoes > 0 ? (acao.valorTotal / totalAcoes) * 100 : 0;
-    const valorAlvoMeta = totalAcoes > 0 ? (totalAcoes * (acao.meta / 100)) : 0;
+  const diffRfMesVal = totalRfAtual - totalRfMesAnt;
+  const diffRfMesPct = totalRfMesAnt > 0 ? (diffRfMesVal / totalRfMesAnt) * 100 : 0;
+  const diffRfAnoVal = totalRfAtual - totalRfAnoAnt;
+  const diffRfAnoPct = totalRfAnoAnt > 0 ? (diffRfAnoVal / totalRfAnoAnt) * 100 : 0;
+
+  // --- AÇÕES ---
+  const acoesProcessadas = appState.acoes.map(acao => {
+    const qty = parseFloat(acao.quantidade) || 0;
+    const precoAtual = parseFloat(acao.preco) || 0;
+    const valorTotalAtual = qty * precoAtual;
+
+    const precoMesAnt = parseFloat(acao.precoMesAnterior) !== undefined && !isNaN(parseFloat(acao.precoMesAnterior)) ? parseFloat(acao.precoMesAnterior) : precoAtual;
+    const valorTotalMesAnt = qty * precoMesAnt;
+
+    const precoAnoAnt = parseFloat(acao.precoAnoAnterior) !== undefined && !isNaN(parseFloat(acao.precoAnoAnterior)) ? parseFloat(acao.precoAnoAnterior) : precoAtual;
+    const valorTotalAnoAnt = qty * precoAnoAnt;
+
+    const diffMesVal = valorTotalAtual - valorTotalMesAnt;
+    const diffMesPct = valorTotalMesAnt > 0 ? (diffMesVal / valorTotalMesAnt) * 100 : 0;
+
+    const diffAnoVal = valorTotalAtual - valorTotalAnoAnt;
+    const diffAnoPct = valorTotalAnoAnt > 0 ? (diffAnoVal / valorTotalAnoAnt) * 100 : 0;
+
+    const meta = parseFloat(acao.meta) || 0;
+
+    return {
+      ...acao,
+      precoAtual,
+      valorTotal: valorTotalAtual,
+      precoMesAnt,
+      valorTotalMesAnt,
+      precoAnoAnt,
+      valorTotalAnoAnt,
+      diffMesVal,
+      diffMesPct,
+      diffAnoVal,
+      diffAnoPct,
+      meta
+    };
+  });
+
+  const totalAcoesAtual = acoesProcessadas.reduce((acc, i) => acc + i.valorTotal, 0);
+  const totalAcoesMesAnt = acoesProcessadas.reduce((acc, i) => acc + i.valorTotalMesAnt, 0);
+  const totalAcoesAnoAnt = acoesProcessadas.reduce((acc, i) => acc + i.valorTotalAnoAnt, 0);
+
+  const diffAcoesMesVal = totalAcoesAtual - totalAcoesMesAnt;
+  const diffAcoesMesPct = totalAcoesMesAnt > 0 ? (diffAcoesMesVal / totalAcoesMesAnt) * 100 : 0;
+  const diffAcoesAnoVal = totalAcoesAtual - totalAcoesAnoAnt;
+  const diffAcoesAnoPct = totalAcoesAnoAnt > 0 ? (diffAcoesAnoVal / totalAcoesAnoAnt) * 100 : 0;
+
+  // --- PATRIMÔNIO TOTAL CONSOLIDADO ---
+  const patrimonioTotal = totalRfAtual + totalAcoesAtual;
+  const patrimonioMesAnt = totalRfMesAnt + totalAcoesMesAnt;
+  const patrimonioAnoAnt = totalRfAnoAnt + totalAcoesAnoAnt;
+
+  const diffTotalMesVal = patrimonioTotal - patrimonioMesAnt;
+  const diffTotalMesPct = patrimonioMesAnt > 0 ? (diffTotalMesVal / patrimonioMesAnt) * 100 : 0;
+  const diffTotalAnoVal = patrimonioTotal - patrimonioAnoAnt;
+  const diffTotalAnoPct = patrimonioAnoAnt > 0 ? (diffTotalAnoVal / patrimonioAnoAnt) * 100 : 0;
+
+  // Adicionar percentual individual e alocação de rebalanceamento
+  const acoesComPercentual = acoesProcessadas.map(acao => {
+    const percentualAtual = totalAcoesAtual > 0 ? (acao.valorTotal / totalAcoesAtual) * 100 : 0;
+    const valorAlvoMeta = totalAcoesAtual > 0 ? (totalAcoesAtual * (acao.meta / 100)) : 0;
     const valorDiferenca = valorAlvoMeta - acao.valorTotal;
 
     return {
@@ -178,12 +252,34 @@ function calculateFinancials() {
   const totalMetasPercent = acoesComPercentual.reduce((acc, item) => acc + item.meta, 0);
 
   return {
-    totalRendaFixa,
-    totalAcoes,
-    patrimonioTotal,
-    pctRendaFixa: patrimonioTotal > 0 ? (totalRendaFixa / patrimonioTotal) * 100 : 0,
-    pctAcoes: patrimonioTotal > 0 ? (totalAcoes / patrimonioTotal) * 100 : 0,
+    rendaFixa: rendaFixaProcessada,
     acoes: acoesComPercentual,
+    totalRendaFixa: totalRfAtual,
+    totalRendaFixaMesAnt: totalRfMesAnt,
+    totalRendaFixaAnoAnt: totalRfAnoAnt,
+    diffRfMesVal,
+    diffRfMesPct,
+    diffRfAnoVal,
+    diffRfAnoPct,
+
+    totalAcoes: totalAcoesAtual,
+    totalAcoesMesAnt: totalAcoesMesAnt,
+    totalAcoesAnoAnt: totalAcoesAnoAnt,
+    diffAcoesMesVal,
+    diffAcoesMesPct,
+    diffAcoesAnoVal,
+    diffAcoesAnoPct,
+
+    patrimonioTotal,
+    patrimonioMesAnt,
+    patrimonioAnoAnt,
+    diffTotalMesVal,
+    diffTotalMesPct,
+    diffTotalAnoVal,
+    diffTotalAnoPct,
+
+    pctRendaFixa: patrimonioTotal > 0 ? (totalRfAtual / patrimonioTotal) * 100 : 0,
+    pctAcoes: patrimonioTotal > 0 ? (totalAcoesAtual / patrimonioTotal) * 100 : 0,
     totalMetasPercent
   };
 }
@@ -194,10 +290,22 @@ function renderApp() {
 
   // 1. Visão Geral / Cards Principais
   document.getElementById('statPatrimonioTotal').textContent = formatCurrency(fin.patrimonioTotal);
+  document.getElementById('statTotalEvolucaoBadges').innerHTML = `
+    ${formatEvolutionBadge(fin.diffTotalMesVal, fin.diffTotalMesPct, 'Mês')}
+    ${formatEvolutionBadge(fin.diffTotalAnoVal, fin.diffTotalAnoPct, 'Ano')}
+  `;
+
   document.getElementById('statRendaFixaTotal').textContent = formatCurrency(fin.totalRendaFixa);
-  document.getElementById('statRendaFixaPct').textContent = `${fin.pctRendaFixa.toFixed(1)}%`;
+  document.getElementById('statRfEvolucaoBadges').innerHTML = `
+    ${formatEvolutionBadge(fin.diffRfMesVal, fin.diffRfMesPct, 'Mês')}
+    ${formatEvolutionBadge(fin.diffRfAnoVal, fin.diffRfAnoPct, 'Ano')}
+  `;
+
   document.getElementById('statAcoesTotal').textContent = formatCurrency(fin.totalAcoes);
-  document.getElementById('statAcoesPct').textContent = `${fin.pctAcoes.toFixed(1)}%`;
+  document.getElementById('statAcoesEvolucaoBadges').innerHTML = `
+    ${formatEvolutionBadge(fin.diffAcoesMesVal, fin.diffAcoesMesPct, 'Mês')}
+    ${formatEvolutionBadge(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct, 'Ano')}
+  `;
 
   // Data do sistema
   const lastUpdateFormatted = new Date(appState.lastUpdated).toLocaleString('pt-BR');
@@ -215,17 +323,99 @@ function renderApp() {
     color: getPaletteColor(idx)
   })));
 
-  // 2. Renderizar Tabela de Renda Fixa com Suporte a Edição Inline
+  // 2. Renderizar Aba de Evolução
+  renderEvolucaoTab(fin);
+
+  // 3. Renderizar Tabela de Renda Fixa com Edição Inline
   renderRendaFixaTable(fin);
 
-  // 3. Renderizar Tabela de Ações com Suporte a Edição Inline
+  // 4. Renderizar Tabela de Ações com Edição Inline
   renderAcoesTable(fin);
 
-  // 4. Renderizar Rebalanceamento & Metas
+  // 5. Renderizar Rebalanceamento & Metas
   renderRebalanceamentoSection(fin);
 }
 
-// --- RENDA FIXA (EDIÇÃO E ADIÇÃO INLINE) ---
+// --- RENDERIZAÇÃO DA ABA EVOLUÇÃO ---
+function renderEvolucaoTab(fin) {
+  // 1. Resumo por Grupo
+  const tbodyGrupos = document.getElementById('tbodyEvolucaoGrupos');
+  if (tbodyGrupos) {
+    tbodyGrupos.innerHTML = `
+      <tr style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
+        <td>🏢 PATRIMÔNIO TOTAL</td>
+        <td class="text-right">${formatCurrency(fin.patrimonioTotal)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffTotalMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffTotalMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffTotalAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffTotalAnoPct)}</td>
+      </tr>
+      <tr>
+        <td>💰 Grupo Renda Fixa</td>
+        <td class="text-right">${formatCurrency(fin.totalRendaFixa)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffRfMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffRfMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffRfAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffRfAnoPct)}</td>
+      </tr>
+      <tr>
+        <td>📈 Grupo Ações</td>
+        <td class="text-right">${formatCurrency(fin.totalAcoes)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffAcoesMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffAcoesMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffAcoesAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffAcoesAnoPct)}</td>
+      </tr>
+    `;
+  }
+
+  // 2. Detalhamento Renda Fixa
+  const tbodyRf = document.getElementById('tbodyEvolucaoRendaFixa');
+  if (tbodyRf) {
+    if (fin.rendaFixa.length === 0) {
+      tbodyRf.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum ativo cadastrado.</td></tr>`;
+    } else {
+      tbodyRf.innerHTML = fin.rendaFixa.map(item => `
+        <tr>
+          <td><span class="badge badge-rf">${item.tipo}</span></td>
+          <td><strong>${escapeHtml(item.nome)}</strong> <small class="text-muted">(${escapeHtml(item.emissor)})</small></td>
+          <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
+          <td class="text-right">${formatDiffVal(item.diffMesVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffMesPct)}</td>
+          <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  // 3. Detalhamento Ações
+  const tbodyAcoes = document.getElementById('tbodyEvolucaoAcoes');
+  if (tbodyAcoes) {
+    if (fin.acoes.length === 0) {
+      tbodyAcoes.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma ação cadastrada.</td></tr>`;
+    } else {
+      tbodyAcoes.innerHTML = fin.acoes.map((item, idx) => `
+        <tr>
+          <td>
+            <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
+              <strong>${item.ticker}</strong>
+            </div>
+          </td>
+          <td>${escapeHtml(item.nome)}</td>
+          <td class="text-right">${formatCurrency(item.precoAtual)}</td>
+          <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+          <td class="text-right">${formatDiffVal(item.diffMesVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffMesPct)}</td>
+          <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+// --- RENDA FIXA (EDIÇÃO INLINE COM HISTÓRICO) ---
 function handleAddRfInline(e) {
   e.preventDefault();
   const tipo = document.getElementById('newRfTipo').value;
@@ -247,6 +437,8 @@ function handleAddRfInline(e) {
     nome,
     taxa,
     valor,
+    valorMesAnterior: valor,
+    valorAnoAnterior: valor,
     data: currentDate
   });
 
@@ -264,14 +456,14 @@ function renderRendaFixaTable(fin) {
   const tbody = document.getElementById('tbodyRendaFixa');
   if (!tbody) return;
 
-  if (appState.rendaFixa.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
+  if (fin.rendaFixa.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = appState.rendaFixa.map(item => {
+  tbody.innerHTML = fin.rendaFixa.map(item => {
     if (editingRfId === item.id) {
-      // MODO EDIÇÃO INLINE NA LINHA DA TABELA
+      // MODO EDIÇÃO INLINE NA LINHA DA TABELA (INCLUINDO MÊS/ANO ANTERIOR)
       return `
         <tr class="row-editing">
           <td>
@@ -287,7 +479,9 @@ function renderRendaFixaTable(fin) {
           <td><input type="text" id="editRfEmissor_${item.id}" class="table-input-sm" value="${escapeHtml(item.emissor)}" /></td>
           <td><input type="text" id="editRfNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
           <td><input type="text" id="editRfTaxa_${item.id}" class="table-input-sm" value="${escapeHtml(item.taxa || '')}" /></td>
-          <td><input type="number" step="0.01" id="editRfValor_${item.id}" class="table-input-sm text-right" value="${item.valor}" /></td>
+          <td><input type="number" step="0.01" id="editRfValMes_${item.id}" class="table-input-sm text-right" value="${item.valorMesAnt}" placeholder="Mês Ant." title="Valor Mês Anterior" /></td>
+          <td><input type="number" step="0.01" id="editRfValAno_${item.id}" class="table-input-sm text-right" value="${item.valorAnoAnt}" placeholder="Ano Ant." title="Valor Ano Anterior" /></td>
+          <td><input type="number" step="0.01" id="editRfValor_${item.id}" class="table-input-sm text-right" value="${item.valorAtual}" title="Valor Atual" /></td>
           <td class="text-right"><span class="text-muted text-small">${new Date().toLocaleDateString('pt-BR')}</span></td>
           <td class="text-center">
             <button class="btn-icon success" onclick="saveRfInline('${item.id}')" title="Salvar Alteração">✅</button>
@@ -304,7 +498,9 @@ function renderRendaFixaTable(fin) {
         <td><strong>${escapeHtml(item.emissor)}</strong></td>
         <td>${escapeHtml(item.nome)}</td>
         <td>${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
-        <td class="text-right"><strong>${formatCurrency(item.valor)}</strong></td>
+        <td class="text-right text-muted">${formatCurrency(item.valorMesAnt)}</td>
+        <td class="text-right text-muted">${formatCurrency(item.valorAnoAnt)}</td>
+        <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
         <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
         <td class="text-center">
           <button class="btn-icon" onclick="startEditRfInline('${item.id}')" title="Editar Inline">✏️</button>
@@ -335,6 +531,8 @@ function saveRfInline(id) {
   const emissor = document.getElementById(`editRfEmissor_${id}`).value.trim();
   const nome = document.getElementById(`editRfNome_${id}`).value.trim();
   const taxa = document.getElementById(`editRfTaxa_${id}`).value.trim();
+  const valMes = parseFloat(document.getElementById(`editRfValMes_${id}`).value);
+  const valAno = parseFloat(document.getElementById(`editRfValAno_${id}`).value);
   const valor = parseFloat(document.getElementById(`editRfValor_${id}`).value);
 
   if (!emissor || !nome || isNaN(valor)) {
@@ -346,6 +544,8 @@ function saveRfInline(id) {
   item.emissor = emissor;
   item.nome = nome;
   item.taxa = taxa;
+  item.valorMesAnterior = isNaN(valMes) ? valor : valMes;
+  item.valorAnoAnterior = isNaN(valAno) ? valor : valAno;
   item.valor = valor;
   item.data = new Date().toLocaleDateString('pt-BR');
 
@@ -365,7 +565,7 @@ function deleteRendaFixa(id) {
   }
 }
 
-// --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE) ---
+// --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE COM HISTÓRICO) ---
 function handleAddAcaoInline(e) {
   e.preventDefault();
   const ticker = document.getElementById('newAcaoTicker').value.toUpperCase().trim();
@@ -386,6 +586,8 @@ function handleAddAcaoInline(e) {
     nome,
     quantidade,
     preco,
+    precoMesAnterior: preco,
+    precoAnoAnterior: preco,
     meta,
     data: currentDate
   });
@@ -406,19 +608,21 @@ function renderAcoesTable(fin) {
   if (!tbody) return;
 
   if (fin.acoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Nenhuma ação cadastrada na carteira.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-4">Nenhuma ação cadastrada na carteira.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = fin.acoes.map((item, idx) => {
     if (editingAcaoId === item.id) {
-      // MODO EDIÇÃO INLINE NA TABELA DE AÇÕES
+      // MODO EDIÇÃO INLINE NA TABELA DE AÇÕES (COM PREÇOS ANTERIORES)
       return `
         <tr class="row-editing">
           <td><input type="text" id="editAcaoTicker_${item.id}" class="table-input-sm" value="${item.ticker}" style="text-transform: uppercase;" /></td>
           <td><input type="text" id="editAcaoNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
           <td><input type="number" step="1" id="editAcaoQtd_${item.id}" class="table-input-sm text-right" value="${item.quantidade}" /></td>
-          <td><input type="number" step="0.01" id="editAcaoPreco_${item.id}" class="table-input-sm text-right" value="${item.preco}" /></td>
+          <td><input type="number" step="0.01" id="editAcaoPrecoMes_${item.id}" class="table-input-sm text-right" value="${item.precoMesAnt}" placeholder="Preço Mês" title="Preço Mês Anterior" /></td>
+          <td><input type="number" step="0.01" id="editAcaoPrecoAno_${item.id}" class="table-input-sm text-right" value="${item.precoAnoAnt}" placeholder="Preço Ano" title="Preço Ano Anterior" /></td>
+          <td><input type="number" step="0.01" id="editAcaoPreco_${item.id}" class="table-input-sm text-right" value="${item.precoAtual}" title="Preço Atual" /></td>
           <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
           <td class="text-right"><span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span></td>
           <td><input type="number" step="0.1" id="editAcaoMeta_${item.id}" class="table-input-sm text-right" value="${item.meta}" /></td>
@@ -441,7 +645,9 @@ function renderAcoesTable(fin) {
         </td>
         <td>${escapeHtml(item.nome)}</td>
         <td class="text-right">${item.quantidade}</td>
-        <td class="text-right">${formatCurrency(item.preco)}</td>
+        <td class="text-right text-muted">${formatCurrency(item.precoMesAnt)}</td>
+        <td class="text-right text-muted">${formatCurrency(item.precoAnoAnt)}</td>
+        <td class="text-right">${formatCurrency(item.precoAtual)}</td>
         <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
         <td class="text-right">
           <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
@@ -478,6 +684,8 @@ function saveAcaoInline(id) {
   const ticker = document.getElementById(`editAcaoTicker_${id}`).value.toUpperCase().trim();
   const nome = document.getElementById(`editAcaoNome_${id}`).value.trim();
   const quantidade = parseFloat(document.getElementById(`editAcaoQtd_${id}`).value);
+  const precoMes = parseFloat(document.getElementById(`editAcaoPrecoMes_${id}`).value);
+  const precoAno = parseFloat(document.getElementById(`editAcaoPrecoAno_${id}`).value);
   const preco = parseFloat(document.getElementById(`editAcaoPreco_${id}`).value);
   const meta = parseFloat(document.getElementById(`editAcaoMeta_${id}`).value) || 0;
 
@@ -489,6 +697,8 @@ function saveAcaoInline(id) {
   item.ticker = ticker;
   item.nome = nome;
   item.quantidade = quantidade;
+  item.precoMesAnterior = isNaN(precoMes) ? preco : precoMes;
+  item.precoAnoAnterior = isNaN(precoAno) ? preco : precoAno;
   item.preco = preco;
   item.meta = meta;
   item.data = new Date().toLocaleDateString('pt-BR');
@@ -570,6 +780,33 @@ function renderRebalanceamentoSection(fin) {
       </div>
     `;
   }).join('');
+}
+
+// --- HELPERS DE FORMATAÇÃO DE EVOLUÇÃO ---
+function formatDiffVal(diff) {
+  if (diff > 0) {
+    return `<span class="evol-positive">▲ +${formatCurrency(diff)}</span>`;
+  } else if (diff < 0) {
+    return `<span class="evol-negative">▼ ${formatCurrency(diff)}</span>`;
+  }
+  return `<span class="text-muted">R$ 0,00</span>`;
+}
+
+function formatDiffPct(diffPct) {
+  if (diffPct > 0) {
+    return `<span class="evol-positive">▲ +${diffPct.toFixed(1)}%</span>`;
+  } else if (diffPct < 0) {
+    return `<span class="evol-negative">▼ ${diffPct.toFixed(1)}%</span>`;
+  }
+  return `<span class="text-muted">0.0%</span>`;
+}
+
+function formatEvolutionBadge(diffVal, diffPct, label) {
+  const isPos = diffVal >= 0;
+  const cls = isPos ? 'evol-pill-positive' : 'evol-pill-negative';
+  const arrow = isPos ? '▲' : '▼';
+  const sign = isPos ? '+' : '';
+  return `<span class="${cls}" title="${label}: ${sign}${formatCurrency(diffVal)} (${sign}${diffPct.toFixed(1)}%)">${arrow} ${sign}${diffPct.toFixed(1)}% (${label})</span>`;
 }
 
 // --- EXPORTAR E IMPORTAR JSON BACKUP ---
