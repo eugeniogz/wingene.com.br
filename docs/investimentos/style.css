@@ -685,6 +685,11 @@ tr.row-editing td {
   font-family: var(--font-body);
   font-size: 0.95rem;
   transition: border-color 0.2s ease;
+  cursor: text;
+}
+
+select.form-control {
+  cursor: pointer;
 }
 
 .form-control-sm {
@@ -987,21 +992,20 @@ tr.row-editing td {
   transform: translateY(0);
 }
 
-/* --- MODAL DIALOG HISTÓRICO DE ATIVOS --- */
+/* --- MODAL DIALOG HISTÓRICO DE ATIVOS E FORMULÁRIOS --- */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(10, 10, 16, 0.85);
   z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  cursor: default;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -1014,8 +1018,9 @@ tr.row-editing td {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
   overflow: hidden;
+  cursor: default;
 }
 
 .modal-header {
