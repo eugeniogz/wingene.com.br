@@ -6,7 +6,7 @@
 const DRIVE_CONFIG = {
   // CLIENT_ID configurável via UI ou constante
   CLIENT_ID: localStorage.getItem('wingene_drive_client_id') || '568890387136-7633o3djo84878srldube4rca4hg1r3h.apps.googleusercontent.com',
-  SCOPES: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+  SCOPES: 'openid profile email https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
   FILE_NAME: 'wingene_investimentos_data.json'
 };
 
@@ -101,14 +101,15 @@ async function fetchGoogleUserInfo() {
       googleUser = await res.json();
       localStorage.setItem('wingene_drive_user', JSON.stringify(googleUser));
       renderUserProfileUI();
-    } else if (res.status === 401) {
-      console.warn('Token de acesso Google expirou ou precisa de novos escopos.');
-      accessToken = null;
-      localStorage.removeItem('wingene_drive_access_token');
+    } else {
+      // Se não tiver permissão para o perfil, mantém o login no Drive silenciosamente
+      googleUser = null;
+      localStorage.removeItem('wingene_drive_user');
       renderUserProfileUI();
     }
   } catch (err) {
-    console.warn('Erro ao obter perfil do usuário Google:', err);
+    googleUser = null;
+    renderUserProfileUI();
   }
 }
 
