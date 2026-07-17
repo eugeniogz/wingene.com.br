@@ -1,6 +1,6 @@
 {
-  "name": "WinGene Investimentos",
-  "short_name": "Investimentos",
+  "name": "Winvest",
+  "short_name": "Winvest",
   "description": "Acompanhamento da Carteira de Renda Fixa, Ações e Metas de Rebalanceamento com Sincronização Google Drive.",
   "start_url": "./index.html",
   "display": "standalone",
