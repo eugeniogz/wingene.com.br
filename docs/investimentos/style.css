@@ -712,6 +712,22 @@ tr.row-editing td {
    OTIMIZAÇÕES RESPONSIVAS PARA DISPOSITIVOS MÓVEIS (SMARTPHONES E TABLETS)
    ========================================================================== */
 
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
 @media (max-width: 768px) {
   .app-header {
     padding: 10px 0;
@@ -719,19 +735,27 @@ tr.row-editing td {
 
   .header-container {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 8px;
+    align-items: stretch;
+    gap: 10px;
   }
 
   .brand-area {
-    justify-content: center;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .header-actions {
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
     width: 100%;
+    gap: 8px;
+  }
+
+  .user-email-badge {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .app-container {
@@ -766,10 +790,20 @@ tr.row-editing td {
     width: 100%;
   }
 
+  .inline-add-bar {
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+  }
+
   .inline-add-grid,
   .inline-add-grid-acoes {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .data-table {
+    min-width: 680px;
   }
 
   .data-table th,
@@ -779,18 +813,29 @@ tr.row-editing td {
   }
 
   .table-input-sm {
-    font-size: 0.82rem;
-    padding: 4px 6px;
+    font-size: 0.88rem;
+    padding: 8px 10px;
+    min-height: 38px;
+  }
+
+  .btn-icon {
+    min-width: 36px;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn {
-    padding: 8px 14px;
-    font-size: 0.85rem;
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    min-height: 42px;
   }
 
   .btn-sm {
-    padding: 6px 10px;
-    font-size: 0.8rem;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    min-height: 38px;
   }
 }
 
@@ -801,6 +846,12 @@ tr.row-editing td {
 
   .brand-subtitle {
     font-size: 0.7rem;
+  }
+
+  .tab-navigation {
+    padding: 4px;
+    gap: 4px;
+    border-radius: 10px;
   }
 
   .tab-btn {
