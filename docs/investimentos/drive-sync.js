@@ -24,6 +24,8 @@ function initGoogleAuth(clientId = null) {
     localStorage.setItem('wingene_drive_client_id', clientId);
   }
 
+  renderUserProfileUI();
+
   if (!DRIVE_CONFIG.CLIENT_ID) {
     console.warn('Google Client ID não configurado.');
     updateDriveUIStatus('Desconectado (Modo Local)');
@@ -267,6 +269,7 @@ function updateDriveUIStatus(message, isError = false, isSuccess = false) {
 function renderUserProfileUI() {
   const userContainer = document.getElementById('googleUserContainer');
   const loginBtn = document.getElementById('btnGoogleLogin');
+  const loginBtnConfig = document.getElementById('btnGoogleLoginConfig');
   const logoutBtn = document.getElementById('btnGoogleLogout');
 
   if (googleUser && accessToken) {
@@ -282,16 +285,23 @@ function renderUserProfileUI() {
       `;
     }
     if (loginBtn) loginBtn.style.display = 'none';
+    if (loginBtnConfig) loginBtnConfig.style.display = 'none';
     if (logoutBtn) logoutBtn.style.display = 'inline-flex';
   } else {
-    if (userContainer) userContainer.innerHTML = '<span class="text-muted">Modo Armazenamento Local</span>';
+    if (userContainer) userContainer.innerHTML = '<span class="text-muted text-small">Modo Local</span>';
     if (loginBtn) loginBtn.style.display = 'inline-flex';
+    if (loginBtnConfig) loginBtnConfig.style.display = 'inline-flex';
     if (logoutBtn) logoutBtn.style.display = 'none';
   }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  renderUserProfileUI();
+});
+
 // Inicializa quando a API do Google carregar no navegador
 window.addEventListener('load', () => {
+  renderUserProfileUI();
   if (typeof google !== 'undefined' && google.accounts) {
     initGoogleAuth();
   } else {

@@ -136,6 +136,7 @@ function setupEventListeners() {
 
   // Google Login / Logout
   document.getElementById('btnGoogleLogin')?.addEventListener('click', () => requestGoogleLogin());
+  document.getElementById('btnGoogleLoginConfig')?.addEventListener('click', () => requestGoogleLogin());
   document.getElementById('btnGoogleLogout')?.addEventListener('click', () => logoutGoogleDrive());
   document.getElementById('btnForceDriveSync')?.addEventListener('click', () => syncFromDrive());
 
