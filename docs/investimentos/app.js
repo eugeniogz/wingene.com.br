@@ -586,19 +586,22 @@ function renderEvolucaoTab(fin) {
       tbodyRf.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum ativo cadastrado.</td></tr>`;
     } else {
       tbodyRf.innerHTML = fin.rendaFixa.map(item => `
-        <tr>
-          <td class="col-desktop"><span class="badge badge-rf">${item.tipo}</span></td>
-          <td class="col-desktop"><strong>${escapeHtml(item.nome)}</strong> <small class="text-muted">(${escapeHtml(item.emissor)})</small></td>
-          <td class="col-mobile">
+        <tr class="col-desktop-row">
+          <td><span class="badge badge-rf">${item.tipo}</span></td>
+          <td><strong>${escapeHtml(item.nome)}</strong> <small class="text-muted">(${escapeHtml(item.emissor)})</small></td>
+          <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
+          <td class="text-right">${formatDiffVal(item.diffMesVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffMesPct)}</td>
+          <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
+        </tr>
+        <tr class="col-mobile-row">
+          <td>
             <div style="margin-bottom: 2px;"><span class="badge badge-rf" style="font-size:0.68rem; padding:1px 6px;">${item.tipo}</span></div>
             <strong>${escapeHtml(item.nome)}</strong> <br><small class="text-muted" style="font-size:0.75rem;">${escapeHtml(item.emissor)}</small>
           </td>
           <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
-          <td class="text-right col-desktop">${formatDiffVal(item.diffMesVal)}</td>
-          <td class="text-right col-desktop">${formatDiffPct(item.diffMesPct)}</td>
-          <td class="text-right col-desktop">${formatDiffVal(item.diffAnoVal)}</td>
-          <td class="text-right col-desktop">${formatDiffPct(item.diffAnoPct)}</td>
-          <td class="text-right col-mobile">
+          <td class="text-right">
             <div><span class="text-small text-muted" style="font-size:0.7rem;">M:</span> ${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
             <div style="margin-top: 3px;"><span class="text-small text-muted" style="font-size:0.7rem;">A:</span> ${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
           </td>
@@ -614,26 +617,31 @@ function renderEvolucaoTab(fin) {
       tbodyAcoes.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma ação cadastrada.</td></tr>`;
     } else {
       tbodyAcoes.innerHTML = fin.acoes.map((item, idx) => `
-        <tr>
-          <td class="col-desktop">
+        <tr class="col-desktop-row">
+          <td>
             <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
               <strong>${item.ticker}</strong>
             </div>
           </td>
-          <td class="col-desktop">${escapeHtml(item.nome)}</td>
-          <td class="col-mobile">
+          <td>${escapeHtml(item.nome)}</td>
+          <td class="text-right">${formatCurrency(item.precoAtual)}</td>
+          <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+          <td class="text-right">${formatDiffVal(item.diffMesVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffMesPct)}</td>
+          <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
+          <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
+        </tr>
+        <tr class="col-mobile-row">
+          <td>
             <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
               <strong>${item.ticker}</strong>
             </div>
             <div class="text-muted text-small" style="font-size:0.75rem; margin-top:2px;">${escapeHtml(item.nome)}</div>
           </td>
-          <td class="text-right col-desktop">${formatCurrency(item.precoAtual)}</td>
-          <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong><br class="col-mobile-only"><small class="text-muted col-mobile-only" style="font-size:0.72rem;">${formatCurrency(item.precoAtual)}/un</small></td>
-          <td class="text-right col-desktop">${formatDiffVal(item.diffMesVal)}</td>
-          <td class="text-right col-desktop">${formatDiffPct(item.diffMesPct)}</td>
-          <td class="text-right col-desktop">${formatDiffVal(item.diffAnoVal)}</td>
-          <td class="text-right col-desktop">${formatDiffPct(item.diffAnoPct)}</td>
-          <td class="text-right col-mobile">
+          <td class="text-right">
+            <strong>${formatCurrency(item.valorTotal)}</strong><br><small class="text-muted" style="font-size:0.72rem;">${formatCurrency(item.precoAtual)}/un</small>
+          </td>
+          <td class="text-right">
             <div><span class="text-small text-muted" style="font-size:0.7rem;">M:</span> ${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
             <div style="margin-top: 3px;"><span class="text-small text-muted" style="font-size:0.7rem;">A:</span> ${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
           </td>
@@ -705,30 +713,39 @@ function renderRendaFixaTable(fin) {
   }
 
   tbody.innerHTML = fin.rendaFixa.map(item => `
-    <tr>
-      <td class="col-desktop"><span class="badge badge-rf">${item.tipo}</span></td>
-      <td class="col-desktop"><strong>${escapeHtml(item.emissor)}</strong></td>
-      <td class="col-desktop">${escapeHtml(item.nome)}</td>
-      <td class="col-desktop">${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
-      <td class="text-right text-muted col-desktop">${formatCurrency(item.valorMesAnt)}</td>
-      <td class="text-right text-muted col-desktop">${formatCurrency(item.valorAnoAnt)}</td>
-      <td class="text-right col-desktop"><strong>${formatCurrency(item.valorAtual)}</strong></td>
-      <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
-
-      <!-- MÓVEL CONDENSADO -->
-      <td class="col-mobile">
-        <div><strong style="font-size:0.88rem;">${escapeHtml(item.nome)}</strong> <span class="badge badge-rf" style="font-size:0.65rem; padding:1px 5px;">${item.tipo}</span></div>
-        <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
-      </td>
-      <td class="text-right col-mobile">
-        <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
-        <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
-      </td>
-
-      <td class="text-center">
+    <!-- DESKTOP ROW -->
+    <tr class="col-desktop-row clickable-row" onclick="openEditRfModal('${item.id}')" title="Clique para editar">
+      <td><span class="badge badge-rf">${item.tipo}</span></td>
+      <td><strong>${escapeHtml(item.emissor)}</strong></td>
+      <td>${escapeHtml(item.nome)}</td>
+      <td>${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
+      <td class="text-right text-muted">${formatCurrency(item.valorMesAnt)}</td>
+      <td class="text-right text-muted">${formatCurrency(item.valorAnoAnt)}</td>
+      <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
+      <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
+      <td class="text-center" onclick="event.stopPropagation()">
         <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico de Alterações">📜</button>
         <button class="btn-icon" onclick="openEditRfModal('${item.id}')" title="Editar Ativo">✏️</button>
         <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+      </td>
+    </tr>
+
+    <!-- MOBILE ROW -->
+    <tr class="col-mobile-row clickable-row" onclick="openEditRfModal('${item.id}')" title="Clique para editar">
+      <td>
+        <div><strong style="font-size:0.88rem;">${escapeHtml(item.nome)}</strong> <span class="badge badge-rf" style="font-size:0.65rem; padding:1px 5px;">${item.tipo}</span></div>
+        <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
+      </td>
+      <td class="text-right">
+        <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
+        <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
+      </td>
+      <td class="text-center" onclick="event.stopPropagation()">
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico">📜</button>
+          <button class="btn-icon" onclick="openEditRfModal('${item.id}')" title="Editar Ativo">✏️</button>
+          <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -936,46 +953,55 @@ function renderAcoesTable(fin) {
   }
 
   tbody.innerHTML = fin.acoes.map((item, idx) => `
-    <tr>
-      <td class="col-desktop">
+    <!-- DESKTOP ROW -->
+    <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar">
+      <td>
         <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
           <strong>${item.ticker}</strong>
         </div>
       </td>
-      <td class="col-desktop">${escapeHtml(item.nome)}</td>
-      <td class="text-right col-desktop">${item.quantidade}</td>
-      <td class="text-right text-muted col-desktop">${formatCurrency(item.precoMesAnt)}</td>
-      <td class="text-right text-muted col-desktop">${formatCurrency(item.precoAnoAnt)}</td>
-      <td class="text-right col-desktop">${formatCurrency(item.precoAtual)}</td>
-      <td class="text-right col-desktop"><strong>${formatCurrency(item.valorTotal)}</strong></td>
-      <td class="text-right col-desktop">
+      <td>${escapeHtml(item.nome)}</td>
+      <td class="text-right">${item.quantidade}</td>
+      <td class="text-right text-muted">${formatCurrency(item.precoMesAnt)}</td>
+      <td class="text-right text-muted">${formatCurrency(item.precoAnoAnt)}</td>
+      <td class="text-right">${formatCurrency(item.precoAtual)}</td>
+      <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+      <td class="text-right">
         <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
       </td>
-      <td class="text-right col-desktop">
+      <td class="text-right">
         <span class="meta-pill">${item.meta.toFixed(1)}%</span>
       </td>
-      <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
+      <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
+      <td class="text-center" onclick="event.stopPropagation()">
+        <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
+        <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
+        <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+      </td>
+    </tr>
 
-      <!-- MÓVEL CONDENSADO -->
-      <td class="col-mobile">
+    <!-- MOBILE ROW -->
+    <tr class="col-mobile-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar">
+      <td>
         <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
           <strong>${item.ticker}</strong>
         </div>
         <div class="text-small text-muted" style="margin-top:2px;">${escapeHtml(item.nome)}</div>
         <div class="text-small text-muted" style="font-size:0.74rem;">${item.quantidade} un. x ${formatCurrency(item.precoAtual)}</div>
       </td>
-      <td class="text-right col-mobile" style="white-space: nowrap;">
+      <td class="text-right" style="white-space: nowrap;">
         <strong>${formatCurrency(item.valorTotal)}</strong>
         <div style="font-size: 0.70rem; margin-top: 2px;">
           <span class="pct-pill" style="font-size: 0.67rem; padding: 0 4px;">${item.percentualAtual.toFixed(1)}%</span>
           <span class="text-muted" style="font-size: 0.68rem; margin-left: 2px;">(Meta ${item.meta.toFixed(1)}%)</span>
         </div>
       </td>
-
-      <td class="text-center">
-        <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
-        <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
-        <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+      <td class="text-center" onclick="event.stopPropagation()">
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico">📜</button>
+          <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
+          <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+        </div>
       </td>
     </tr>
   `).join('');

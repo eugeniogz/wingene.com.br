@@ -1153,9 +1153,17 @@ select.form-control {
 .toast-success { border-left: 4px solid var(--primary-green); }
 .toast-error { border-left: 4px solid var(--primary-red); }
 
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.clickable-row:hover td {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
 /* --- RESPONSIVIDADE DE TABELAS SEM SCROLL HORIZONTAL EM MOBILE --- */
 @media (min-width: 769px) {
-  .col-mobile-row,
+  tr.col-mobile-row,
   .col-mobile,
   .col-mobile-only {
     display: none !important;
@@ -1163,7 +1171,7 @@ select.form-control {
 }
 
 @media (max-width: 768px) {
-  .col-desktop-row,
+  tr.col-desktop-row,
   .col-desktop,
   .col-desktop-only {
     display: none !important;
