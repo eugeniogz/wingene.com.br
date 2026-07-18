@@ -704,68 +704,98 @@ function renderRendaFixaTable(fin) {
     return;
   }
 
-  tbody.innerHTML = fin.rendaFixa.map(item => {
-    if (editingRfId === item.id) {
-      // MODO EDIÇÃO INLINE NA LINHA DA TABELA (INCLUINDO MÊS/ANO ANTERIOR)
-      return `
-        <tr class="row-editing">
-          <td>
-            <select id="editRfTipo_${item.id}" class="table-input-sm">
-              <option value="RDB" ${item.tipo === 'RDB' ? 'selected' : ''}>RDB</option>
-              <option value="Fundos de Investimento" ${item.tipo === 'Fundos de Investimento' ? 'selected' : ''}>Fundo de Investimento</option>
-              <option value="Tesouro Direto" ${item.tipo === 'Tesouro Direto' ? 'selected' : ''}>Tesouro Direto</option>
-              <option value="CDB" ${item.tipo === 'CDB' ? 'selected' : ''}>CDB</option>
-              <option value="LCI/LCA" ${item.tipo === 'LCI/LCA' ? 'selected' : ''}>LCI / LCA</option>
-              <option value="Outro" ${item.tipo === 'Outro' ? 'selected' : ''}>Outro</option>
-            </select>
-          </td>
-          <td><input type="text" id="editRfEmissor_${item.id}" class="table-input-sm" value="${escapeHtml(item.emissor)}" /></td>
-          <td><input type="text" id="editRfNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
-          <td><input type="text" id="editRfTaxa_${item.id}" class="table-input-sm" value="${escapeHtml(item.taxa || '')}" /></td>
-          <td><input type="number" step="0.01" id="editRfValMes_${item.id}" class="table-input-sm text-right" value="${item.valorMesAnt}" placeholder="Mês Ant." title="Valor Mês Anterior" /></td>
-          <td><input type="number" step="0.01" id="editRfValAno_${item.id}" class="table-input-sm text-right" value="${item.valorAnoAnt}" placeholder="Ano Ant." title="Valor Ano Anterior" /></td>
-          <td><input type="number" step="0.01" id="editRfValor_${item.id}" class="table-input-sm text-right" value="${item.valorAtual}" title="Valor Atual" /></td>
-          <td class="text-right"><span class="text-muted text-small">${new Date().toLocaleDateString('pt-BR')}</span></td>
-          <td class="text-center">
-            <button class="btn-icon success" onclick="saveRfInline('${item.id}')" title="Salvar Alteração">✅</button>
-            <button class="btn-icon danger" onclick="cancelRfInline()" title="Cancelar">✕</button>
-          </td>
-        </tr>
-      `;
-    }
+  tbody.innerHTML = fin.rendaFixa.map(item => `
+    <tr>
+      <td class="col-desktop"><span class="badge badge-rf">${item.tipo}</span></td>
+      <td class="col-desktop"><strong>${escapeHtml(item.emissor)}</strong></td>
+      <td class="col-desktop">${escapeHtml(item.nome)}</td>
+      <td class="col-desktop">${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
+      <td class="text-right text-muted col-desktop">${formatCurrency(item.valorMesAnt)}</td>
+      <td class="text-right text-muted col-desktop">${formatCurrency(item.valorAnoAnt)}</td>
+      <td class="text-right col-desktop"><strong>${formatCurrency(item.valorAtual)}</strong></td>
+      <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
 
-    // MODO LEITURA NORMAL
-    return `
-      <tr>
-        <td class="col-desktop"><span class="badge badge-rf">${item.tipo}</span></td>
-        <td class="col-desktop"><strong>${escapeHtml(item.emissor)}</strong></td>
-        <td class="col-desktop">${escapeHtml(item.nome)}</td>
-        <td class="col-desktop">${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
-        <td class="text-right text-muted col-desktop">${formatCurrency(item.valorMesAnt)}</td>
-        <td class="text-right text-muted col-desktop">${formatCurrency(item.valorAnoAnt)}</td>
-        <td class="text-right col-desktop"><strong>${formatCurrency(item.valorAtual)}</strong></td>
-        <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
+      <!-- MÓVEL CONDENSADO -->
+      <td class="col-mobile">
+        <div><strong style="font-size:0.88rem;">${escapeHtml(item.nome)}</strong> <span class="badge badge-rf" style="font-size:0.65rem; padding:1px 5px;">${item.tipo}</span></div>
+        <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
+      </td>
+      <td class="text-right col-mobile">
+        <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
+        <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
+      </td>
 
-        <!-- MÓVEL CONDENSADO -->
-        <td class="col-mobile">
-          <div><strong style="font-size:0.88rem;">${escapeHtml(item.nome)}</strong> <span class="badge badge-rf" style="font-size:0.65rem; padding:1px 5px;">${item.tipo}</span></div>
-          <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
-        </td>
-        <td class="text-right col-mobile">
-          <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
-          <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
-        </td>
-
-        <td class="text-center">
-          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico de Alterações">📜</button>
-          <button class="btn-icon" onclick="startEditRfInline('${item.id}')" title="Editar Inline">✏️</button>
-          <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+      <td class="text-center">
+        <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico de Alterações">📜</button>
+        <button class="btn-icon" onclick="openEditRfModal('${item.id}')" title="Editar Ativo">✏️</button>
+        <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
 
   document.getElementById('totalRfFooter').textContent = formatCurrency(fin.totalRendaFixa);
+}
+
+function openEditRfModal(id) {
+  const item = appState.rendaFixa.find(r => r.id === id);
+  if (!item) return;
+  document.getElementById('editModalRfId').value = item.id;
+  document.getElementById('editModalRfTipo').value = item.tipo;
+  document.getElementById('editModalRfEmissor').value = item.emissor || '';
+  document.getElementById('editModalRfNome').value = item.nome || '';
+  document.getElementById('editModalRfTaxa').value = item.taxa || '';
+  document.getElementById('editModalRfValMes').value = item.valorMesAnterior !== undefined ? item.valorMesAnterior : item.valor;
+  document.getElementById('editModalRfValAno').value = item.valorAnoAnterior !== undefined ? item.valorAnoAnterior : item.valor;
+  document.getElementById('editModalRfValor').value = item.valor;
+  document.getElementById('modalEditRfBackdrop').style.display = 'flex';
+}
+
+function closeEditRfModal() {
+  const backdrop = document.getElementById('modalEditRfBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function handleEditRfModalSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('editModalRfId').value;
+  const item = appState.rendaFixa.find(r => r.id === id);
+  if (!item) return;
+
+  const tipo = document.getElementById('editModalRfTipo').value;
+  const emissor = document.getElementById('editModalRfEmissor').value.trim();
+  const nome = document.getElementById('editModalRfNome').value.trim();
+  const taxa = document.getElementById('editModalRfTaxa').value.trim();
+  const valMesInput = document.getElementById('editModalRfValMes').value;
+  const valAnoInput = document.getElementById('editModalRfValAno').value;
+  const valAtualInput = document.getElementById('editModalRfValor').value;
+
+  const valMes = valMesInput !== '' ? parseFloat(valMesInput) : item.valor;
+  const valAno = valAnoInput !== '' ? parseFloat(valAnoInput) : item.valor;
+  const valor = parseFloat(valAtualInput);
+
+  if (!emissor || !nome || isNaN(valor)) {
+    showToast('Preencha os campos obrigatórios.', 'error');
+    return;
+  }
+
+  if (item.valor !== valor) {
+    recordAssetHistory(item, valor);
+    item.valor = valor;
+  }
+
+  item.tipo = tipo;
+  item.emissor = emissor;
+  item.nome = nome;
+  item.taxa = taxa;
+  item.valorMesAnterior = isNaN(valMes) ? item.valor : valMes;
+  item.valorAnoAnterior = isNaN(valAno) ? item.valor : valAno;
+  item.data = new Date().toLocaleDateString('pt-BR');
+
+  closeEditRfModal();
+  appState.isDemo = false;
+  saveLocalState();
+  renderApp();
+  showToast('Ativo de Renda Fixa atualizado!', 'success');
 }
 
 function startEditRfInline(id) {
@@ -905,77 +935,114 @@ function renderAcoesTable(fin) {
     return;
   }
 
-  tbody.innerHTML = fin.acoes.map((item, idx) => {
-    if (editingAcaoId === item.id) {
-      // MODO EDIÇÃO INLINE NA TABELA DE AÇÕES (COM PREÇOS ANTERIORES)
-      return `
-        <tr class="row-editing">
-          <td><input type="text" id="editAcaoTicker_${item.id}" class="table-input-sm" value="${item.ticker}" style="text-transform: uppercase;" /></td>
-          <td><input type="text" id="editAcaoNome_${item.id}" class="table-input-sm" value="${escapeHtml(item.nome)}" /></td>
-          <td><input type="number" step="1" id="editAcaoQtd_${item.id}" class="table-input-sm text-right" value="${item.quantidade}" /></td>
-          <td><input type="number" step="0.01" id="editAcaoPrecoMes_${item.id}" class="table-input-sm text-right" value="${item.precoMesAnt}" placeholder="Preço Mês" title="Preço Mês Anterior" /></td>
-          <td><input type="number" step="0.01" id="editAcaoPrecoAno_${item.id}" class="table-input-sm text-right" value="${item.precoAnoAnt}" placeholder="Preço Ano" title="Preço Ano Anterior" /></td>
-          <td><input type="number" step="0.01" id="editAcaoPreco_${item.id}" class="table-input-sm text-right" value="${item.precoAtual}" title="Preço Atual" /></td>
-          <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
-          <td class="text-right"><span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span></td>
-          <td><input type="number" step="0.1" id="editAcaoMeta_${item.id}" class="table-input-sm text-right" value="${item.meta}" /></td>
-          <td class="text-right"><span class="text-muted text-small">${new Date().toLocaleDateString('pt-BR')}</span></td>
-          <td class="text-center">
-            <button class="btn-icon success" onclick="saveAcaoInline('${item.id}')" title="Salvar Alteração">✅</button>
-            <button class="btn-icon danger" onclick="cancelAcaoInline()" title="Cancelar">✕</button>
-          </td>
-        </tr>
-      `;
-    }
+  tbody.innerHTML = fin.acoes.map((item, idx) => `
+    <tr>
+      <td class="col-desktop">
+        <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
+          <strong>${item.ticker}</strong>
+        </div>
+      </td>
+      <td class="col-desktop">${escapeHtml(item.nome)}</td>
+      <td class="text-right col-desktop">${item.quantidade}</td>
+      <td class="text-right text-muted col-desktop">${formatCurrency(item.precoMesAnt)}</td>
+      <td class="text-right text-muted col-desktop">${formatCurrency(item.precoAnoAnt)}</td>
+      <td class="text-right col-desktop">${formatCurrency(item.precoAtual)}</td>
+      <td class="text-right col-desktop"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+      <td class="text-right col-desktop">
+        <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
+      </td>
+      <td class="text-right col-desktop">
+        <span class="meta-pill">${item.meta.toFixed(1)}%</span>
+      </td>
+      <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
 
-    // MODO LEITURA NORMAL
-    return `
-      <tr>
-        <td class="col-desktop">
-          <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
-            <strong>${item.ticker}</strong>
-          </div>
-        </td>
-        <td class="col-desktop">${escapeHtml(item.nome)}</td>
-        <td class="text-right col-desktop">${item.quantidade}</td>
-        <td class="text-right text-muted col-desktop">${formatCurrency(item.precoMesAnt)}</td>
-        <td class="text-right text-muted col-desktop">${formatCurrency(item.precoAnoAnt)}</td>
-        <td class="text-right col-desktop">${formatCurrency(item.precoAtual)}</td>
-        <td class="text-right col-desktop"><strong>${formatCurrency(item.valorTotal)}</strong></td>
-        <td class="text-right col-desktop">
-          <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
-        </td>
-        <td class="text-right col-desktop">
-          <span class="meta-pill">${item.meta.toFixed(1)}%</span>
-        </td>
-        <td class="text-right col-desktop"><span class="text-muted text-small">${item.data || '-'}</span></td>
+      <!-- MÓVEL CONDENSADO -->
+      <td class="col-mobile">
+        <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
+          <strong>${item.ticker}</strong>
+        </div>
+        <div class="text-small text-muted" style="margin-top:2px;">${escapeHtml(item.nome)}</div>
+        <div class="text-small text-muted" style="font-size:0.74rem;">${item.quantidade} un. x ${formatCurrency(item.precoAtual)}</div>
+      </td>
+      <td class="text-right col-mobile" style="white-space: nowrap;">
+        <strong>${formatCurrency(item.valorTotal)}</strong>
+        <div style="font-size: 0.70rem; margin-top: 2px;">
+          <span class="pct-pill" style="font-size: 0.67rem; padding: 0 4px;">${item.percentualAtual.toFixed(1)}%</span>
+          <span class="text-muted" style="font-size: 0.68rem; margin-left: 2px;">(Meta ${item.meta.toFixed(1)}%)</span>
+        </div>
+      </td>
 
-        <!-- MÓVEL CONDENSADO -->
-        <td class="col-mobile">
-          <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
-            <strong>${item.ticker}</strong>
-          </div>
-          <div class="text-small text-muted" style="margin-top:2px;">${escapeHtml(item.nome)}</div>
-          <div class="text-small text-muted" style="font-size:0.74rem;">${item.quantidade} un. x ${formatCurrency(item.precoAtual)}</div>
-        </td>
-        <td class="text-right col-mobile" style="white-space: nowrap;">
-          <strong>${formatCurrency(item.valorTotal)}</strong>
-          <div style="font-size: 0.70rem; margin-top: 2px;">
-            <span class="pct-pill" style="font-size: 0.67rem; padding: 0 4px;">${item.percentualAtual.toFixed(1)}%</span>
-            <span class="text-muted" style="font-size: 0.68rem; margin-left: 2px;">(Meta ${item.meta.toFixed(1)}%)</span>
-          </div>
-        </td>
-
-        <td class="text-center">
-          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
-          <button class="btn-icon" onclick="startEditAcaoInline('${item.id}')" title="Editar Inline">✏️</button>
-          <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+      <td class="text-center">
+        <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
+        <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
+        <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
 
   document.getElementById('totalAcoesFooter').textContent = formatCurrency(fin.totalAcoes);
+}
+
+function openEditAcaoModal(id) {
+  const item = appState.acoes.find(a => a.id === id);
+  if (!item) return;
+  document.getElementById('editModalAcaoId').value = item.id;
+  document.getElementById('editModalAcaoTicker').value = item.ticker || '';
+  document.getElementById('editModalAcaoNome').value = item.nome || '';
+  document.getElementById('editModalAcaoQtd').value = item.quantidade || 0;
+  document.getElementById('editModalAcaoPrecoMes').value = item.precoMesAnterior !== undefined ? item.precoMesAnterior : item.precoAtual;
+  document.getElementById('editModalAcaoPrecoAno').value = item.precoAnoAnterior !== undefined ? item.precoAnoAnterior : item.precoAtual;
+  document.getElementById('editModalAcaoPreco').value = item.precoAtual || 0;
+  document.getElementById('editModalAcaoMeta').value = item.meta !== undefined ? item.meta : 10;
+  document.getElementById('modalEditAcaoBackdrop').style.display = 'flex';
+}
+
+function closeEditAcaoModal() {
+  const backdrop = document.getElementById('modalEditAcaoBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function handleEditAcaoModalSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('editModalAcaoId').value;
+  const item = appState.acoes.find(a => a.id === id);
+  if (!item) return;
+
+  const ticker = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
+  const nome = document.getElementById('editModalAcaoNome').value.trim();
+  const quantidade = parseFloat(document.getElementById('editModalAcaoQtd').value);
+  const precoMesInput = document.getElementById('editModalAcaoPrecoMes').value;
+  const precoAnoInput = document.getElementById('editModalAcaoPrecoAno').value;
+  const precoAtualInput = document.getElementById('editModalAcaoPreco').value;
+  const meta = parseFloat(document.getElementById('editModalAcaoMeta').value) || 0;
+
+  const precoMes = precoMesInput !== '' ? parseFloat(precoMesInput) : item.precoAtual;
+  const precoAno = precoAnoInput !== '' ? parseFloat(precoAnoInput) : item.precoAtual;
+  const precoAtual = parseFloat(precoAtualInput);
+
+  if (!ticker || !nome || isNaN(quantidade) || isNaN(precoAtual)) {
+    showToast('Preencha os campos obrigatórios.', 'error');
+    return;
+  }
+
+  if (item.precoAtual !== precoAtual) {
+    recordAssetHistory(item, precoAtual);
+    item.precoAtual = precoAtual;
+  }
+
+  item.ticker = ticker;
+  item.nome = nome;
+  item.quantidade = quantidade;
+  item.precoMesAnterior = isNaN(precoMes) ? item.precoAtual : precoMes;
+  item.precoAnoAnterior = isNaN(precoAno) ? item.precoAtual : precoAno;
+  item.meta = meta;
+  item.data = new Date().toLocaleDateString('pt-BR');
+
+  closeEditAcaoModal();
+  appState.isDemo = false;
+  saveLocalState();
+  renderApp();
+  showToast('Ação atualizada com sucesso!', 'success');
 }
 
 function startEditAcaoInline(id) {
