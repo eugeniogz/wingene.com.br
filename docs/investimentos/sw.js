@@ -1,12 +1,12 @@
-const CACHE_NAME = 'wingene-investimentos-v1.3.8';
+const CACHE_NAME = 'wingene-investimentos-v1.4.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './style.css?v=1.3.8',
-  './app.js?v=1.3.8',
-  './drive-sync.js?v=1.3.8',
+  './style.css?v=1.4.2',
+  './app.js?v=1.4.2',
+  './drive-sync.js?v=1.4.2',
   './manifest.json',
-  './icon.svg?v=1.3.8'
+  './icon.svg?v=1.4.2'
 ];
 
 // Instalação do Service Worker e forçar ativação imediata

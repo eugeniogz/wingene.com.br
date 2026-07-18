@@ -752,8 +752,8 @@ function renderRendaFixaTable(fin) {
           <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
         </td>
         <td class="text-right col-mobile">
-          <strong>${formatCurrency(item.valorAtual)}</strong>
-          <div class="text-muted" style="font-size:0.72rem; opacity:0.85;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
+          <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
+          <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
         </td>
 
         <td class="text-center">
@@ -958,11 +958,11 @@ function renderAcoesTable(fin) {
           <div class="text-small text-muted" style="margin-top:2px;">${escapeHtml(item.nome)}</div>
           <div class="text-small text-muted" style="font-size:0.74rem;">${item.quantidade} un. x ${formatCurrency(item.precoAtual)}</div>
         </td>
-        <td class="text-right col-mobile">
+        <td class="text-right col-mobile" style="white-space: nowrap;">
           <strong>${formatCurrency(item.valorTotal)}</strong>
-          <div style="display:flex; gap:3px; justify-content:flex-end; margin-top:2px;">
-            <span class="pct-pill" style="font-size:0.7rem; padding:1px 5px;">${item.percentualAtual.toFixed(1)}%</span>
-            <span class="meta-pill" style="font-size:0.7rem; padding:1px 5px;">Meta: ${item.meta.toFixed(1)}%</span>
+          <div style="font-size: 0.70rem; margin-top: 2px;">
+            <span class="pct-pill" style="font-size: 0.67rem; padding: 0 4px;">${item.percentualAtual.toFixed(1)}%</span>
+            <span class="text-muted" style="font-size: 0.68rem; margin-left: 2px;">(Meta ${item.meta.toFixed(1)}%)</span>
           </div>
         </td>
 
