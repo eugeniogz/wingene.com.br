@@ -1698,7 +1698,10 @@ async function triggerB3Sync(force = false) {
   const now = Date.now();
   const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
 
-  if (!force && cache && cache.timestamp && cacheAgeHours < 4) {
+  const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
+  const missingTickers = cleanTickers.filter(t => !cache || !cache.quotes || !cache.quotes[t] || !Array.isArray(cache.quotes[t].history) || cache.quotes[t].history.length < 2);
+
+  if (!force && cache && cache.timestamp && cacheAgeHours < 4 && missingTickers.length === 0) {
     const timeStr = cache.lastSyncFormatted || new Date(cache.timestamp).toLocaleString('pt-BR');
     updateStatusText(`Cache: ${timeStr}`);
     renderDailyEvolutionCharts();
@@ -1790,18 +1793,6 @@ function populateChartAssetFilter() {
   select.value = currentVal;
 }
 
-function getTickerHashFactor(symbol) {
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = (hash << 5) - hash + symbol.charCodeAt(i);
-    hash |= 0;
-  }
-  const absHash = Math.abs(hash);
-  const factorAno = 0.81 + (absHash % 14) / 100;
-  const factorMes = 0.92 + (absHash % 6) / 100;
-  return { factorAno, factorMes };
-}
-
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
 
@@ -1848,17 +1839,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const qty = parseFloat(ac.quantidade) || 0;
       const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
       
-      let pMes = parseFloat(ac.precoMesAnterior);
-      let pAno = parseFloat(ac.precoAnoAnterior);
+      const pMesUser = parseFloat(ac.precoMesAnterior);
+      const pAnoUser = parseFloat(ac.precoAnoAnterior);
 
-      if (isNaN(pAno) || pAno <= 0 || pAno === pAtual) {
-        const { factorAno, factorMes } = getTickerHashFactor(symbol);
-        pAno = pAtual * factorAno;
-        if (isNaN(pMes) || pMes <= 0 || pMes === pAtual) {
-          pMes = pAtual * factorMes;
-        }
-      }
-      if (isNaN(pMes) || pMes <= 0) pMes = pAtual;
+      const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
+      const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
       if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
         const dateToClose = {};
