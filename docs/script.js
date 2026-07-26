@@ -93,7 +93,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "A matéria é instrumento; a sinapse é música.",
         "Recordar: seiva que adoça a alegria.",
         "Pilares da felicidade: Criar, Amar, Recordar e Evoluir.",
-        "Viver tece tons indescritíveis."
+        "Viver tece tons indescritíveis.",
+        "Paciência: quando a razão respira."
     ];
 
     let currentQuoteIndex = 0;
