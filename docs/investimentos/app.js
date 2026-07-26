@@ -1789,18 +1789,6 @@ function populateChartAssetFilter() {
   select.value = currentVal;
 }
 
-function getTickerHashFactor(symbol) {
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = (hash << 5) - hash + symbol.charCodeAt(i);
-    hash |= 0;
-  }
-  const absHash = Math.abs(hash);
-  const factorAno = 0.81 + (absHash % 14) / 100;
-  const factorMes = 0.92 + (absHash % 6) / 100;
-  return { factorAno, factorMes };
-}
-
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
 
@@ -1847,17 +1835,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const qty = parseFloat(ac.quantidade) || 0;
       const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
       
-      let pMes = parseFloat(ac.precoMesAnterior);
-      let pAno = parseFloat(ac.precoAnoAnterior);
+      const pMesUser = parseFloat(ac.precoMesAnterior);
+      const pAnoUser = parseFloat(ac.precoAnoAnterior);
 
-      if (isNaN(pAno) || pAno <= 0 || pAno === pAtual) {
-        const { factorAno, factorMes } = getTickerHashFactor(symbol);
-        pAno = pAtual * factorAno;
-        if (isNaN(pMes) || pMes <= 0 || pMes === pAtual) {
-          pMes = pAtual * factorMes;
-        }
-      }
-      if (isNaN(pMes) || pMes <= 0) pMes = pAtual;
+      const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
+      const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
       if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
         const dateToClose = {};
