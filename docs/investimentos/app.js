@@ -1685,6 +1685,12 @@ async function triggerB3Sync(force = false) {
     return;
   }
 
+  if (force) {
+    try {
+      localStorage.removeItem(B3_CACHE_KEY);
+    } catch (e) {}
+  }
+
   let cache = getB3QuotesCache();
   const now = Date.now();
   const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
