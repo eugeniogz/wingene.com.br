@@ -530,6 +530,9 @@ function renderApp() {
 
   // 5. Renderizar Rebalanceamento & Metas
   renderRebalanceamentoSection(fin);
+
+  // 6. Renderizar Gráficos Evolutivos Diários da B3 (12 Meses)
+  renderDailyEvolutionCharts();
 }
 
 function formatDiffBadgeCombined(diffVal, diffPct) {
@@ -1533,4 +1536,464 @@ function setupPwaInstallation() {
       });
     }
   });
+}
+
+// Auto-sincronização inicial de Cotações B3 no carregamento
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    triggerB3Sync(false);
+  }, 1200);
+});
+
+// --- COTAÇÕES AUTOMÁTICAS B3 (AÇÕES, FIIS, BDRS) E HISTÓRICO DE PREGÕES (12 MESES) ---
+const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v1';
+
+function getB3QuotesCache() {
+  try {
+    const raw = localStorage.getItem(B3_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveB3QuotesCache(cache) {
+  try {
+    localStorage.setItem(B3_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('Erro ao salvar cache de cotações B3:', e);
+  }
+}
+
+async function fetchB3QuotesForTickers(tickers) {
+  if (!tickers || tickers.length === 0) return {};
+  
+  const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase()).filter(Boolean))];
+  if (cleanTickers.length === 0) return {};
+
+  const results = {};
+  const chunkSize = 8;
+
+  for (let i = 0; i < cleanTickers.length; i += chunkSize) {
+    const chunk = cleanTickers.slice(i, i + chunkSize);
+    const apiUrl = `https://brapi.dev/api/quote/${chunk.join(',')}?range=1y&interval=1d`;
+    
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) continue;
+      const data = await response.json();
+      
+      if (data && Array.isArray(data.results)) {
+        data.results.forEach(res => {
+          if (!res || !res.symbol) return;
+          const symbol = res.symbol.toUpperCase();
+          const currentPrice = parseFloat(res.regularMarketPrice || res.price || 0);
+          
+          const history = Array.isArray(res.historicalDataPrice)
+            ? res.historicalDataPrice.map(item => {
+                let dateStr = '';
+                if (typeof item.date === 'number') {
+                  const d = new Date(item.date * 1000);
+                  dateStr = d.toISOString().split('T')[0];
+                } else if (item.date) {
+                  dateStr = String(item.date).split('T')[0];
+                }
+                return {
+                  date: dateStr,
+                  close: parseFloat(item.close || item.adjustedClose || 0)
+                };
+              }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
+            : [];
+
+          history.sort((a, b) => a.date.localeCompare(b.date));
+
+          results[symbol] = {
+            symbol,
+            currentPrice,
+            updatedAt: new Date().toISOString(),
+            history
+          };
+        });
+      }
+    } catch (err) {
+      console.warn(`Erro ao buscar cotações do lote [${chunk.join(',')}]:`, err);
+    }
+  }
+
+  return results;
+}
+
+async function triggerB3Sync(force = false) {
+  const tickers = appState.acoes.map(a => a.ticker).filter(Boolean);
+  const statusEvol = document.getElementById('b3CacheStatusSpanEvol');
+  const statusAcoes = document.getElementById('b3CacheStatusSpanAcoes');
+  const btnEvol = document.getElementById('btnSyncB3QuotesEvol');
+  const btnAcoes = document.getElementById('btnSyncB3QuotesAcoes');
+
+  const updateStatusText = (msg) => {
+    if (statusEvol) statusEvol.textContent = msg;
+    if (statusAcoes) statusAcoes.textContent = msg;
+  };
+
+  if (tickers.length === 0) {
+    updateStatusText('Nenhuma ação cadastrada');
+    renderDailyEvolutionCharts();
+    return;
+  }
+
+  let cache = getB3QuotesCache();
+  const now = Date.now();
+  const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
+
+  if (!force && cache && cacheAgeHours < 4) {
+    const timeStr = cache.lastSyncFormatted || new Date(cache.timestamp).toLocaleString('pt-BR');
+    updateStatusText(`Cache: ${timeStr}`);
+    renderDailyEvolutionCharts();
+    return;
+  }
+
+  updateStatusText('🔄 Atualizando cotações B3...');
+  if (btnEvol) btnEvol.disabled = true;
+  if (btnAcoes) btnAcoes.disabled = true;
+
+  try {
+    const newQuotes = await fetchB3QuotesForTickers(tickers);
+    
+    if (!cache) {
+      cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
+    } else {
+      cache.timestamp = now;
+      cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
+      if (!cache.quotes) cache.quotes = {};
+    }
+
+    let updatedCount = 0;
+    Object.keys(newQuotes).forEach(symbol => {
+      cache.quotes[symbol] = newQuotes[symbol];
+      updatedCount++;
+
+      const acaoItem = appState.acoes.find(a => a.ticker.toUpperCase() === symbol);
+      if (acaoItem && newQuotes[symbol].currentPrice > 0) {
+        acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+      }
+    });
+
+    saveB3QuotesCache(cache);
+    if (updatedCount > 0) {
+      saveLocalState();
+      renderApp();
+      showToast(`Cotações de ${updatedCount} ativos atualizadas da B3!`, 'success');
+    } else if (force) {
+      showToast('Nenhuma cotação nova encontrada ou erro de rede.', 'warning');
+    }
+
+    updateStatusText(`Cache: ${cache.lastSyncFormatted}`);
+  } catch (err) {
+    console.error('Erro ao sincronizar cotações B3:', err);
+    updateStatusText(cache ? `Cache: ${cache.lastSyncFormatted}` : 'Erro ao conectar B3');
+    showToast('Não foi possível atualizar cotações online. Exibindo cache local.', 'info');
+  } finally {
+    if (btnEvol) btnEvol.disabled = false;
+    if (btnAcoes) btnAcoes.disabled = false;
+    renderDailyEvolutionCharts();
+  }
+}
+
+function calculateDailyPortfolioSeries() {
+  const cache = getB3QuotesCache();
+  if (!cache || !cache.quotes || Object.keys(cache.quotes).length === 0) {
+    return [];
+  }
+
+  const dateSet = new Set();
+  Object.values(cache.quotes).forEach(q => {
+    if (Array.isArray(q.history)) {
+      q.history.forEach(h => {
+        if (h.date) dateSet.add(h.date);
+      });
+    }
+  });
+
+  const datesSorted = Array.from(dateSet).sort();
+  if (datesSorted.length === 0) return [];
+
+  const tickerMap = {};
+  appState.acoes.forEach(ac => {
+    const symbol = ac.ticker.toUpperCase();
+    const cached = cache.quotes[symbol];
+    if (cached && Array.isArray(cached.history) && cached.history.length > 0) {
+      const dateToClose = {};
+      let lastPrice = ac.precoAtual || cached.currentPrice || 0;
+      
+      cached.history.forEach(h => {
+        if (h.close > 0) lastPrice = h.close;
+        dateToClose[h.date] = lastPrice;
+      });
+
+      tickerMap[symbol] = {
+        quantidade: ac.quantidade || 0,
+        currentPrice: ac.precoAtual || cached.currentPrice || 0,
+        history: cached.history,
+        dateToClose
+      };
+    } else if (ac.quantidade > 0) {
+      tickerMap[symbol] = {
+        quantidade: ac.quantidade || 0,
+        currentPrice: ac.precoAtual || 0,
+        history: [],
+        dateToClose: {}
+      };
+    }
+  });
+
+  const series = [];
+  let prevTotal = 0;
+
+  datesSorted.forEach((dateStr, idx) => {
+    let dayTotal = 0;
+
+    Object.keys(tickerMap).forEach(symbol => {
+      const info = tickerMap[symbol];
+      if (info.quantidade <= 0) return;
+
+      let priceOnDate = info.dateToClose[dateStr];
+      if (priceOnDate === undefined) {
+        const pastEntries = info.history.filter(h => h.date <= dateStr);
+        if (pastEntries.length > 0) {
+          priceOnDate = pastEntries[pastEntries.length - 1].close;
+        } else {
+          priceOnDate = info.currentPrice;
+        }
+      }
+
+      dayTotal += info.quantidade * priceOnDate;
+    });
+
+    const diffVal = idx > 0 ? dayTotal - prevTotal : 0;
+    const diffPct = idx > 0 && prevTotal > 0 ? (diffVal / prevTotal) * 100 : 0;
+    prevTotal = dayTotal;
+
+    series.push({
+      date: dateStr,
+      total: dayTotal,
+      diffVal,
+      diffPct
+    });
+  });
+
+  return series;
+}
+
+function renderDailyEvolutionCharts() {
+  renderDailyLineChart('chartDailyEvolution12mEvol');
+  renderDailyLineChart('chartDailyEvolution12mAcoes');
+}
+
+function renderDailyLineChart(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const series = calculateDailyPortfolioSeries();
+
+  if (series.length < 2) {
+    container.innerHTML = `
+      <div class="chart-empty-state py-4 text-center">
+        <p class="text-muted mb-2">Sem histórico suficiente para exibir o gráfico evolutivo dos últimos 12 meses.</p>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="triggerB3Sync(true)">🔄 Sincronizar Cotações Agora</button>
+      </div>
+    `;
+    return;
+  }
+
+  const values = series.map(s => s.total);
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const firstVal = series[0].total;
+  const lastVal = series[series.length - 1].total;
+  const totalChangeVal = lastVal - firstVal;
+  const totalChangePct = firstVal > 0 ? (totalChangeVal / firstVal) * 100 : 0;
+
+  const minIndex = values.indexOf(minVal);
+  const maxIndex = values.indexOf(maxVal);
+
+  const width = 800;
+  const height = 240;
+  const padding = { top: 30, right: 30, bottom: 40, left: 70 };
+  const graphW = width - padding.left - padding.right;
+  const graphH = height - padding.top - padding.bottom;
+
+  const yMin = Math.max(0, minVal * 0.95);
+  const yMax = maxVal * 1.05;
+  const yRange = yMax - yMin || 1;
+
+  const getX = (idx) => padding.left + (idx / (series.length - 1)) * graphW;
+  const getY = (val) => padding.top + graphH - ((val - yMin) / yRange) * graphH;
+
+  const points = series.map((s, idx) => `${getX(idx).toFixed(1)},${getY(s.total).toFixed(1)}`);
+  const pathD = `M ${points.join(' L ')}`;
+  const areaD = `M ${getX(0)},${padding.top + graphH} L ${points.join(' L ')} L ${getX(series.length - 1)},${padding.top + graphH} Z`;
+
+  const gridYLevels = [yMin + yRange * 0.25, yMin + yRange * 0.5, yMin + yRange * 0.75, yMax];
+  const gridYHtml = gridYLevels.map(val => {
+    const yPos = getY(val);
+    return `
+      <line x1="${padding.left}" y1="${yPos}" x2="${width - padding.right}" y2="${yPos}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4 4" />
+      <text x="${padding.left - 8}" y="${yPos + 4}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="end">${formatCurrency(val)}</text>
+    `;
+  }).join('');
+
+  const stepX = Math.floor(series.length / 5);
+  const gridXHtml = [];
+  for (let i = 0; i < series.length; i += stepX) {
+    const xPos = getX(i);
+    const dParts = series[i].date.split('-');
+    const labelDate = `${dParts[2]}/${dParts[1]}`;
+    gridXHtml.push(`
+      <text x="${xPos}" y="${height - 12}" fill="rgba(255,255,255,0.4)" font-size="10" text-anchor="middle">${labelDate}</text>
+    `);
+  }
+
+  const lineColor = totalChangeVal >= 0 ? '#10b981' : '#ef4444';
+  const areaGradient = totalChangeVal >= 0 ? 'url(#greenGradient)' : 'url(#redGradient)';
+
+  const changeSign = totalChangeVal >= 0 ? '+' : '';
+  const changeClass = totalChangeVal >= 0 ? 'text-success' : 'text-danger';
+
+  const containerUniqueId = `chart_svg_${containerId}`;
+
+  container.innerHTML = `
+    <div class="line-chart-card">
+      <div class="line-chart-header mb-3">
+        <div class="chart-stat-item">
+          <span class="text-muted text-small">Atual</span>
+          <strong class="stat-main-val">${formatCurrency(lastVal)}</strong>
+        </div>
+        <div class="chart-stat-item">
+          <span class="text-muted text-small">Var. no Período (12M)</span>
+          <strong class="${changeClass}">${changeSign}${formatCurrency(totalChangeVal)} (${changeSign}${totalChangePct.toFixed(1)}%)</strong>
+        </div>
+        <div class="chart-stat-item col-desktop-only">
+          <span class="text-muted text-small">Maior Valor (Pico)</span>
+          <span class="text-success">${formatCurrency(maxVal)}</span>
+        </div>
+        <div class="chart-stat-item col-desktop-only">
+          <span class="text-muted text-small">Menor Valor (Vale)</span>
+          <span class="text-danger">${formatCurrency(minVal)}</span>
+        </div>
+      </div>
+
+      <div class="line-chart-wrapper" id="${containerUniqueId}">
+        <svg viewBox="0 0 ${width} ${height}" class="line-chart-svg">
+          <defs>
+            <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0.0" />
+            </linearGradient>
+            <linearGradient id="redGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ef4444" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          <!-- Grades -->
+          ${gridYHtml}
+          ${gridXHtml.join('')}
+
+          <!-- Área sob a curva -->
+          <path d="${areaD}" fill="${areaGradient}" />
+
+          <!-- Linha principal da curva -->
+          <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- Ponto de Mínimo -->
+          <circle cx="${getX(minIndex)}" cy="${getY(minVal)}" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5">
+            <title>Menor Valor: ${formatCurrency(minVal)} (${series[minIndex].date})</title>
+          </circle>
+
+          <!-- Ponto de Máximo -->
+          <circle cx="${getX(maxIndex)}" cy="${getY(maxVal)}" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5">
+            <title>Maior Valor: ${formatCurrency(maxVal)} (${series[maxIndex].date})</title>
+          </circle>
+
+          <!-- Elemento interativo de Hover -->
+          <line id="hoverLine_${containerUniqueId}" x1="0" y1="${padding.top}" x2="0" y2="${padding.top + graphH}" stroke="rgba(255,255,255,0.4)" stroke-dasharray="3 3" style="display:none;" />
+          <circle id="hoverPoint_${containerUniqueId}" r="5" fill="#3b82f6" stroke="#ffffff" stroke-width="2" style="display:none;" />
+        </svg>
+
+        <!-- Tooltip Flutuante -->
+        <div class="line-chart-tooltip" id="tooltip_${containerUniqueId}" style="display:none;"></div>
+      </div>
+    </div>
+  `;
+
+  const wrapper = document.getElementById(containerUniqueId);
+  const hoverLine = document.getElementById(`hoverLine_${containerUniqueId}`);
+  const hoverPoint = document.getElementById(`hoverPoint_${containerUniqueId}`);
+  const tooltip = document.getElementById(`tooltip_${containerUniqueId}`);
+
+  if (!wrapper || !hoverLine || !hoverPoint || !tooltip) return;
+
+  function handlePointerMove(e) {
+    const rect = wrapper.getBoundingClientRect();
+    const clientX = e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX;
+    const offsetX = clientX - rect.left;
+    const svgWidthRatio = width / rect.width;
+    const svgX = offsetX * svgWidthRatio;
+
+    if (svgX < padding.left || svgX > width - padding.right) {
+      hoverLine.style.display = 'none';
+      hoverPoint.style.display = 'none';
+      tooltip.style.display = 'none';
+      return;
+    }
+
+    const pct = (svgX - padding.left) / graphW;
+    const closestIdx = Math.max(0, Math.min(series.length - 1, Math.round(pct * (series.length - 1))));
+    const item = series[closestIdx];
+
+    const cx = getX(closestIdx);
+    const cy = getY(item.total);
+
+    hoverLine.setAttribute('x1', cx);
+    hoverLine.setAttribute('x2', cx);
+    hoverLine.style.display = 'block';
+
+    hoverPoint.setAttribute('cx', cx);
+    hoverPoint.setAttribute('cy', cy);
+    hoverPoint.style.display = 'block';
+
+    const dateParts = item.date.split('-');
+    const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+    
+    const diffSign = item.diffVal >= 0 ? '+' : '';
+    const diffClass = item.diffVal >= 0 ? 'color: #34d399;' : 'color: #f87171;';
+    const arrow = item.diffVal >= 0 ? '▲' : '▼';
+
+    tooltip.innerHTML = `
+      <div style="font-weight: 700; color: #f9fafb; margin-bottom: 2px;">📅 Pregão de ${formattedDate}</div>
+      <div style="font-size: 0.92rem; font-weight: 800; color: #ffffff;">${formatCurrency(item.total)}</div>
+      <div style="font-size: 0.76rem; ${diffClass} font-weight: 600; margin-top: 2px;">
+        ${arrow} ${diffSign}${formatCurrency(item.diffVal)} (${diffSign}${item.diffPct.toFixed(2)}%)
+      </div>
+    `;
+
+    const leftPx = (cx / width) * rect.width;
+    const topPx = (cy / height) * rect.height - 70;
+
+    tooltip.style.left = `${Math.max(10, Math.min(rect.width - 160, leftPx - 80))}px`;
+    tooltip.style.top = `${Math.max(10, topPx)}px`;
+    tooltip.style.display = 'block';
+  }
+
+  function handlePointerLeave() {
+    hoverLine.style.display = 'none';
+    hoverPoint.style.display = 'none';
+    tooltip.style.display = 'none';
+  }
+
+  wrapper.addEventListener('mousemove', handlePointerMove);
+  wrapper.addEventListener('mouseleave', handlePointerLeave);
+  wrapper.addEventListener('touchstart', handlePointerMove, { passive: true });
+  wrapper.addEventListener('touchmove', handlePointerMove, { passive: true });
+  wrapper.addEventListener('touchend', handlePointerLeave);
 }

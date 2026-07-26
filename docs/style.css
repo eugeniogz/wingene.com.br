@@ -249,6 +249,7 @@ h1, h2, h3, h4 {
     font-weight: 800;
     background: linear-gradient(135deg, var(--title-gradient-start) 30%, var(--title-gradient-end) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -256,6 +257,7 @@ h1, h2, h3, h4 {
     text-decoration: none;
     background: inherit;
     -webkit-background-clip: inherit;
+    background-clip: inherit;
     -webkit-text-fill-color: inherit;
     transition: opacity 0.2s ease;
 }
@@ -443,10 +445,7 @@ h1, h2, h3, h4 {
     transition: var(--transition-smooth);
 }
 
-/* Animações de pulsação suave em loop (círculo eudaimônico de respiração) */
-.star-valores {
-    /* O polígono base de Valores (Vermelho) permanece firme e estável */
-}
+/* O polígono base de Valores (Vermelho) permanece firme e estável sem animação de pulsação */
 
 .star-imperfeicoes {
     animation: pulseImperfeicoes 8.43s ease-in-out infinite;
@@ -527,6 +526,7 @@ h1, h2, h3, h4 {
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, var(--hero-title-gradient-start) 60%, var(--hero-title-gradient-end) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: fadeInSlide 1s ease-out;
 }

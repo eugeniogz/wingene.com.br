@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.4.5" />
+  <link rel="stylesheet" href="style.css?v=1.5.0" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -265,6 +265,25 @@
           </table>
         </div>
       </div>
+
+      <!-- 4. GRÁFICO DE EVOLUÇÃO DIÁRIA DE PREGÕES (12 MESES) -->
+      <div class="card mt-4">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
+          <div>
+            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+              <span>📈</span> Evolução Diária da Carteira (Ações / FIIs / BDRs)
+            </h2>
+            <p class="text-muted text-small mb-0">Variação acumulada pregão a pregão nos últimos 12 meses obtida via cotações históricas da B3.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="text-muted text-small" id="b3CacheStatusSpanEvol">Cache: Não sincronizado</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnSyncB3QuotesEvol" onclick="triggerB3Sync(true)">
+              🔄 Sincronizar Cotações B3
+            </button>
+          </div>
+        </div>
+        <div id="chartDailyEvolution12mEvol"></div>
+      </div>
     </section>
 
     <!-- ABA 3: RENDA FIXA (EDIÇÃO INLINE) -->
@@ -352,6 +371,25 @@
             </tfoot>
           </table>
         </div>
+      </div>
+
+      <!-- GRÁFICO DE PREGÕES NA CARTEIRA DE AÇÕES -->
+      <div class="card mt-4">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
+          <div>
+            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+              <span>📊</span> Histórico de Cotações & Pregões (12 Meses)
+            </h2>
+            <p class="text-muted text-small mb-0">Gráfico evolutivo dia a dia da carteira de renda variável com armazenagem em cache local.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="text-muted text-small" id="b3CacheStatusSpanAcoes">Cache: Não sincronizado</span>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSyncB3QuotesAcoes" onclick="triggerB3Sync(true)">
+              ⚡ Sincronizar B3 Cotações
+            </button>
+          </div>
+        </div>
+        <div id="chartDailyEvolution12mAcoes"></div>
       </div>
     </section>
 
@@ -645,7 +683,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.4.4"></script>
-  <script src="app.js?v=1.4.4"></script>
+  <script src="drive-sync.js?v=1.5.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>
