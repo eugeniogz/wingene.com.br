@@ -1758,54 +1758,55 @@ function populateChartAssetFilter() {
   if (!select) return;
 
   const currentVal = select.value || 'ALL';
-  let optionsHtml = `<option value="ALL">🌐 Toda a Carteira (Consolidado)</option>`;
+  let optionsHtml = `
+    <option value="ALL">🌐 Patrimônio Total (Consolidado)</option>
+    <option value="GROUP_ACOES">📈 Grupo Ações & Renda Variável</option>
+    <option value="GROUP_RF">🏦 Grupo Renda Fixa</option>
+  `;
 
-  appState.acoes.forEach(ac => {
-    const rawTicker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
-    if (rawTicker) {
-      const nome = ac.nome ? ` - ${ac.nome}` : '';
-      optionsHtml += `<option value="${rawTicker}">${rawTicker}${nome}</option>`;
-    }
-  });
+  if (appState.acoes && appState.acoes.length > 0) {
+    optionsHtml += `<optgroup label="Ações / FIIs / BDRs">`;
+    appState.acoes.forEach(ac => {
+      const ticker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
+      if (ticker) {
+        const nome = ac.nome ? ` - ${ac.nome}` : '';
+        optionsHtml += `<option value="AC_${ac.id || ticker}">${ticker}${nome}</option>`;
+      }
+    });
+    optionsHtml += `</optgroup>`;
+  }
+
+  if (appState.rendaFixa && appState.rendaFixa.length > 0) {
+    optionsHtml += `<optgroup label="Renda Fixa">`;
+    appState.rendaFixa.forEach(rf => {
+      const nome = rf.nome || rf.tipo || 'Ativo RF';
+      optionsHtml += `<option value="RF_${rf.id}">${nome}</option>`;
+    });
+    optionsHtml += `</optgroup>`;
+  }
 
   select.innerHTML = optionsHtml;
   select.value = currentVal;
 }
 
-function getTickerHashFactor(symbol) {
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = (hash << 5) - hash + symbol.charCodeAt(i);
-    hash |= 0;
-  }
-  const absHash = Math.abs(hash);
-  const factorAno = 0.81 + (absHash % 14) / 100;
-  const factorMes = 0.92 + (absHash % 6) / 100;
-  return { factorAno, factorMes };
-}
-
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
-  const activeTickers = appState.acoes.map(a => a.ticker.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
-  if (activeTickers.length === 0) return [];
 
-  const targetSymbols = (selectedSymbol && selectedSymbol !== 'ALL')
-    ? [selectedSymbol.trim().toUpperCase().replace(/\.SA$/i, '')]
-    : activeTickers;
-
+  // Coletar todas as datas dos pregões no cache B3 (se houver)
   const dateSet = new Set();
-  targetSymbols.forEach(symbol => {
-    const cached = cache && cache.quotes ? cache.quotes[symbol] : null;
-    if (cached && Array.isArray(cached.history)) {
-      cached.history.forEach(h => {
-        if (h.date) dateSet.add(h.date);
-      });
-    }
-  });
+  if (cache && cache.quotes) {
+    Object.values(cache.quotes).forEach(cached => {
+      if (cached && Array.isArray(cached.history)) {
+        cached.history.forEach(h => {
+          if (h.date) dateSet.add(h.date);
+        });
+      }
+    });
+  }
 
   let datesSorted = Array.from(dateSet).sort();
 
-  // Se ainda não houver histórico baixado da API, gerar timeline mensal sintética de 12 meses com base nos dados locais
+  // Se ainda não houver histórico de pregões baixado da API, gerar timeline mensal de 12 meses
   if (datesSorted.length < 2) {
     const today = new Date();
     const timeline = [];
@@ -1816,61 +1817,75 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     datesSorted = timeline;
   }
 
-  const tickerMap = {};
-  appState.acoes.forEach(ac => {
-    const rawTicker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
-    if (!rawTicker) return;
+  const todayStr = new Date().toISOString().split('T')[0];
+  const monthAgo = new Date();
+  monthAgo.setDate(monthAgo.getDate() - 30);
+  const monthAgoStr = monthAgo.toISOString().split('T')[0];
 
-    const symbol = rawTicker.replace(/\.SA$/i, '');
-    if (selectedSymbol && selectedSymbol !== 'ALL' && symbol !== targetSymbols[0]) {
-      return;
-    }
+  // Mapear Ações / Renda Variável
+  const acoesMap = {};
+  if (appState.acoes) {
+    appState.acoes.forEach(ac => {
+      const rawTicker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
+      if (!rawTicker) return;
 
-    const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
-    
-    const qty = parseFloat(ac.quantidade) || 0;
-    const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
-    
-    let pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : 0;
-    let pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : 0;
-
-    // Se o usuário não definiu preço anterior histórico ou se for igual ao preço atual, utiliza o fator determinístico do ativo
-    if ((!pAno || pAno === pAtual) && pAtual > 0) {
-      const { factorAno, factorMes } = getTickerHashFactor(symbol);
-      pAno = pAtual * factorAno;
-      if (!pMes || pMes === pAtual) {
-        pMes = pAtual * factorMes;
-      }
-    }
-    if (!pMes) pMes = pAtual;
-
-    if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
-      const dateToClose = {};
-      let lastPrice = pAtual;
+      const symbol = rawTicker.replace(/\.SA$/i, '');
+      const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
       
-      cached.history.forEach(h => {
-        if (h.close > 0) lastPrice = h.close;
-        dateToClose[h.date] = lastPrice;
-      });
+      const qty = parseFloat(ac.quantidade) || 0;
+      const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
+      const pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : pAtual;
+      const pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : pAtual;
 
-      tickerMap[symbol] = {
-        quantidade: qty,
-        currentPrice: pAtual,
-        hasApiHistory: true,
-        history: cached.history,
-        dateToClose
+      if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+        const dateToClose = {};
+        let lastPrice = pAtual;
+        
+        cached.history.forEach(h => {
+          if (h.close > 0) lastPrice = h.close;
+          dateToClose[h.date] = lastPrice;
+        });
+
+        acoesMap[ac.id || symbol] = {
+          id: ac.id || symbol,
+          symbol,
+          quantidade: qty,
+          currentPrice: pAtual,
+          hasApiHistory: true,
+          history: cached.history,
+          dateToClose
+        };
+      } else {
+        acoesMap[ac.id || symbol] = {
+          id: ac.id || symbol,
+          symbol,
+          quantidade: qty,
+          currentPrice: pAtual,
+          hasApiHistory: false,
+          pAno,
+          pMes,
+          pAtual
+        };
+      }
+    });
+  }
+
+  // Mapear Renda Fixa
+  const rfMap = {};
+  if (appState.rendaFixa) {
+    appState.rendaFixa.forEach(rf => {
+      const vAtual = parseFloat(rf.valor) || 0;
+      const vMes = parseFloat(rf.valorMesAnterior) !== undefined && !isNaN(parseFloat(rf.valorMesAnterior)) ? parseFloat(rf.valorMesAnterior) : vAtual;
+      const vAno = parseFloat(rf.valorAnoAnterior) !== undefined && !isNaN(parseFloat(rf.valorAnoAnterior)) ? parseFloat(rf.valorAnoAnterior) : vAtual;
+
+      rfMap[rf.id] = {
+        id: rf.id,
+        vAno,
+        vMes,
+        vAtual
       };
-    } else {
-      tickerMap[symbol] = {
-        quantidade: qty,
-        currentPrice: pAtual,
-        hasApiHistory: false,
-        pAno,
-        pMes,
-        pAtual
-      };
-    }
-  });
+    });
+  }
 
   const series = [];
   let prevTotal = 0;
@@ -1878,45 +1893,70 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   datesSorted.forEach((dateStr, idx) => {
     let dayTotal = 0;
 
-    Object.keys(tickerMap).forEach(symbol => {
-      const info = tickerMap[symbol];
-      if (info.quantidade <= 0) return;
+    // Processar Ações
+    if (selectedSymbol === 'ALL' || selectedSymbol === 'GROUP_ACOES' || selectedSymbol.startsWith('AC_')) {
+      Object.values(acoesMap).forEach(info => {
+        if (selectedSymbol.startsWith('AC_') && selectedSymbol !== `AC_${info.id}` && selectedSymbol !== `AC_${info.symbol}`) {
+          return;
+        }
+        if (info.quantidade <= 0) return;
 
-      let priceOnDate = 0;
-
-      if (info.hasApiHistory) {
-        priceOnDate = info.dateToClose[dateStr];
-        if (priceOnDate === undefined) {
-          const pastEntries = info.history.filter(h => h.date <= dateStr);
-          if (pastEntries.length > 0) {
-            priceOnDate = pastEntries[pastEntries.length - 1].close;
+        let priceOnDate = 0;
+        if (info.hasApiHistory) {
+          priceOnDate = info.dateToClose[dateStr];
+          if (priceOnDate === undefined) {
+            const pastEntries = info.history.filter(h => h.date <= dateStr);
+            if (pastEntries.length > 0) {
+              priceOnDate = pastEntries[pastEntries.length - 1].close;
+            } else {
+              priceOnDate = info.currentPrice;
+            }
+          }
+        } else {
+          if (dateStr <= monthAgoStr) {
+            const startTs = new Date(datesSorted[0]).getTime();
+            const midTs = new Date(monthAgoStr).getTime();
+            const currTs = new Date(dateStr).getTime();
+            const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
+            priceOnDate = info.pAno + ratio * (info.pMes - info.pAno);
           } else {
-            priceOnDate = info.currentPrice;
+            const midTs = new Date(monthAgoStr).getTime();
+            const endTs = new Date(todayStr).getTime();
+            const currTs = new Date(dateStr).getTime();
+            const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
+            priceOnDate = info.pMes + ratio * (info.pAtual - info.pMes);
           }
         }
-      } else {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const monthAgo = new Date();
-        monthAgo.setDate(monthAgo.getDate() - 30);
-        const monthAgoStr = monthAgo.toISOString().split('T')[0];
 
+        dayTotal += info.quantidade * priceOnDate;
+      });
+    }
+
+    // Processar Renda Fixa
+    if (selectedSymbol === 'ALL' || selectedSymbol === 'GROUP_RF' || selectedSymbol.startsWith('RF_')) {
+      Object.values(rfMap).forEach(info => {
+        if (selectedSymbol.startsWith('RF_') && selectedSymbol !== `RF_${info.id}`) {
+          return;
+        }
+
+        let valOnDate = 0;
         if (dateStr <= monthAgoStr) {
           const startTs = new Date(datesSorted[0]).getTime();
           const midTs = new Date(monthAgoStr).getTime();
           const currTs = new Date(dateStr).getTime();
           const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
-          priceOnDate = info.pAno + ratio * (info.pMes - info.pAno);
+          valOnDate = info.vAno + ratio * (info.vMes - info.vAno);
         } else {
           const midTs = new Date(monthAgoStr).getTime();
           const endTs = new Date(todayStr).getTime();
           const currTs = new Date(dateStr).getTime();
           const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
-          priceOnDate = info.pMes + ratio * (info.pAtual - info.pMes);
+          valOnDate = info.vMes + ratio * (info.vAtual - info.vMes);
         }
-      }
 
-      dayTotal += info.quantidade * priceOnDate;
-    });
+        dayTotal += valOnDate;
+      });
+    }
 
     const diffVal = idx > 0 ? dayTotal - prevTotal : 0;
     const diffPct = idx > 0 && prevTotal > 0 ? (diffVal / prevTotal) * 100 : 0;
