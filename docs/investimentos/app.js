@@ -1565,58 +1565,102 @@ function saveB3QuotesCache(cache) {
   }
 }
 
-async function fetchB3QuotesForTickers(tickers) {
-  if (!tickers || tickers.length === 0) return {};
-  
-  const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase()).filter(Boolean))];
-  if (cleanTickers.length === 0) return {};
+async function fetchQuoteSingleTicker(ticker) {
+  const cleanSymbol = ticker.trim().toUpperCase().replace(/\.SA$/i, '');
+  if (!cleanSymbol) return null;
 
-  const results = {};
+  // 1. Tentar via Brapi API (1 ticker por requisição para plano gratuito)
+  try {
+    const brapiUrl = `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`;
+    const res = await fetch(brapiUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        const item = data.results[0];
+        const currentPrice = parseFloat(item.regularMarketPrice || item.price || 0);
+        const history = Array.isArray(item.historicalDataPrice)
+          ? item.historicalDataPrice.map(h => {
+              let dateStr = '';
+              if (typeof h.date === 'number') {
+                dateStr = new Date(h.date * 1000).toISOString().split('T')[0];
+              } else if (h.date) {
+                dateStr = String(h.date).split('T')[0];
+              }
+              return {
+                date: dateStr,
+                close: parseFloat(h.close || h.adjustedClose || 0)
+              };
+            }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
+          : [];
 
-  // Em modo gratuito da Brapi, buscar 1 ticker por requisição para evitar erro HTTP 401
-  for (const ticker of cleanTickers) {
-    const cleanSymbol = ticker.replace(/\.SA$/i, '');
-    const apiUrl = `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`;
-    
-    try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) continue;
-      const data = await response.json();
-      
-      if (data && Array.isArray(data.results)) {
-        data.results.forEach(res => {
-          if (!res || !res.symbol) return;
-          const symbol = res.symbol.toUpperCase();
-          const currentPrice = parseFloat(res.regularMarketPrice || res.price || 0);
-          
-          const history = Array.isArray(res.historicalDataPrice)
-            ? res.historicalDataPrice.map(item => {
-                let dateStr = '';
-                if (typeof item.date === 'number') {
-                  const d = new Date(item.date * 1000);
-                  dateStr = d.toISOString().split('T')[0];
-                } else if (item.date) {
-                  dateStr = String(item.date).split('T')[0];
-                }
-                return {
-                  date: dateStr,
-                  close: parseFloat(item.close || item.adjustedClose || 0)
-                };
-              }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
-            : [];
-
+        if (history.length > 1) {
           history.sort((a, b) => a.date.localeCompare(b.date));
-
-          results[symbol] = {
-            symbol,
+          return {
+            symbol: cleanSymbol,
             currentPrice,
             updatedAt: new Date().toISOString(),
             history
           };
-        });
+        }
       }
-    } catch (err) {
-      console.warn(`Erro ao buscar cotações de [${cleanSymbol}]:`, err);
+    }
+  } catch (err) {
+    console.warn(`[Brapi] Falha para ${cleanSymbol}:`, err);
+  }
+
+  // 2. Fallback via Yahoo Finance API (ticker.SA)
+  try {
+    const yahooSymbol = `${cleanSymbol}.SA`;
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+    const res = await fetch(yahooUrl);
+    if (res.ok) {
+      const data = await res.json();
+      const chartResult = data && data.chart && data.chart.result && data.chart.result[0];
+      if (chartResult && Array.isArray(chartResult.timestamp)) {
+        const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
+        const timestamps = chartResult.timestamp;
+        const quotes = chartResult.indicators && chartResult.indicators.quote && chartResult.indicators.quote[0];
+        const closes = quotes ? quotes.close || [] : [];
+
+        const history = [];
+        for (let i = 0; i < timestamps.length; i++) {
+          const ts = timestamps[i];
+          const closeVal = parseFloat(closes[i]);
+          if (ts && !isNaN(closeVal) && closeVal > 0) {
+            const dateStr = new Date(ts * 1000).toISOString().split('T')[0];
+            history.push({ date: dateStr, close: closeVal });
+          }
+        }
+
+        if (history.length > 1) {
+          history.sort((a, b) => a.date.localeCompare(b.date));
+          return {
+            symbol: cleanSymbol,
+            currentPrice,
+            updatedAt: new Date().toISOString(),
+            history
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[Yahoo] Falha para ${cleanSymbol}:`, err);
+  }
+
+  return null;
+}
+
+async function fetchB3QuotesForTickers(tickers) {
+  if (!tickers || tickers.length === 0) return {};
+  
+  const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
+  if (cleanTickers.length === 0) return {};
+
+  const results = {};
+  for (const ticker of cleanTickers) {
+    const quoteData = await fetchQuoteSingleTicker(ticker);
+    if (quoteData && quoteData.symbol) {
+      results[quoteData.symbol] = quoteData;
     }
   }
 
@@ -1645,7 +1689,7 @@ async function triggerB3Sync(force = false) {
   const now = Date.now();
   const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
 
-  if (!force && cache && cacheAgeHours < 4) {
+  if (!force && cache && cache.timestamp && cacheAgeHours < 4) {
     const timeStr = cache.lastSyncFormatted || new Date(cache.timestamp).toLocaleString('pt-BR');
     updateStatusText(`Cache: ${timeStr}`);
     renderDailyEvolutionCharts();
@@ -1673,8 +1717,8 @@ async function triggerB3Sync(force = false) {
       updatedCount++;
 
       const acaoItem = appState.acoes.find(a => {
-        const t = a.ticker.trim().toUpperCase();
-        return t === symbol || t.replace(/\.SA$/i, '') === symbol;
+        const t = a.ticker.trim().toUpperCase().replace(/\.SA$/i, '');
+        return t === symbol;
       });
 
       if (acaoItem && newQuotes[symbol].currentPrice > 0) {
@@ -1689,14 +1733,13 @@ async function triggerB3Sync(force = false) {
       renderApp();
       showToast(`Cotações de ${updatedCount} ativos atualizadas da B3!`, 'success');
     } else if (force) {
-      showToast('Nenhuma cotação nova encontrada ou erro de rede.', 'warning');
+      showToast('Exibindo histórico local da carteira.', 'info');
     }
 
     updateStatusText(`Cache: ${cache.lastSyncFormatted}`);
   } catch (err) {
     console.error('Erro ao sincronizar cotações B3:', err);
-    updateStatusText(cache ? `Cache: ${cache.lastSyncFormatted}` : 'Erro ao conectar B3');
-    showToast('Não foi possível atualizar cotações online. Exibindo cache local.', 'info');
+    updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Histórico Local');
   } finally {
     if (btnEvol) btnEvol.disabled = false;
     if (btnAcoes) btnAcoes.disabled = false;
@@ -1706,16 +1749,12 @@ async function triggerB3Sync(force = false) {
 
 function calculateDailyPortfolioSeries() {
   const cache = getB3QuotesCache();
-  if (!cache || !cache.quotes || Object.keys(cache.quotes).length === 0) {
-    return [];
-  }
-
   const activeTickers = appState.acoes.map(a => a.ticker.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
   if (activeTickers.length === 0) return [];
 
   const dateSet = new Set();
   activeTickers.forEach(symbol => {
-    const cached = cache.quotes[symbol];
+    const cached = cache && cache.quotes ? cache.quotes[symbol] : null;
     if (cached && Array.isArray(cached.history)) {
       cached.history.forEach(h => {
         if (h.date) dateSet.add(h.date);
@@ -1723,19 +1762,35 @@ function calculateDailyPortfolioSeries() {
     }
   });
 
-  const datesSorted = Array.from(dateSet).sort();
-  if (datesSorted.length === 0) return [];
+  let datesSorted = Array.from(dateSet).sort();
+
+  // Se ainda não houver histórico baixado da API, gerar timeline mensal sintética de 12 meses com base nos dados locais
+  if (datesSorted.length < 2) {
+    const today = new Date();
+    const timeline = [];
+    for (let i = 12; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      timeline.push(d.toISOString().split('T')[0]);
+    }
+    datesSorted = timeline;
+  }
 
   const tickerMap = {};
   appState.acoes.forEach(ac => {
-    const rawTicker = ac.ticker.trim().toUpperCase();
-    const symbol = rawTicker.replace(/\.SA$/i, '');
-    const cached = cache.quotes[symbol] || cache.quotes[rawTicker];
-    const currentPrice = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
+    const rawTicker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
+    if (!rawTicker) return;
 
-    if (cached && Array.isArray(cached.history) && cached.history.length > 0) {
+    const symbol = rawTicker.replace(/\.SA$/i, '');
+    const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
+    
+    const qty = parseFloat(ac.quantidade) || 0;
+    const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
+    const pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : pAtual;
+    const pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : pAtual;
+
+    if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
       const dateToClose = {};
-      let lastPrice = currentPrice;
+      let lastPrice = pAtual;
       
       cached.history.forEach(h => {
         if (h.close > 0) lastPrice = h.close;
@@ -1743,17 +1798,20 @@ function calculateDailyPortfolioSeries() {
       });
 
       tickerMap[symbol] = {
-        quantidade: parseFloat(ac.quantidade) || 0,
-        currentPrice,
+        quantidade: qty,
+        currentPrice: pAtual,
+        hasApiHistory: true,
         history: cached.history,
         dateToClose
       };
-    } else if (ac.quantidade > 0) {
+    } else {
       tickerMap[symbol] = {
-        quantidade: parseFloat(ac.quantidade) || 0,
-        currentPrice,
-        history: [],
-        dateToClose: {}
+        quantidade: qty,
+        currentPrice: pAtual,
+        hasApiHistory: false,
+        pAno,
+        pMes,
+        pAtual
       };
     }
   });
@@ -1768,13 +1826,36 @@ function calculateDailyPortfolioSeries() {
       const info = tickerMap[symbol];
       if (info.quantidade <= 0) return;
 
-      let priceOnDate = info.dateToClose[dateStr];
-      if (priceOnDate === undefined) {
-        const pastEntries = info.history.filter(h => h.date <= dateStr);
-        if (pastEntries.length > 0) {
-          priceOnDate = pastEntries[pastEntries.length - 1].close;
+      let priceOnDate = 0;
+
+      if (info.hasApiHistory) {
+        priceOnDate = info.dateToClose[dateStr];
+        if (priceOnDate === undefined) {
+          const pastEntries = info.history.filter(h => h.date <= dateStr);
+          if (pastEntries.length > 0) {
+            priceOnDate = pastEntries[pastEntries.length - 1].close;
+          } else {
+            priceOnDate = info.currentPrice;
+          }
+        }
+      } else {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const monthAgo = new Date();
+        monthAgo.setDate(monthAgo.getDate() - 30);
+        const monthAgoStr = monthAgo.toISOString().split('T')[0];
+
+        if (dateStr <= monthAgoStr) {
+          const startTs = new Date(datesSorted[0]).getTime();
+          const midTs = new Date(monthAgoStr).getTime();
+          const currTs = new Date(dateStr).getTime();
+          const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
+          priceOnDate = info.pAno + ratio * (info.pMes - info.pAno);
         } else {
-          priceOnDate = info.currentPrice;
+          const midTs = new Date(monthAgoStr).getTime();
+          const endTs = new Date(todayStr).getTime();
+          const currTs = new Date(dateStr).getTime();
+          const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
+          priceOnDate = info.pMes + ratio * (info.pAtual - info.pMes);
         }
       }
 
