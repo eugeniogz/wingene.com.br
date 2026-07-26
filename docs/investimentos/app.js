@@ -1732,9 +1732,25 @@ async function triggerB3Sync(force = false) {
         return t === symbol;
       });
 
-      if (acaoItem && newQuotes[symbol].currentPrice > 0) {
-        acaoItem.preco = newQuotes[symbol].currentPrice;
-        acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+      if (acaoItem && newQuotes[symbol]) {
+        if (newQuotes[symbol].currentPrice > 0) {
+          acaoItem.preco = newQuotes[symbol].currentPrice;
+          acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+        }
+
+        const hist = newQuotes[symbol].history;
+        if (Array.isArray(hist) && hist.length > 1) {
+          const pAnoHistoric = hist[0].close;
+          if (pAnoHistoric > 0) {
+            acaoItem.precoAnoAnterior = pAnoHistoric;
+          }
+
+          const idxMes = Math.max(0, hist.length - 22);
+          const pMesHistoric = hist[idxMes].close;
+          if (pMesHistoric > 0) {
+            acaoItem.precoMesAnterior = pMesHistoric;
+          }
+        }
       }
     });
 
@@ -1742,7 +1758,7 @@ async function triggerB3Sync(force = false) {
     if (updatedCount > 0) {
       saveLocalState();
       renderApp();
-      showToast(`Cotações de ${updatedCount} ativos atualizadas da B3!`, 'success');
+      showToast(`Cotações e histórico de ${updatedCount} ativos atualizados da B3!`, 'success');
     } else if (force) {
       showToast('Exibindo histórico local da carteira.', 'info');
     }
@@ -1839,8 +1855,20 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const qty = parseFloat(ac.quantidade) || 0;
       const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
       
-      const pMesUser = parseFloat(ac.precoMesAnterior);
-      const pAnoUser = parseFloat(ac.precoAnoAnterior);
+      let pMesUser = parseFloat(ac.precoMesAnterior);
+      let pAnoUser = parseFloat(ac.precoAnoAnterior);
+
+      if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+        if (isNaN(pAnoUser) || pAnoUser <= 0 || pAnoUser === pAtual) {
+          pAnoUser = cached.history[0].close;
+          ac.precoAnoAnterior = pAnoUser;
+        }
+        if (isNaN(pMesUser) || pMesUser <= 0 || pMesUser === pAtual) {
+          const idxM = Math.max(0, cached.history.length - 22);
+          pMesUser = cached.history[idxM].close;
+          ac.precoMesAnterior = pMesUser;
+        }
+      }
 
       const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
       const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
