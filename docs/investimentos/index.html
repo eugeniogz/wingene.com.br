@@ -271,11 +271,14 @@
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
           <div>
             <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
-              <span>📈</span> Evolução Diária da Carteira (Ações / FIIs / BDRs)
+              <span>📈</span> Evolução Diária (12 Meses)
             </h2>
-            <p class="text-muted text-small mb-0">Variação acumulada pregão a pregão nos últimos 12 meses obtida via cotações históricas da B3.</p>
+            <p class="text-muted text-small mb-0">Selecione um ativo específico ou veja a evolução consolidada de toda a carteira dia a dia.</p>
           </div>
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <select id="chartAssetFilter" class="form-control form-control-sm" style="width: auto; max-width: 220px; font-size: 0.85rem; padding: 4px 8px; font-weight: 500;" onchange="renderDailyEvolutionCharts()">
+              <option value="ALL">🌐 Toda a Carteira (Consolidado)</option>
+            </select>
             <span class="text-muted text-small" id="b3CacheStatusSpanEvol">Cache: Não sincronizado</span>
             <button type="button" class="btn btn-secondary btn-sm" id="btnSyncB3QuotesEvol" onclick="triggerB3Sync(true)">
               🔄 Sincronizar Cotações B3
@@ -371,25 +374,6 @@
             </tfoot>
           </table>
         </div>
-      </div>
-
-      <!-- GRÁFICO DE PREGÕES NA CARTEIRA DE AÇÕES -->
-      <div class="card mt-4">
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
-          <div>
-            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
-              <span>📊</span> Histórico de Cotações & Pregões (12 Meses)
-            </h2>
-            <p class="text-muted text-small mb-0">Gráfico evolutivo dia a dia da carteira de renda variável com armazenagem em cache local.</p>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <span class="text-muted text-small" id="b3CacheStatusSpanAcoes">Cache: Não sincronizado</span>
-            <button type="button" class="btn btn-primary btn-sm" id="btnSyncB3QuotesAcoes" onclick="triggerB3Sync(true)">
-              ⚡ Sincronizar B3 Cotações
-            </button>
-          </div>
-        </div>
-        <div id="chartDailyEvolution12mAcoes"></div>
       </div>
     </section>
 
@@ -683,7 +667,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.5.4"></script>
-  <script src="app.js?v=1.5.4"></script>
+  <script src="drive-sync.js?v=1.5.5"></script>
+  <script src="app.js?v=1.5.5"></script>
 </body>
 </html>

@@ -1753,13 +1753,36 @@ async function triggerB3Sync(force = false) {
   }
 }
 
-function calculateDailyPortfolioSeries() {
+function populateChartAssetFilter() {
+  const select = document.getElementById('chartAssetFilter');
+  if (!select) return;
+
+  const currentVal = select.value || 'ALL';
+  let optionsHtml = `<option value="ALL">🌐 Toda a Carteira (Consolidado)</option>`;
+
+  appState.acoes.forEach(ac => {
+    const rawTicker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
+    if (rawTicker) {
+      const nome = ac.nome ? ` - ${ac.nome}` : '';
+      optionsHtml += `<option value="${rawTicker}">${rawTicker}${nome}</option>`;
+    }
+  });
+
+  select.innerHTML = optionsHtml;
+  select.value = currentVal;
+}
+
+function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
   const activeTickers = appState.acoes.map(a => a.ticker.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
   if (activeTickers.length === 0) return [];
 
+  const targetSymbols = (selectedSymbol && selectedSymbol !== 'ALL')
+    ? [selectedSymbol.trim().toUpperCase().replace(/\.SA$/i, '')]
+    : activeTickers;
+
   const dateSet = new Set();
-  activeTickers.forEach(symbol => {
+  targetSymbols.forEach(symbol => {
     const cached = cache && cache.quotes ? cache.quotes[symbol] : null;
     if (cached && Array.isArray(cached.history)) {
       cached.history.forEach(h => {
@@ -1787,6 +1810,10 @@ function calculateDailyPortfolioSeries() {
     if (!rawTicker) return;
 
     const symbol = rawTicker.replace(/\.SA$/i, '');
+    if (selectedSymbol && selectedSymbol !== 'ALL' && symbol !== targetSymbols[0]) {
+      return;
+    }
+
     const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
     
     const qty = parseFloat(ac.quantidade) || 0;
@@ -1794,7 +1821,6 @@ function calculateDailyPortfolioSeries() {
     let pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : pAtual;
     let pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : pAtual;
 
-    // Se os preços anteriores não forem diferentes do atual, atribui uma estimativa histórica sutil para demonstrar a curva
     if (pAno === pAtual && pMes === pAtual && pAtual > 0) {
       pAno = pAtual * 0.88;
       pMes = pAtual * 0.95;
@@ -1890,15 +1916,17 @@ function calculateDailyPortfolioSeries() {
 }
 
 function renderDailyEvolutionCharts() {
-  renderDailyLineChart('chartDailyEvolution12mEvol');
-  renderDailyLineChart('chartDailyEvolution12mAcoes');
+  populateChartAssetFilter();
+  const select = document.getElementById('chartAssetFilter');
+  const selectedSymbol = select ? select.value : 'ALL';
+  renderDailyLineChart('chartDailyEvolution12mEvol', selectedSymbol);
 }
 
-function renderDailyLineChart(containerId) {
+function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const series = calculateDailyPortfolioSeries();
+  const series = calculateDailyPortfolioSeries(selectedSymbol);
 
   if (series.length < 2) {
     container.innerHTML = `
