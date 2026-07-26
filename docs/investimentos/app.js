@@ -1000,6 +1000,66 @@ function handleAddAcaoModalSubmit(e) {
   showToast(`Ação ${ticker} adicionada!`, 'success');
 }
 
+function parsePtBrFloat(val) {
+  if (val === undefined || val === null) return NaN;
+  if (typeof val === 'number') return val;
+  const str = String(val).trim().replace(/\s/g, '').replace(',', '.');
+  return parseFloat(str);
+}
+
+function openAddAcaoModal() {
+  const backdrop = document.getElementById('modalAddAcaoBackdrop');
+  if (!backdrop) return;
+  document.getElementById('modalAcaoTicker').value = '';
+  document.getElementById('modalAcaoNome').value = '';
+  document.getElementById('modalAcaoQtd').value = '';
+  document.getElementById('modalAcaoPreco').value = '';
+  document.getElementById('modalAcaoMeta').value = '10';
+  backdrop.style.display = 'flex';
+}
+
+function closeAddAcaoModal() {
+  const backdrop = document.getElementById('modalAddAcaoBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function handleAddAcaoModalSubmit(e) {
+  if (e) e.preventDefault();
+  const ticker = document.getElementById('modalAcaoTicker').value.trim().toUpperCase();
+  const nome = document.getElementById('modalAcaoNome').value.trim();
+  const quantidade = parsePtBrFloat(document.getElementById('modalAcaoQtd').value);
+  const preco = parsePtBrFloat(document.getElementById('modalAcaoPreco').value);
+  const meta = parsePtBrFloat(document.getElementById('modalAcaoMeta').value) || 0;
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+
+  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
+    showToast('Preencha os campos obrigatórios da ação com valores válidos.', 'error');
+    return;
+  }
+
+  appState.acoes.push({
+    id: 'ac-' + Date.now(),
+    ticker,
+    nome,
+    quantidade,
+    preco,
+    precoAtual: preco,
+    precoMesAnterior: preco,
+    precoAnoAnterior: preco,
+    meta,
+    data: currentDate,
+    historico: [
+      { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), preco: preco, quantidade: quantidade, valorTotal: preco * quantidade }
+    ]
+  });
+
+  closeAddAcaoModal();
+  appState.isDemo = false;
+  saveLocalState();
+  renderApp();
+  showToast(`Ação ${ticker} adicionada com sucesso!`, 'success');
+}
+
 function openAddModalForCurrentTab() {
   const activePane = document.querySelector('.tab-pane.active');
   if (!activePane) return;
@@ -1078,8 +1138,11 @@ function renderAcoesTable(fin) {
 }
 
 function openEditAcaoModal(id) {
-  const item = appState.acoes.find(a => a.id === id);
-  if (!item) return;
+  const item = appState.acoes.find(a => String(a.id) === String(id) || String(a.ticker).trim().toUpperCase() === String(id).trim().toUpperCase());
+  if (!item) {
+    showToast('Ação não encontrada para edição.', 'error');
+    return;
+  }
 
   const currentP = item.precoAtual !== undefined ? item.precoAtual : (item.preco || 0);
 
@@ -1102,7 +1165,7 @@ function closeEditAcaoModal() {
 function handleEditAcaoModalSubmit(e) {
   if (e) e.preventDefault();
   const id = document.getElementById('editModalAcaoId').value;
-  const item = appState.acoes.find(a => a.id === id);
+  const item = appState.acoes.find(a => String(a.id) === String(id) || String(a.ticker).trim().toUpperCase() === String(id).trim().toUpperCase());
   if (!item) {
     showToast('Ação não encontrada para salvar.', 'error');
     return;
@@ -1110,15 +1173,15 @@ function handleEditAcaoModalSubmit(e) {
 
   const ticker = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
   const nome = document.getElementById('editModalAcaoNome').value.trim();
-  const quantidade = parseFloat(document.getElementById('editModalAcaoQtd').value);
+  const quantidade = parsePtBrFloat(document.getElementById('editModalAcaoQtd').value);
   const precoMesInput = document.getElementById('editModalAcaoPrecoMes').value;
   const precoAnoInput = document.getElementById('editModalAcaoPrecoAno').value;
   const precoAtualInput = document.getElementById('editModalAcaoPreco').value;
-  const meta = parseFloat(document.getElementById('editModalAcaoMeta').value) || 0;
+  const meta = parsePtBrFloat(document.getElementById('editModalAcaoMeta').value) || 0;
 
-  const precoAtual = parseFloat(precoAtualInput);
-  const precoMes = precoMesInput !== '' ? parseFloat(precoMesInput) : precoAtual;
-  const precoAno = precoAnoInput !== '' ? parseFloat(precoAnoInput) : precoAtual;
+  const precoAtual = parsePtBrFloat(precoAtualInput);
+  const precoMes = precoMesInput !== '' ? parsePtBrFloat(precoMesInput) : precoAtual;
+  const precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(precoAtual)) {
     showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
@@ -1157,16 +1220,16 @@ function cancelAcaoInline() {
 }
 
 function saveAcaoInline(id) {
-  const item = appState.acoes.find(a => a.id === id);
+  const item = appState.acoes.find(a => String(a.id) === String(id) || String(a.ticker).trim().toUpperCase() === String(id).trim().toUpperCase());
   if (!item) return;
 
   const ticker = document.getElementById(`editAcaoTicker_${id}`).value.toUpperCase().trim();
   const nome = document.getElementById(`editAcaoNome_${id}`).value.trim();
-  const quantidade = parseFloat(document.getElementById(`editAcaoQtd_${id}`).value);
-  const precoMes = parseFloat(document.getElementById(`editAcaoPrecoMes_${id}`).value);
-  const precoAno = parseFloat(document.getElementById(`editAcaoPrecoAno_${id}`).value);
-  const preco = parseFloat(document.getElementById(`editAcaoPreco_${id}`).value);
-  const meta = parseFloat(document.getElementById(`editAcaoMeta_${id}`).value) || 0;
+  const quantidade = parsePtBrFloat(document.getElementById(`editAcaoQtd_${id}`).value);
+  const precoMes = parsePtBrFloat(document.getElementById(`editAcaoPrecoMes_${id}`).value);
+  const precoAno = parsePtBrFloat(document.getElementById(`editAcaoPrecoAno_${id}`).value);
+  const preco = parsePtBrFloat(document.getElementById(`editAcaoPreco_${id}`).value);
+  const meta = parsePtBrFloat(document.getElementById(`editAcaoMeta_${id}`).value) || 0;
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
     showToast('Preencha os campos obrigatórios.', 'error');
@@ -1182,6 +1245,7 @@ function saveAcaoInline(id) {
   item.precoMesAnterior = isNaN(precoMes) ? preco : precoMes;
   item.precoAnoAnterior = isNaN(precoAno) ? preco : precoAno;
   item.preco = preco;
+  item.precoAtual = preco;
   item.meta = meta;
   item.data = now.toLocaleDateString('pt-BR');
 
