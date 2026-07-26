@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
           acoes: remoteData.acoes || [],
           lastUpdated: remoteData.lastUpdated || new Date().toISOString()
         };
+        sanitizeAppState();
         saveLocalState(false);
         renderApp();
         showToast('Dados sincronizados com o Google Drive!', 'success');
@@ -76,14 +77,27 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 });
 
+function sanitizeAppState() {
+  if (!appState) return;
+  if (!Array.isArray(appState.rendaFixa)) appState.rendaFixa = [];
+  if (!Array.isArray(appState.acoes)) appState.acoes = [];
+
+  appState.rendaFixa.forEach((rf, idx) => {
+    if (!rf.id) rf.id = 'rf-' + (Date.now() + idx);
+  });
+
+  appState.acoes.forEach((ac, idx) => {
+    if (!ac.id) ac.id = 'ac-' + (Date.now() + idx);
+  });
+}
+
 // --- GERENCIAMENTO DE ESTADO LOCAL ---
 function loadLocalState() {
   const saved = localStorage.getItem('wingene_investimentos_state');
   if (saved) {
     try {
       appState = JSON.parse(saved);
-      if (!appState.rendaFixa) appState.rendaFixa = [];
-      if (!appState.acoes) appState.acoes = [];
+      sanitizeAppState();
     } catch (e) {
       console.error('Erro ao ler estado local:', e);
     }
@@ -1163,10 +1177,17 @@ function closeEditAcaoModal() {
 }
 
 function handleEditAcaoModalSubmit(e) {
-  if (e) e.preventDefault();
-  const id = document.getElementById('editModalAcaoId').value;
-  const item = appState.acoes.find(a => String(a.id) === String(id) || String(a.ticker).trim().toUpperCase() === String(id).trim().toUpperCase());
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
+  const idInput = document.getElementById('editModalAcaoId').value;
+  const tickerInput = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
+
+  let item = appState.acoes.find(a => 
+    String(a.id || '').trim() === String(idInput || '').trim() ||
+    String(a.ticker || '').trim().toUpperCase() === tickerInput
+  );
+
   if (!item) {
+    closeEditAcaoModal();
     showToast('Ação não encontrada para salvar.', 'error');
     return;
   }
