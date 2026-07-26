@@ -341,6 +341,8 @@ function setupEventListeners() {
 
 // --- CÁLCULOS FINANCIALS & EVOLUÇÃO (MENSAL E ANUAL) ---
 function calculateFinancials() {
+  const cache = getB3QuotesCache();
+
   // --- RENDA FIXA ---
   const rendaFixaProcessada = appState.rendaFixa.map(item => {
     const valorAtual = parseFloat(item.valor) || 0;
@@ -379,10 +381,27 @@ function calculateFinancials() {
     const precoAtual = parseFloat(acao.preco) || 0;
     const valorTotalAtual = qty * precoAtual;
 
-    const precoMesAnt = parseFloat(acao.precoMesAnterior) !== undefined && !isNaN(parseFloat(acao.precoMesAnterior)) ? parseFloat(acao.precoMesAnterior) : precoAtual;
-    const valorTotalMesAnt = qty * precoMesAnt;
+    const rawTicker = acao.ticker ? acao.ticker.trim().toUpperCase() : '';
+    const symbol = rawTicker.replace(/\.SA$/i, '');
+    const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
 
-    const precoAnoAnt = parseFloat(acao.precoAnoAnterior) !== undefined && !isNaN(parseFloat(acao.precoAnoAnterior)) ? parseFloat(acao.precoAnoAnterior) : precoAtual;
+    let userPAno = parseFloat(acao.precoAnoAnterior);
+    let userPMes = parseFloat(acao.precoMesAnterior);
+
+    if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+      if (isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) {
+        userPAno = cached.history[0].close;
+      }
+      if (isNaN(userPMes) || userPMes <= 0 || userPMes === precoAtual) {
+        const idxM = Math.max(0, cached.history.length - 22);
+        userPMes = cached.history[idxM].close;
+      }
+    }
+
+    const precoMesAnt = !isNaN(userPMes) && userPMes > 0 ? userPMes : precoAtual;
+    const precoAnoAnt = !isNaN(userPAno) && userPAno > 0 ? userPAno : precoAtual;
+
+    const valorTotalMesAnt = qty * precoMesAnt;
     const valorTotalAnoAnt = qty * precoAnoAnt;
 
     const diffMesVal = valorTotalAtual - valorTotalMesAnt;
