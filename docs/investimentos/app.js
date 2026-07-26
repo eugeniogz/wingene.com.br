@@ -1749,38 +1749,37 @@ async function triggerB3Sync(force = false) {
       cache.quotes[symbol] = newQuotes[symbol];
       updatedCount++;
 
-      const acaoItem = appState.acoes.find(a => {
-        const t = a.ticker.trim().toUpperCase().replace(/\.SA$/i, '');
-        return t === symbol;
+      appState.acoes.forEach(acaoItem => {
+        const t = acaoItem.ticker ? acaoItem.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
+        if (t === symbol && newQuotes[symbol]) {
+          if (newQuotes[symbol].currentPrice > 0) {
+            acaoItem.preco = newQuotes[symbol].currentPrice;
+            acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+          }
+
+          const hist = newQuotes[symbol].history;
+          if (Array.isArray(hist) && hist.length > 1) {
+            const pAnoHistoric = hist[0].close;
+            if (pAnoHistoric > 0) {
+              acaoItem.precoAnoAnterior = pAnoHistoric;
+            }
+
+            const idxMes = Math.max(0, hist.length - 22);
+            const pMesHistoric = hist[idxMes].close;
+            if (pMesHistoric > 0) {
+              acaoItem.precoMesAnterior = pMesHistoric;
+            }
+          }
+        }
       });
-
-      if (acaoItem && newQuotes[symbol]) {
-        if (newQuotes[symbol].currentPrice > 0) {
-          acaoItem.preco = newQuotes[symbol].currentPrice;
-          acaoItem.precoAtual = newQuotes[symbol].currentPrice;
-        }
-
-        const hist = newQuotes[symbol].history;
-        if (Array.isArray(hist) && hist.length > 1) {
-          const pAnoHistoric = hist[0].close;
-          if (pAnoHistoric > 0) {
-            acaoItem.precoAnoAnterior = pAnoHistoric;
-          }
-
-          const idxMes = Math.max(0, hist.length - 22);
-          const pMesHistoric = hist[idxMes].close;
-          if (pMesHistoric > 0) {
-            acaoItem.precoMesAnterior = pMesHistoric;
-          }
-        }
-      }
     });
 
     saveB3QuotesCache(cache);
+    saveLocalState();
+    renderApp();
+
     if (updatedCount > 0) {
-      saveLocalState();
-      renderApp();
-      showToast(`Cotações e histórico de ${updatedCount} ativos atualizados da B3!`, 'success');
+      showToast(`Cotações e histórico de ${updatedCount} ativos sincronizados da B3!`, 'success');
     } else if (force) {
       showToast('Exibindo histórico local da carteira.', 'info');
     }
