@@ -1818,13 +1818,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     
     const qty = parseFloat(ac.quantidade) || 0;
     const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
-    let pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : pAtual;
-    let pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : pAtual;
-
-    if (pAno === pAtual && pMes === pAtual && pAtual > 0) {
-      pAno = pAtual * 0.88;
-      pMes = pAtual * 0.95;
-    }
+    const pMes = parseFloat(ac.precoMesAnterior) !== undefined && !isNaN(parseFloat(ac.precoMesAnterior)) ? parseFloat(ac.precoMesAnterior) : pAtual;
+    const pAno = parseFloat(ac.precoAnoAnterior) !== undefined && !isNaN(parseFloat(ac.precoAnoAnterior)) ? parseFloat(ac.precoAnoAnterior) : pAtual;
 
     if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
       const dateToClose = {};
