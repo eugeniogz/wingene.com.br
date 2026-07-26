@@ -1588,87 +1588,89 @@ async function fetchQuoteSingleTicker(ticker) {
   const cleanSymbol = ticker.trim().toUpperCase().replace(/\.SA$/i, '');
   if (!cleanSymbol) return null;
 
-  // 1. Tentar via Brapi API (1 ticker por requisição para plano gratuito)
-  try {
-    const brapiUrl = `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`;
-    const res = await fetch(brapiUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.results) && data.results.length > 0) {
-        const item = data.results[0];
-        const currentPrice = parseFloat(item.regularMarketPrice || item.price || 0);
-        const history = Array.isArray(item.historicalDataPrice)
-          ? item.historicalDataPrice.map(h => {
-              let dateStr = '';
-              if (typeof h.date === 'number') {
-                dateStr = new Date(h.date * 1000).toISOString().split('T')[0];
-              } else if (h.date) {
-                dateStr = String(h.date).split('T')[0];
-              }
-              return {
-                date: dateStr,
-                close: parseFloat(h.close || h.adjustedClose || 0)
-              };
-            }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
-          : [];
-
-        if (history.length > 1) {
-          history.sort((a, b) => a.date.localeCompare(b.date));
-          return {
-            symbol: cleanSymbol,
-            currentPrice,
-            updatedAt: new Date().toISOString(),
-            history
-          };
-        }
-      }
-    }
-  } catch (err) {
-    console.warn(`[Brapi] Falha para ${cleanSymbol}:`, err);
-  }
-
-  // 2. Fallback via Yahoo Finance API (com CorsProxy e direto)
   const yahooSymbol = `${cleanSymbol}.SA`;
-  const yahooUrls = [
-    `https://corsproxy.org/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`
+  const yahooUrlEncoded = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`);
+
+  const endpoints = [
+    {
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
+      type: 'brapi'
+    },
+    {
+      url: `https://corsproxy.org/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://api.allorigins.win/raw?url=${yahooUrlEncoded}`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
+      type: 'yahoo'
+    }
   ];
 
-  for (const yahooUrl of yahooUrls) {
+  for (const ep of endpoints) {
     try {
-      const res = await fetch(yahooUrl);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const res = await fetch(ep.url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!res.ok) continue;
       const data = await res.json();
-      const chartResult = data && data.chart && data.chart.result && data.chart.result[0];
-      if (chartResult && Array.isArray(chartResult.timestamp)) {
-        const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
-        const timestamps = chartResult.timestamp;
-        const quotes = chartResult.indicators && chartResult.indicators.quote && chartResult.indicators.quote[0];
-        const closes = quotes ? quotes.close || [] : [];
 
-        const history = [];
-        for (let i = 0; i < timestamps.length; i++) {
-          const ts = timestamps[i];
-          const closeVal = parseFloat(closes[i]);
-          if (ts && !isNaN(closeVal) && closeVal > 0) {
-            const dateStr = new Date(ts * 1000).toISOString().split('T')[0];
-            history.push({ date: dateStr, close: closeVal });
+      if (ep.type === 'brapi') {
+        if (data && Array.isArray(data.results) && data.results.length > 0) {
+          const item = data.results[0];
+          const currentPrice = parseFloat(item.regularMarketPrice || item.price || 0);
+          const history = Array.isArray(item.historicalDataPrice)
+            ? item.historicalDataPrice.map(h => {
+                let dateStr = '';
+                if (typeof h.date === 'number') {
+                  dateStr = new Date(h.date * 1000).toISOString().split('T')[0];
+                } else if (h.date) {
+                  dateStr = String(h.date).split('T')[0];
+                }
+                return {
+                  date: dateStr,
+                  close: parseFloat(h.close || h.adjustedClose || 0)
+                };
+              }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
+            : [];
+
+          if (history.length > 1) {
+            history.sort((a, b) => a.date.localeCompare(b.date));
+            return { symbol: cleanSymbol, currentPrice, updatedAt: new Date().toISOString(), history };
           }
         }
+      } else if (ep.type === 'yahoo') {
+        const chartResult = data && data.chart && data.chart.result && data.chart.result[0];
+        if (chartResult && Array.isArray(chartResult.timestamp)) {
+          const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
+          const timestamps = chartResult.timestamp;
+          const quotes = chartResult.indicators && chartResult.indicators.quote && chartResult.indicators.quote[0];
+          const closes = quotes ? quotes.close || [] : [];
 
-        if (history.length > 1) {
-          history.sort((a, b) => a.date.localeCompare(b.date));
-          return {
-            symbol: cleanSymbol,
-            currentPrice,
-            updatedAt: new Date().toISOString(),
-            history
-          };
+          const history = [];
+          for (let i = 0; i < timestamps.length; i++) {
+            const ts = timestamps[i];
+            const closeVal = parseFloat(closes[i]);
+            if (ts && !isNaN(closeVal) && closeVal > 0) {
+              const dateStr = new Date(ts * 1000).toISOString().split('T')[0];
+              history.push({ date: dateStr, close: closeVal });
+            }
+          }
+
+          if (history.length > 1) {
+            history.sort((a, b) => a.date.localeCompare(b.date));
+            return { symbol: cleanSymbol, currentPrice, updatedAt: new Date().toISOString(), history };
+          }
         }
       }
     } catch (err) {
-      console.warn(`[Yahoo] Falha na URL (${yahooUrl}):`, err);
+      // Tentar próximo endpoint silenciosamente
     }
   }
 
@@ -1682,13 +1684,14 @@ async function fetchB3QuotesForTickers(tickers) {
   if (cleanTickers.length === 0) return {};
 
   const results = {};
-  for (const ticker of cleanTickers) {
+  const promises = cleanTickers.map(async (ticker) => {
     const quoteData = await fetchQuoteSingleTicker(ticker);
     if (quoteData && quoteData.symbol) {
       results[quoteData.symbol] = quoteData;
     }
-  }
+  });
 
+  await Promise.allSettled(promises);
   return results;
 }
 
