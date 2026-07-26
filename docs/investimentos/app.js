@@ -380,15 +380,8 @@ function calculateFinancials() {
   // --- RENDA FIXA ---
   const rendaFixaProcessada = appState.rendaFixa.map(item => {
     const valorAtual = parseFloat(item.valor) || 0;
-    let valorMesAnt = parseFloat(item.valorMesAnterior);
-    let valorAnoAnt = parseFloat(item.valorAnoAnterior);
-
-    if (isNaN(valorAnoAnt) || valorAnoAnt <= 0 || valorAnoAnt === valorAtual) {
-      valorAnoAnt = valorAtual > 0 ? valorAtual * 0.90 : valorAtual;
-    }
-    if (isNaN(valorMesAnt) || valorMesAnt <= 0 || valorMesAnt === valorAtual) {
-      valorMesAnt = valorAtual > 0 ? valorAtual * 0.99 : valorAtual;
-    }
+    const valorMesAnt = parseFloat(item.valorMesAnterior) !== undefined && !isNaN(parseFloat(item.valorMesAnterior)) ? parseFloat(item.valorMesAnterior) : valorAtual;
+    const valorAnoAnt = parseFloat(item.valorAnoAnterior) !== undefined && !isNaN(parseFloat(item.valorAnoAnterior)) ? parseFloat(item.valorAnoAnterior) : valorAtual;
 
     const diffMesVal = valorAtual - valorMesAnt;
     const diffMesPct = valorMesAnt > 0 ? (diffMesVal / valorMesAnt) * 100 : 0;
@@ -440,22 +433,13 @@ function calculateFinancials() {
       }
     }
 
-    // 2. Segunda camada: Tabela de Preços de Referência Históricos do Mercado B3
+    // 2. Segunda camada: Tabela de Preços de Referência Históricos Reais do Mercado B3
     if ((isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) && B3_HISTORICAL_12M_BASELINES[symbol]) {
       userPAno = B3_HISTORICAL_12M_BASELINES[symbol];
     }
 
-    // 3. Terceira camada (Fail-Safe Absoluto): Variação de segurança para mercado de ações (0.88x = ~13.6% de crescimento)
-    if (isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) {
-      userPAno = precoAtual > 0 ? precoAtual * 0.88 : precoAtual;
-    }
-
-    if (isNaN(userPMes) || userPMes <= 0 || userPMes === precoAtual) {
-      userPMes = precoAtual > 0 ? precoAtual * 0.95 : precoAtual;
-    }
-
-    const precoMesAnt = userPMes > 0 ? userPMes : precoAtual;
-    const precoAnoAnt = userPAno > 0 ? userPAno : precoAtual;
+    const precoMesAnt = !isNaN(userPMes) && userPMes > 0 ? userPMes : precoAtual;
+    const precoAnoAnt = !isNaN(userPAno) && userPAno > 0 ? userPAno : precoAtual;
 
     const valorTotalMesAnt = qty * precoMesAnt;
     const valorTotalAnoAnt = qty * precoAnoAnt;
@@ -1954,17 +1938,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         ac.precoAnoAnterior = pAnoUser;
       }
 
-      // 3. Terceira camada (Fail-Safe Absoluto): Variação de segurança para mercado de ações (0.88x = ~13.6% de crescimento)
-      if (isNaN(pAnoUser) || pAnoUser <= 0 || pAnoUser === pAtual) {
-        pAnoUser = pAtual > 0 ? pAtual * 0.88 : pAtual;
-      }
-
-      if (isNaN(pMesUser) || pMesUser <= 0 || pMesUser === pAtual) {
-        pMesUser = pAtual > 0 ? pAtual * 0.95 : pAtual;
-      }
-
-      const pMes = pMesUser > 0 ? pMesUser : pAtual;
-      const pAno = pAnoUser > 0 ? pAnoUser : pAtual;
+      const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
+      const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
       if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
         const dateToClose = {};
