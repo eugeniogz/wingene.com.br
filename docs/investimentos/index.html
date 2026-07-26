@@ -510,12 +510,12 @@
           </div>
           <div class="form-group mb-0">
             <label class="form-label">Valor Atual Investido (R$) *</label>
-            <input type="number" step="0.01" id="modalRfValor" class="form-control" placeholder="0.00" required />
+            <input type="text" inputmode="decimal" id="modalRfValor" class="form-control" placeholder="0,00" required />
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeAddRfModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Inserir Ativo</button>
+          <button type="button" class="btn btn-primary" onclick="handleAddRfModalSubmit(event)">Inserir Ativo</button>
         </div>
       </form>
     </div>
@@ -542,20 +542,20 @@
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Quantidade de Ações *</label>
-            <input type="number" step="1" id="modalAcaoQtd" class="form-control" placeholder="100" required />
+            <input type="text" inputmode="decimal" id="modalAcaoQtd" class="form-control" placeholder="100" required />
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Preço Unitário Atual (R$) *</label>
-            <input type="number" step="0.01" id="modalAcaoPreco" class="form-control" placeholder="0.00" required />
+            <input type="text" inputmode="decimal" id="modalAcaoPreco" class="form-control" placeholder="0,00" required />
           </div>
           <div class="form-group mb-0">
             <label class="form-label">Meta de Rebalanceamento (%) *</label>
-            <input type="number" step="0.1" id="modalAcaoMeta" class="form-control" placeholder="10" required />
+            <input type="text" inputmode="decimal" id="modalAcaoMeta" class="form-control" placeholder="10" required />
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeAddAcaoModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Inserir Ação</button>
+          <button type="button" class="btn btn-primary" onclick="handleAddAcaoModalSubmit(event)">Inserir Ação</button>
         </div>
       </form>
     </div>
@@ -598,20 +598,20 @@
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Valor Mês Anterior (R$)</label>
-            <input type="number" step="0.01" id="editModalRfValMes" class="form-control" />
+            <input type="text" inputmode="decimal" id="editModalRfValMes" class="form-control" />
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Valor Ano Anterior (R$)</label>
-            <input type="number" step="0.01" id="editModalRfValAno" class="form-control" />
+            <input type="text" inputmode="decimal" id="editModalRfValAno" class="form-control" />
           </div>
           <div class="form-group mb-0">
             <label class="form-label">Valor Atual (R$) *</label>
-            <input type="number" step="0.01" id="editModalRfValor" class="form-control" required />
+            <input type="text" inputmode="decimal" id="editModalRfValor" class="form-control" required />
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeEditRfModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          <button type="button" class="btn btn-primary" onclick="handleEditRfModalSubmit(event)">Salvar Alterações</button>
         </div>
       </form>
     </div>
@@ -639,35 +639,35 @@
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Quantidade de Ações *</label>
-            <input type="number" step="1" id="editModalAcaoQtd" class="form-control" required />
+            <input type="text" inputmode="decimal" id="editModalAcaoQtd" class="form-control" required />
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Preço Mês Anterior (R$)</label>
-            <input type="number" step="0.01" id="editModalAcaoPrecoMes" class="form-control" />
+            <input type="text" inputmode="decimal" id="editModalAcaoPrecoMes" class="form-control" />
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Preço Ano Anterior (R$)</label>
-            <input type="number" step="0.01" id="editModalAcaoPrecoAno" class="form-control" />
+            <input type="text" inputmode="decimal" id="editModalAcaoPrecoAno" class="form-control" />
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Preço Unitário Atual (R$) *</label>
-            <input type="number" step="0.01" id="editModalAcaoPreco" class="form-control" required />
+            <input type="text" inputmode="decimal" id="editModalAcaoPreco" class="form-control" required />
           </div>
           <div class="form-group mb-0">
             <label class="form-label">Meta de Rebalanceamento (%) *</label>
-            <input type="number" step="0.1" id="editModalAcaoMeta" class="form-control" required />
+            <input type="text" inputmode="decimal" id="editModalAcaoMeta" class="form-control" required />
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeEditAcaoModal()">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+          <button type="button" class="btn btn-primary" onclick="handleEditAcaoModalSubmit(event)">Salvar Alterações</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.7.0"></script>
-  <script src="app.js?v=1.7.0"></script>
+  <script src="drive-sync.js?v=1.7.1"></script>
+  <script src="app.js?v=1.7.1"></script>
 </body>
 </html>
