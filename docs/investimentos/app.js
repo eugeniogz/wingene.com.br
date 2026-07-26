@@ -333,6 +333,12 @@ function setupEventListeners() {
     }
   });
 
+  // Submissão dos Formulários de Modais
+  document.getElementById('formEditAcaoModal')?.addEventListener('submit', handleEditAcaoModalSubmit);
+  document.getElementById('formEditRfModal')?.addEventListener('submit', handleEditRfModalSubmit);
+  document.getElementById('formAddAcaoModal')?.addEventListener('submit', handleAddAcaoModalSubmit);
+  document.getElementById('formAddRfModal')?.addEventListener('submit', handleAddRfModalSubmit);
+
   // Exportar / Importar JSON Backup
   document.getElementById('btnExportJson')?.addEventListener('click', exportJsonBackup);
   document.getElementById('btnImportJsonTrigger')?.addEventListener('click', () => document.getElementById('fileImportJson').click());
@@ -1074,13 +1080,16 @@ function renderAcoesTable(fin) {
 function openEditAcaoModal(id) {
   const item = appState.acoes.find(a => a.id === id);
   if (!item) return;
+
+  const currentP = item.precoAtual !== undefined ? item.precoAtual : (item.preco || 0);
+
   document.getElementById('editModalAcaoId').value = item.id;
   document.getElementById('editModalAcaoTicker').value = item.ticker || '';
   document.getElementById('editModalAcaoNome').value = item.nome || '';
   document.getElementById('editModalAcaoQtd').value = item.quantidade || 0;
-  document.getElementById('editModalAcaoPrecoMes').value = item.precoMesAnterior !== undefined ? item.precoMesAnterior : item.precoAtual;
-  document.getElementById('editModalAcaoPrecoAno').value = item.precoAnoAnterior !== undefined ? item.precoAnoAnterior : item.precoAtual;
-  document.getElementById('editModalAcaoPreco').value = item.precoAtual || 0;
+  document.getElementById('editModalAcaoPrecoMes').value = item.precoMesAnterior !== undefined ? item.precoMesAnterior : currentP;
+  document.getElementById('editModalAcaoPrecoAno').value = item.precoAnoAnterior !== undefined ? item.precoAnoAnterior : currentP;
+  document.getElementById('editModalAcaoPreco').value = currentP;
   document.getElementById('editModalAcaoMeta').value = item.meta !== undefined ? item.meta : 10;
   document.getElementById('modalEditAcaoBackdrop').style.display = 'flex';
 }
@@ -1091,10 +1100,13 @@ function closeEditAcaoModal() {
 }
 
 function handleEditAcaoModalSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const id = document.getElementById('editModalAcaoId').value;
   const item = appState.acoes.find(a => a.id === id);
-  if (!item) return;
+  if (!item) {
+    showToast('Ação não encontrada para salvar.', 'error');
+    return;
+  }
 
   const ticker = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
   const nome = document.getElementById('editModalAcaoNome').value.trim();
@@ -1104,25 +1116,26 @@ function handleEditAcaoModalSubmit(e) {
   const precoAtualInput = document.getElementById('editModalAcaoPreco').value;
   const meta = parseFloat(document.getElementById('editModalAcaoMeta').value) || 0;
 
-  const precoMes = precoMesInput !== '' ? parseFloat(precoMesInput) : item.precoAtual;
-  const precoAno = precoAnoInput !== '' ? parseFloat(precoAnoInput) : item.precoAtual;
   const precoAtual = parseFloat(precoAtualInput);
+  const precoMes = precoMesInput !== '' ? parseFloat(precoMesInput) : precoAtual;
+  const precoAno = precoAnoInput !== '' ? parseFloat(precoAnoInput) : precoAtual;
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(precoAtual)) {
-    showToast('Preencha os campos obrigatórios.', 'error');
+    showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
     return;
   }
 
-  if (item.precoAtual !== precoAtual) {
+  if (item.precoAtual !== precoAtual || item.preco !== precoAtual) {
     recordAssetHistory(item, precoAtual);
-    item.precoAtual = precoAtual;
   }
 
   item.ticker = ticker;
   item.nome = nome;
   item.quantidade = quantidade;
-  item.precoMesAnterior = isNaN(precoMes) ? item.precoAtual : precoMes;
-  item.precoAnoAnterior = isNaN(precoAno) ? item.precoAtual : precoAno;
+  item.preco = precoAtual;
+  item.precoAtual = precoAtual;
+  item.precoMesAnterior = isNaN(precoMes) ? precoAtual : precoMes;
+  item.precoAnoAnterior = isNaN(precoAno) ? precoAtual : precoAno;
   item.meta = meta;
   item.data = new Date().toLocaleDateString('pt-BR');
 
@@ -1130,7 +1143,7 @@ function handleEditAcaoModalSubmit(e) {
   appState.isDemo = false;
   saveLocalState();
   renderApp();
-  showToast('Ação atualizada com sucesso!', 'success');
+  showToast(`Ação ${ticker} atualizada com sucesso!`, 'success');
 }
 
 function startEditAcaoInline(id) {
