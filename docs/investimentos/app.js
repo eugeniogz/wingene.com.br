@@ -1572,11 +1572,11 @@ async function fetchB3QuotesForTickers(tickers) {
   if (cleanTickers.length === 0) return {};
 
   const results = {};
-  const chunkSize = 8;
 
-  for (let i = 0; i < cleanTickers.length; i += chunkSize) {
-    const chunk = cleanTickers.slice(i, i + chunkSize);
-    const apiUrl = `https://brapi.dev/api/quote/${chunk.join(',')}?range=1y&interval=1d`;
+  // Em modo gratuito da Brapi, buscar 1 ticker por requisição para evitar erro HTTP 401
+  for (const ticker of cleanTickers) {
+    const cleanSymbol = ticker.replace(/\.SA$/i, '');
+    const apiUrl = `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`;
     
     try {
       const response = await fetch(apiUrl);
@@ -1616,7 +1616,7 @@ async function fetchB3QuotesForTickers(tickers) {
         });
       }
     } catch (err) {
-      console.warn(`Erro ao buscar cotações do lote [${chunk.join(',')}]:`, err);
+      console.warn(`Erro ao buscar cotações de [${cleanSymbol}]:`, err);
     }
   }
 
@@ -1672,8 +1672,13 @@ async function triggerB3Sync(force = false) {
       cache.quotes[symbol] = newQuotes[symbol];
       updatedCount++;
 
-      const acaoItem = appState.acoes.find(a => a.ticker.toUpperCase() === symbol);
+      const acaoItem = appState.acoes.find(a => {
+        const t = a.ticker.trim().toUpperCase();
+        return t === symbol || t.replace(/\.SA$/i, '') === symbol;
+      });
+
       if (acaoItem && newQuotes[symbol].currentPrice > 0) {
+        acaoItem.preco = newQuotes[symbol].currentPrice;
         acaoItem.precoAtual = newQuotes[symbol].currentPrice;
       }
     });
@@ -1705,10 +1710,14 @@ function calculateDailyPortfolioSeries() {
     return [];
   }
 
+  const activeTickers = appState.acoes.map(a => a.ticker.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
+  if (activeTickers.length === 0) return [];
+
   const dateSet = new Set();
-  Object.values(cache.quotes).forEach(q => {
-    if (Array.isArray(q.history)) {
-      q.history.forEach(h => {
+  activeTickers.forEach(symbol => {
+    const cached = cache.quotes[symbol];
+    if (cached && Array.isArray(cached.history)) {
+      cached.history.forEach(h => {
         if (h.date) dateSet.add(h.date);
       });
     }
@@ -1719,11 +1728,14 @@ function calculateDailyPortfolioSeries() {
 
   const tickerMap = {};
   appState.acoes.forEach(ac => {
-    const symbol = ac.ticker.toUpperCase();
-    const cached = cache.quotes[symbol];
+    const rawTicker = ac.ticker.trim().toUpperCase();
+    const symbol = rawTicker.replace(/\.SA$/i, '');
+    const cached = cache.quotes[symbol] || cache.quotes[rawTicker];
+    const currentPrice = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
+
     if (cached && Array.isArray(cached.history) && cached.history.length > 0) {
       const dateToClose = {};
-      let lastPrice = ac.precoAtual || cached.currentPrice || 0;
+      let lastPrice = currentPrice;
       
       cached.history.forEach(h => {
         if (h.close > 0) lastPrice = h.close;
@@ -1731,15 +1743,15 @@ function calculateDailyPortfolioSeries() {
       });
 
       tickerMap[symbol] = {
-        quantidade: ac.quantidade || 0,
-        currentPrice: ac.precoAtual || cached.currentPrice || 0,
+        quantidade: parseFloat(ac.quantidade) || 0,
+        currentPrice,
         history: cached.history,
         dateToClose
       };
     } else if (ac.quantidade > 0) {
       tickerMap[symbol] = {
-        quantidade: ac.quantidade || 0,
-        currentPrice: ac.precoAtual || 0,
+        quantidade: parseFloat(ac.quantidade) || 0,
+        currentPrice,
         history: [],
         dateToClose: {}
       };
