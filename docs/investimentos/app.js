@@ -850,15 +850,22 @@ function openEditRfModal(id) {
 }
 
 function closeEditRfModal() {
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
   const backdrop = document.getElementById('modalEditRfBackdrop');
   if (backdrop) backdrop.style.display = 'none';
 }
 
 function handleEditRfModalSubmit(e) {
-  e.preventDefault();
-  const id = document.getElementById('editModalRfId').value;
-  const item = appState.rendaFixa.find(r => r.id === id);
-  if (!item) return;
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
+  const idInput = document.getElementById('editModalRfId').value;
+  const item = appState.rendaFixa.find(r => String(r.id || '').trim() === String(idInput || '').trim());
+  if (!item) {
+    closeEditRfModal();
+    showToast('Ativo de Renda Fixa não encontrado para salvar.', 'error');
+    return;
+  }
 
   const tipo = document.getElementById('editModalRfTipo').value;
   const emissor = document.getElementById('editModalRfEmissor').value.trim();
@@ -868,12 +875,13 @@ function handleEditRfModalSubmit(e) {
   const valAnoInput = document.getElementById('editModalRfValAno').value;
   const valAtualInput = document.getElementById('editModalRfValor').value;
 
-  const valMes = valMesInput !== '' ? parseFloat(valMesInput) : item.valor;
-  const valAno = valAnoInput !== '' ? parseFloat(valAnoInput) : item.valor;
-  const valor = parseFloat(valAtualInput);
+  const valor = parsePtBrFloat(valAtualInput);
+  const valMes = valMesInput !== '' ? parsePtBrFloat(valMesInput) : valor;
+  const valAno = valAnoInput !== '' ? parsePtBrFloat(valAnoInput) : valor;
 
   if (!emissor || !nome || isNaN(valor)) {
-    showToast('Preencha os campos obrigatórios.', 'error');
+    closeEditRfModal();
+    showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
     return;
   }
 
@@ -1017,8 +1025,13 @@ function handleAddAcaoModalSubmit(e) {
 function parsePtBrFloat(val) {
   if (val === undefined || val === null) return NaN;
   if (typeof val === 'number') return val;
-  const str = String(val).trim().replace(/\s/g, '').replace(',', '.');
-  return parseFloat(str);
+  const cleanStr = String(val).replace(/[^0-9,.-]/g, '').trim();
+  if (!cleanStr) return NaN;
+  let finalStr = cleanStr;
+  if (finalStr.includes(',')) {
+    finalStr = finalStr.replace(/\./g, '').replace(',', '.');
+  }
+  return parseFloat(finalStr);
 }
 
 function openAddAcaoModal() {
@@ -1033,12 +1046,15 @@ function openAddAcaoModal() {
 }
 
 function closeAddAcaoModal() {
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
   const backdrop = document.getElementById('modalAddAcaoBackdrop');
   if (backdrop) backdrop.style.display = 'none';
 }
 
 function handleAddAcaoModalSubmit(e) {
-  if (e) e.preventDefault();
+  if (e && typeof e.preventDefault === 'function') e.preventDefault();
   const ticker = document.getElementById('modalAcaoTicker').value.trim().toUpperCase();
   const nome = document.getElementById('modalAcaoNome').value.trim();
   const quantidade = parsePtBrFloat(document.getElementById('modalAcaoQtd').value);
@@ -1047,6 +1063,7 @@ function handleAddAcaoModalSubmit(e) {
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
+    closeAddAcaoModal();
     showToast('Preencha os campos obrigatórios da ação com valores válidos.', 'error');
     return;
   }
@@ -1172,6 +1189,9 @@ function openEditAcaoModal(id) {
 }
 
 function closeEditAcaoModal() {
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
   const backdrop = document.getElementById('modalEditAcaoBackdrop');
   if (backdrop) backdrop.style.display = 'none';
 }
@@ -1205,6 +1225,7 @@ function handleEditAcaoModalSubmit(e) {
   const precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
 
   if (!ticker || !nome || isNaN(quantidade) || isNaN(precoAtual)) {
+    closeEditAcaoModal();
     showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
     return;
   }
