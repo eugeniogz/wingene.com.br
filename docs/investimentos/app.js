@@ -1746,11 +1746,7 @@ async function fetchQuoteSingleTicker(ticker) {
 
   const endpoints = [
     {
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
-      type: 'brapi'
-    },
-    {
-      url: `https://corsproxy.io/?${rawYahooUrl}`,
+      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(rawYahooUrl)}`,
       type: 'yahoo'
     },
     {
@@ -1758,12 +1754,16 @@ async function fetchQuoteSingleTicker(ticker) {
       type: 'allorigins'
     },
     {
+      url: `https://corsproxy.io/?${rawYahooUrl}`,
+      type: 'yahoo'
+    },
+    {
       url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawYahooUrl)}`,
       type: 'yahoo'
     },
     {
-      url: `https://corsproxy.io/?${rawYahooUrl2}`,
-      type: 'yahoo'
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
+      type: 'brapi'
     },
     {
       url: rawYahooUrl,
@@ -2154,7 +2154,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             }
           }
         } else {
-          priceOnDate = info.currentPrice;
+          const startTs = new Date(datesSorted[0]).getTime();
+          const endTs = new Date(todayStr).getTime();
+          const currTs = new Date(dateStr).getTime();
+          const t = endTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (endTs - startTs))) : 1;
+          priceOnDate = info.pAno + t * (info.pAtual - info.pAno);
         }
 
         dayTotal += info.quantidade * priceOnDate;
