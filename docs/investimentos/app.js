@@ -2164,7 +2164,13 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             if (pastEntries.length > 0) {
               priceOnDate = pastEntries[pastEntries.length - 1].close;
             } else {
-              priceOnDate = info.currentPrice;
+              const firstApiDate = info.history[0].date;
+              const firstApiClose = info.history[0].close;
+              const startTs = new Date(datesSorted[0]).getTime();
+              const firstTs = new Date(firstApiDate).getTime();
+              const currTs = new Date(dateStr).getTime();
+              const ratio = firstTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (firstTs - startTs))) : 0;
+              priceOnDate = (info.pAno || firstApiClose) + ratio * (firstApiClose - (info.pAno || firstApiClose));
             }
           }
         } else {
