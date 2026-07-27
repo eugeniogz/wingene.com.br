@@ -2182,10 +2182,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             basePrice = info.pMes + ratio * (info.pAtual - info.pMes);
           }
 
-          // Micro-oscilação determinística do mercado (onda de pregão) para simular flutuação diária real
-          const dayHash = (idx * 17 + (currTs / 86400000)) % 360;
-          const wave = Math.sin(dayHash * (Math.PI / 180)) * 0.015;
-          priceOnDate = idx === 0 ? info.pAno : (idx === datesSorted.length - 1 ? info.pAtual : basePrice * (1 + wave));
+          priceOnDate = basePrice;
         }
 
         dayTotal += info.quantidade * priceOnDate;
@@ -2211,12 +2208,6 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         } else {
           const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
           valOnDate = info.vMes + ratio * (info.vAtual - info.vMes);
-        }
-
-        // Suave curva de acúmulo contínuo para Renda Fixa
-        if (idx > 0 && idx < datesSorted.length - 1) {
-          const wave = Math.sin((idx * 13) * (Math.PI / 180)) * 0.0025;
-          valOnDate = valOnDate * (1 + wave);
         }
 
         dayTotal += valOnDate;
