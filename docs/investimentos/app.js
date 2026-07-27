@@ -1831,15 +1831,18 @@ async function fetchQuoteSingleTicker(ticker) {
       } else if (ep.type === 'yahoo') {
         const chartResult = data && data.chart && data.chart.result && data.chart.result[0];
         if (chartResult && Array.isArray(chartResult.timestamp)) {
-          const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
           const timestamps = chartResult.timestamp;
           const quotes = chartResult.indicators && chartResult.indicators.quote && chartResult.indicators.quote[0];
+          const adjquotes = chartResult.indicators && chartResult.indicators.adjclose && chartResult.indicators.adjclose[0];
           const closes = quotes ? quotes.close || [] : [];
+          const adjcloses = adjquotes ? adjquotes.adjclose || [] : [];
+          const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
 
           const history = [];
           for (let i = 0; i < timestamps.length; i++) {
             const ts = timestamps[i];
-            const closeVal = parseFloat(closes[i]);
+            const rawClose = closes[i] !== undefined && closes[i] !== null ? closes[i] : (adjcloses[i] !== undefined ? adjcloses[i] : null);
+            const closeVal = parseFloat(rawClose);
             if (ts && !isNaN(closeVal) && closeVal > 0) {
               const dateStr = new Date(ts * 1000).toISOString().split('T')[0];
               history.push({ date: dateStr, close: closeVal });
@@ -1848,7 +1851,8 @@ async function fetchQuoteSingleTicker(ticker) {
 
           if (history.length > 1) {
             history.sort((a, b) => a.date.localeCompare(b.date));
-            return { symbol: cleanSymbol, currentPrice, updatedAt: new Date().toISOString(), history };
+            const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
+            return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
           }
         }
       }
@@ -2174,21 +2178,16 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             }
           }
         } else {
-          let basePrice = 0;
           const startTs = new Date(datesSorted[0]).getTime();
-          const midTs = new Date(monthAgoStr).getTime();
           const endTs = new Date(todayStr).getTime();
           const currTs = new Date(dateStr).getTime();
+          const t = endTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (endTs - startTs))) : 1;
 
-          if (dateStr <= monthAgoStr) {
-            const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
-            basePrice = info.pAno + ratio * (info.pMes - info.pAno);
-          } else {
-            const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
-            basePrice = info.pMes + ratio * (info.pAtual - info.pMes);
-          }
-
-          priceOnDate = basePrice;
+          // Curva Bezier Suave de Mercado conectando pAno (t=0) a pMes e pAtual (t=1)
+          const p0 = info.pAno;
+          const p1 = info.pMes;
+          const p2 = info.pAtual;
+          priceOnDate = (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
         }
 
         dayTotal += info.quantidade * priceOnDate;
@@ -2204,17 +2203,15 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
         let valOnDate = 0;
         const startTs = new Date(datesSorted[0]).getTime();
-        const midTs = new Date(monthAgoStr).getTime();
         const endTs = new Date(todayStr).getTime();
         const currTs = new Date(dateStr).getTime();
+        const t = endTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (endTs - startTs))) : 1;
 
-        if (dateStr <= monthAgoStr) {
-          const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
-          valOnDate = info.vAno + ratio * (info.vMes - info.vAno);
-        } else {
-          const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
-          valOnDate = info.vMes + ratio * (info.vAtual - info.vMes);
-        }
+        // Curva Bezier Suave de acúmulo contínuo para Renda Fixa
+        const v0 = info.vAno;
+        const v1 = info.vMes;
+        const v2 = info.vAtual;
+        valOnDate = (1 - t) * (1 - t) * v0 + 2 * (1 - t) * t * v1 + t * t * v2;
 
         dayTotal += valOnDate;
       });
