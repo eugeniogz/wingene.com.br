@@ -1848,21 +1848,27 @@ async function fetchQuoteSingleTicker(ticker) {
   return null;
 }
 
-async function fetchB3QuotesForTickers(tickers) {
+async function fetchB3QuotesForTickers(tickers, onProgress) {
   if (!tickers || tickers.length === 0) return {};
   
   const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
   if (cleanTickers.length === 0) return {};
 
   const results = {};
-  const promises = cleanTickers.map(async (ticker) => {
+  for (let i = 0; i < cleanTickers.length; i++) {
+    const ticker = cleanTickers[i];
+    if (typeof onProgress === 'function') {
+      onProgress(i + 1, cleanTickers.length, ticker);
+    }
     const quoteData = await fetchQuoteSingleTicker(ticker);
     if (quoteData && quoteData.symbol) {
       results[quoteData.symbol] = quoteData;
     }
-  });
+    if (i < cleanTickers.length - 1) {
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
 
-  await Promise.allSettled(promises);
   return results;
 }
 
@@ -1905,16 +1911,35 @@ async function triggerB3Sync(force = false) {
   if (btnEvol) btnEvol.disabled = true;
 
   try {
-    const newQuotes = await fetchB3QuotesForTickers(tickers);
+    const newQuotes = await fetchB3QuotesForTickers(tickers, (curr, total, symbol) => {
+      updateStatusText(`🔄 Sincronizando (${curr}/${total}): ${symbol}...`);
+    });
     
     let updatedCount = 0;
     Object.keys(newQuotes).forEach(symbol => {
-      if (newQuotes[symbol] && Array.isArray(newQuotes[symbol].history) && newQuotes[symbol].history.length > 0) {
+      const newQuoteData = newQuotes[symbol];
+      if (newQuoteData && Array.isArray(newQuoteData.history) && newQuoteData.history.length > 0) {
         if (!cache) {
           cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
         }
         if (!cache.quotes) cache.quotes = {};
-        cache.quotes[symbol] = newQuotes[symbol];
+
+        // Acúmulo Incremental: Fusão do novo histórico com o histórico já salvo em cache
+        const existingQuote = cache.quotes[symbol];
+        if (existingQuote && Array.isArray(existingQuote.history) && existingQuote.history.length > 0) {
+          const mapByDate = {};
+          existingQuote.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
+          newQuoteData.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
+          
+          const mergedHistory = Object.keys(mapByDate).sort().map(d => ({ date: d, close: mapByDate[d] }));
+          cache.quotes[symbol] = {
+            ...newQuoteData,
+            history: mergedHistory
+          };
+        } else {
+          cache.quotes[symbol] = newQuoteData;
+        }
+
         cache.timestamp = now;
         cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
         updatedCount++;
@@ -1927,7 +1952,7 @@ async function triggerB3Sync(force = false) {
               acaoItem.precoAtual = newQuotes[symbol].currentPrice;
             }
 
-            const hist = newQuotes[symbol].history;
+            const hist = cache.quotes[symbol].history;
             if (Array.isArray(hist) && hist.length > 1) {
               const pAnoHistoric = hist[0].close;
               if (pAnoHistoric > 0) {
