@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLocalState();
   setupEventListeners();
   setupSwipeNavigation();
+  checkDesktopLockState();
   renderApp();
   setupPwaInstallation();
 
@@ -63,10 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
           isDemo: false,
           rendaFixa: remoteData.rendaFixa || [],
           acoes: remoteData.acoes || [],
+          desktopPassword: remoteData.desktopPassword || appState.desktopPassword || '',
           lastUpdated: remoteData.lastUpdated || new Date().toISOString()
         };
         sanitizeAppState();
         saveLocalState(false);
+        checkDesktopLockState();
         renderApp();
         showToast('Dados sincronizados com o Google Drive!', 'success');
       } else {
@@ -566,6 +569,12 @@ function renderApp() {
   const lastUpdateEl = document.getElementById('lastUpdatedSpan');
   if (lastUpdateEl) {
     lastUpdateEl.textContent = lastUpdateFormatted;
+  }
+
+  // Preencher campo de senha nas configurações se presente
+  const pwdField = document.getElementById('cfgDesktopPassword');
+  if (pwdField && document.activeElement !== pwdField) {
+    pwdField.value = appState.desktopPassword || '';
   }
 
   // Gráficos de Visão Geral (Donut Charts SVG)
@@ -2553,4 +2562,81 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
   wrapper.addEventListener('touchstart', handlePointerMove, { passive: true });
   wrapper.addEventListener('touchmove', handlePointerMove, { passive: true });
   wrapper.addEventListener('touchend', handlePointerLeave);
+}
+
+// --- PROTEÇÃO POR SENHA NO DESKTOP ---
+function isMobileDevice() {
+  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+function checkDesktopLockState() {
+  const isMobile = isMobileDevice();
+  const hasPassword = appState && appState.desktopPassword && String(appState.desktopPassword).trim() !== '';
+  const isUnlocked = sessionStorage.getItem('winvest_desktop_unlocked') === 'true';
+
+  const modal = document.getElementById('modalDesktopLockBackdrop');
+  if (!modal) return false;
+
+  if (!isMobile && hasPassword && !isUnlocked) {
+    modal.style.display = 'flex';
+    const input = document.getElementById('desktopUnlockPasswordInput');
+    if (input) setTimeout(() => input.focus(), 100);
+    return true; // Bloqueado
+  } else {
+    modal.style.display = 'none';
+    return false; // Liberado
+  }
+}
+
+function handleDesktopUnlockSubmit(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('desktopUnlockPasswordInput');
+  const errorMsg = document.getElementById('desktopUnlockErrorMsg');
+  if (!input) return;
+
+  const entered = input.value.trim();
+  const currentPassword = String(appState.desktopPassword || '').trim();
+
+  if (entered === currentPassword) {
+    sessionStorage.setItem('winvest_desktop_unlocked', 'true');
+    if (errorMsg) errorMsg.style.display = 'none';
+    input.value = '';
+    const modal = document.getElementById('modalDesktopLockBackdrop');
+    if (modal) modal.style.display = 'none';
+    showToast('Carteira desbloqueada!', 'success');
+    renderApp();
+  } else {
+    if (errorMsg) {
+      errorMsg.textContent = 'Senha incorreta! Tente novamente.';
+      errorMsg.style.display = 'block';
+    }
+    input.value = '';
+    input.focus();
+  }
+}
+
+function saveDesktopPasswordSetting() {
+  const pwdInput = document.getElementById('cfgDesktopPassword');
+  if (!pwdInput) return;
+  const newPwd = pwdInput.value.trim();
+  appState.desktopPassword = newPwd;
+  saveLocalState();
+  if (newPwd) {
+    sessionStorage.setItem('winvest_desktop_unlocked', 'true');
+    showToast('Senha de proteção desktop salva com sucesso!', 'success');
+  } else {
+    sessionStorage.removeItem('winvest_desktop_unlocked');
+    showToast('Proteção por senha no desktop desativada.', 'info');
+  }
+  checkDesktopLockState();
+}
+
+function lockDesktopSessionNow() {
+  if (!appState.desktopPassword || String(appState.desktopPassword).trim() === '') {
+    showToast('Defina e salve uma senha antes de bloquear a tela.', 'warning');
+    return;
+  }
+  sessionStorage.removeItem('winvest_desktop_unlocked');
+  checkDesktopLockState();
+  showToast('Tela bloqueada.', 'info');
 }
