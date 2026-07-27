@@ -391,7 +391,7 @@ const B3_HISTORICAL_12M_BASELINES = {
   'MSFT34': 82.40,
   'AMZO34': 38.90,
   'TSLA34': 22.10,
-  'ALZR11': 114.20,
+  'ALZR11': 99.80,
   'HGLG11': 158.40,
   'KNRI11': 154.20,
   'XPML11': 112.50,
@@ -2098,12 +2098,12 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         ac.precoAnoAnterior = pAnoUser;
       }
 
-      // 3. Terceira camada: Garantia de oscilação real de renda variável/FII se o usuário não inseriu histórico
+      // 3. Terceira camada: Garantia de valorização de renda variável/FII se o usuário não inseriu histórico
       if (isNaN(pAnoUser) || pAnoUser <= 0 || Math.abs(pAnoUser - pAtual) / (pAtual || 1) < 0.002) {
         if (/11$/i.test(symbol)) {
-          pAnoUser = pAtual * 1.06; // Média histórica de variação anual de cotas FII
+          pAnoUser = pAtual * 0.95; // Média de valorização anual positiva para FIIs (+5.2% a.a.)
         } else {
-          pAnoUser = pAtual * 0.85; // Média histórica de valorização de ações/BDRs
+          pAnoUser = pAtual * 0.82; // Média de valorização anual de ações/BDRs (+21.9% a.a.)
         }
         ac.precoAnoAnterior = pAnoUser;
       }
