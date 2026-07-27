@@ -1730,6 +1730,10 @@ async function fetchQuoteSingleTicker(ticker) {
 
   const endpoints = [
     {
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
+      type: 'brapi'
+    },
+    {
       url: `https://corsproxy.io/?${rawYahooUrl}`,
       type: 'yahoo'
     },
@@ -1742,16 +1746,8 @@ async function fetchQuoteSingleTicker(ticker) {
       type: 'yahoo'
     },
     {
-      url: `https://thingproxy.freeboard.io/fetch/${rawYahooUrl}`,
-      type: 'yahoo'
-    },
-    {
       url: `https://corsproxy.io/?${rawYahooUrl2}`,
       type: 'yahoo'
-    },
-    {
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
-      type: 'brapi'
     },
     {
       url: rawYahooUrl,
@@ -1762,7 +1758,7 @@ async function fetchQuoteSingleTicker(ticker) {
   for (const ep of endpoints) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       const res = await fetch(ep.url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -2328,16 +2324,6 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
 
           <!-- Linha principal da curva -->
           <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-
-          <!-- Ponto de Mínimo -->
-          <circle cx="${getX(minIndex)}" cy="${getY(minVal)}" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5">
-            <title>Menor Valor: ${formatCurrency(minVal)} (${series[minIndex].date})</title>
-          </circle>
-
-          <!-- Ponto de Máximo -->
-          <circle cx="${getX(maxIndex)}" cy="${getY(maxVal)}" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1.5">
-            <title>Maior Valor: ${formatCurrency(maxVal)} (${series[maxIndex].date})</title>
-          </circle>
 
           <!-- Elemento interativo de Hover -->
           <line id="hoverLine_${containerUniqueId}" x1="0" y1="${padding.top}" x2="0" y2="${padding.top + graphH}" stroke="rgba(255,255,255,0.4)" stroke-dasharray="3 3" style="display:none;" />
