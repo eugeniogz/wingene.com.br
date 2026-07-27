@@ -1720,6 +1720,22 @@ function saveB3QuotesCache(cache) {
   }
 }
 
+function parseToIsoDate(d) {
+  if (!d) return '';
+  if (typeof d === 'number') {
+    const ms = d < 10000000000 ? d * 1000 : d;
+    return new Date(ms).toISOString().split('T')[0];
+  }
+  const str = String(d).trim();
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  return str.split('T')[0];
+}
+
 async function fetchQuoteSingleTicker(ticker) {
   const cleanSymbol = ticker.trim().toUpperCase().replace(/\.SA$/i, '');
   if (!cleanSymbol) return null;
@@ -1782,12 +1798,7 @@ async function fetchQuoteSingleTicker(ticker) {
           const currentPrice = parseFloat(item.regularMarketPrice || item.price || 0);
           const history = Array.isArray(item.historicalDataPrice)
             ? item.historicalDataPrice.map(h => {
-                let dateStr = '';
-                if (typeof h.date === 'number') {
-                  dateStr = new Date(h.date * 1000).toISOString().split('T')[0];
-                } else if (h.date) {
-                  dateStr = String(h.date).split('T')[0];
-                }
+                const dateStr = parseToIsoDate(h.date);
                 return {
                   date: dateStr,
                   close: parseFloat(h.close || h.adjustedClose || 0)
@@ -1797,7 +1808,8 @@ async function fetchQuoteSingleTicker(ticker) {
 
           if (history.length > 1) {
             history.sort((a, b) => a.date.localeCompare(b.date));
-            return { symbol: cleanSymbol, currentPrice, updatedAt: new Date().toISOString(), history };
+            const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
+            return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
           }
         }
       } else {
@@ -1816,7 +1828,7 @@ async function fetchQuoteSingleTicker(ticker) {
             const rawClose = closes[i] !== undefined && closes[i] !== null ? closes[i] : (adjcloses[i] !== undefined ? adjcloses[i] : null);
             const closeVal = parseFloat(rawClose);
             if (ts && !isNaN(closeVal) && closeVal > 0) {
-              const dateStr = new Date(ts * 1000).toISOString().split('T')[0];
+              const dateStr = parseToIsoDate(ts);
               history.push({ date: dateStr, close: closeVal });
             }
           }
