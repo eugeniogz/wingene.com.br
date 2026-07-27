@@ -2030,12 +2030,12 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   let datesSorted = Array.from(dateSet).sort();
 
-  // Se ainda não houver histórico de pregões baixado da API, gerar timeline mensal de 12 meses
+  // Se ainda não houver histórico de pregões baixado da API, gerar timeline diária de 365 dias (1 ano completo)
   if (datesSorted.length < 2) {
     const today = new Date();
     const timeline = [];
-    for (let i = 12; i >= 0; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    for (let i = 365; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
       timeline.push(d.toISOString().split('T')[0]);
     }
     datesSorted = timeline;
