@@ -1773,9 +1773,9 @@ async function fetchQuoteSingleTicker(ticker) {
       if (ep.type === 'allorigins') {
         if (data && data.contents) {
           try {
-            data = JSON.parse(data.contents);
+            data = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
           } catch (e) {
-            continue;
+            console.warn('Erro ao parsear AllOrigins:', e);
           }
         }
       }
@@ -1884,7 +1884,7 @@ async function triggerB3Sync(force = false) {
   const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
 
   const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
-  const missingTickers = cleanTickers.filter(t => !cache || !cache.quotes || !cache.quotes[t] || !Array.isArray(cache.quotes[t].history) || cache.quotes[t].history.length < 2);
+  const missingTickers = cleanTickers.filter(t => !cache || !cache.quotes || !cache.quotes[t] || !Array.isArray(cache.quotes[t].history) || cache.quotes[t].history.length < 10);
 
   if (!force && cache && cache.timestamp && cacheAgeHours < 4 && missingTickers.length === 0) {
     const timeStr = cache.lastSyncFormatted || new Date(cache.timestamp).toLocaleString('pt-BR');
