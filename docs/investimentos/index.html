@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.5.0" />
+  <link rel="stylesheet" href="style.css?v=1.5.1" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -191,12 +191,6 @@
                 <th class="text-right">Var. Anual (R$)</th>
                 <th class="text-right">Var. Anual (%)</th>
               </tr>
-              <tr class="col-mobile-row">
-                <th>Grupo / Categoria</th>
-                <th class="text-right">Valor Atual</th>
-                <th class="text-right">Var. Mensal</th>
-                <th class="text-right">Var. Anual</th>
-              </tr>
             </thead>
             <tbody id="tbodyEvolucaoGrupos"></tbody>
           </table>
@@ -222,11 +216,6 @@
                 <th class="text-right">Var. Mensal (%)</th>
                 <th class="text-right">Var. Anual (R$)</th>
                 <th class="text-right">Var. Anual (%)</th>
-              </tr>
-              <tr class="col-mobile-row">
-                <th>Ativo de Renda Fixa</th>
-                <th class="text-right">Valor Atual</th>
-                <th class="text-right">Var. Mensal / Anual</th>
               </tr>
             </thead>
             <tbody id="tbodyEvolucaoRendaFixa"></tbody>
@@ -254,11 +243,6 @@
                 <th class="text-right">Var. Mensal (%)</th>
                 <th class="text-right">Var. Anual (R$)</th>
                 <th class="text-right">Var. Anual (%)</th>
-              </tr>
-              <tr class="col-mobile-row">
-                <th>Ação / Empresa</th>
-                <th class="text-right">Total Atual</th>
-                <th class="text-right">Var. Mensal / Anual</th>
               </tr>
             </thead>
             <tbody id="tbodyEvolucaoAcoes"></tbody>
@@ -351,20 +335,13 @@
                 <th class="text-right">Data</th>
                 <th class="text-center">Ações</th>
               </tr>
-              <tr class="col-mobile-row">
-                <th style="width: 45%;">Ativo</th>
-                <th class="text-right" style="width: 42%;">Valor</th>
-                <th class="text-center" style="width: 13%;">Ações</th>
-              </tr>
             </thead>
             <tbody id="tbodyRendaFixa"></tbody>
             <tfoot>
-              <tr>
-                <td colspan="6" class="col-desktop-only text-right"><strong>Total Investido em Renda Fixa:</strong></td>
-                <td class="col-mobile-only text-left"><strong>Total:</strong></td>
+              <tr class="col-desktop-row">
+                <td colspan="6" class="text-right"><strong>Total Investido em Renda Fixa:</strong></td>
                 <td class="text-right"><strong id="totalRfFooter" class="text-success">R$ 0,00</strong></td>
-                <td colspan="2" class="col-desktop-only"></td>
-                <td class="col-mobile-only"></td>
+                <td colspan="2"></td>
               </tr>
             </tfoot>
           </table>
@@ -395,11 +372,6 @@
                 <th class="text-right">Meta (%)</th>
                 <th class="text-right">Data</th>
                 <th class="text-center">Ações</th>
-              </tr>
-              <tr class="col-mobile-row">
-                <th style="width: 46%;">Ação</th>
-                <th class="text-right" style="width: 40%;">Total / Meta</th>
-                <th class="text-center" style="width: 14%;">Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyAcoes"></tbody>
@@ -707,7 +679,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.9.6"></script>
-  <script src="app.js?v=1.9.6"></script>
+  <script src="drive-sync.js?v=1.9.8"></script>
+  <script src="app.js?v=1.9.8"></script>
 </body>
 </html>

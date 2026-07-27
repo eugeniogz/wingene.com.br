@@ -589,35 +589,82 @@ function renderEvolucaoTab(fin) {
   const tbodyGrupos = document.getElementById('tbodyEvolucaoGrupos');
   if (tbodyGrupos) {
     tbodyGrupos.innerHTML = `
-      <tr style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
+      <tr class="col-desktop-row" style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg></span> PATRIMÔNIO TOTAL</td>
         <td class="text-right">${formatCurrency(fin.patrimonioTotal)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffTotalMesVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffTotalMesPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffTotalMesVal, fin.diffTotalMesPct)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffTotalAnoVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffTotalAnoPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffTotalAnoVal, fin.diffTotalAnoPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffTotalMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffTotalMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffTotalAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffTotalAnoPct)}</td>
       </tr>
-      <tr>
+      <tr class="col-desktop-row">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg></span> Grupo Renda Fixa</td>
         <td class="text-right">${formatCurrency(fin.totalRendaFixa)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffRfMesVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffRfMesPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffRfMesVal, fin.diffRfMesPct)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffRfAnoVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffRfAnoPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffRfAnoVal, fin.diffRfAnoPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffRfMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffRfMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffRfAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffRfAnoPct)}</td>
       </tr>
-      <tr>
+      <tr class="col-desktop-row">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Grupo Ações</td>
         <td class="text-right">${formatCurrency(fin.totalAcoes)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffAcoesMesVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffAcoesMesPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffAcoesMesVal, fin.diffAcoesMesPct)}</td>
-        <td class="text-right col-desktop">${formatDiffVal(fin.diffAcoesAnoVal)}</td>
-        <td class="text-right col-desktop">${formatDiffPct(fin.diffAcoesAnoPct)}</td>
-        <td class="text-right col-mobile">${formatDiffBadgeCombined(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffAcoesMesVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffAcoesMesPct)}</td>
+        <td class="text-right">${formatDiffVal(fin.diffAcoesAnoVal)}</td>
+        <td class="text-right">${formatDiffPct(fin.diffAcoesAnoPct)}</td>
+      </tr>
+
+      <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO GRUPOS -->
+      <tr class="col-mobile-row">
+        <td colspan="7" style="padding: 0 0 10px 0 !important; border: none;">
+          <div class="mobile-asset-card" style="background: rgba(16, 64, 176, 0.14); border-color: rgba(59, 130, 246, 0.4);">
+            <div style="font-size:0.85rem; font-weight:700; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px;">PATRIMÔNIO TOTAL CONSOLIDADO</div>
+            <!-- VALOR ATUAL EMBAIXO DO NOME -->
+            <div style="margin-top: 4px; font-size: 1.35rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.patrimonioTotal)}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffTotalMesVal, fin.diffTotalMesPct)}</div>
+              </div>
+              <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffTotalAnoVal, fin.diffTotalAnoPct)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mobile-asset-card">
+            <div style="font-size:0.85rem; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.5px;">Grupo Renda Fixa</div>
+            <!-- VALOR ATUAL EMBAIXO DO NOME -->
+            <div style="margin-top: 4px; font-size: 1.2rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.totalRendaFixa)}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffRfMesVal, fin.diffRfMesPct)}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffRfAnoVal, fin.diffRfAnoPct)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mobile-asset-card">
+            <div style="font-size:0.85rem; font-weight:700; color:#fbbf24; text-transform:uppercase; letter-spacing:0.5px;">Grupo Ações & Renda Variável</div>
+            <!-- VALOR ATUAL EMBAIXO DO NOME -->
+            <div style="margin-top: 4px; font-size: 1.2rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.totalAcoes)}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffAcoesMesVal, fin.diffAcoesMesPct)}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
+                <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct)}</div>
+              </div>
+            </div>
+          </div>
+        </td>
       </tr>
     `;
   }
@@ -638,15 +685,32 @@ function renderEvolucaoTab(fin) {
           <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
           <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
         </tr>
+        <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO RENDA FIXA -->
         <tr class="col-mobile-row">
-          <td>
-            <div style="margin-bottom: 2px;"><span class="badge badge-rf" style="font-size:0.68rem; padding:1px 6px;">${item.tipo}</span></div>
-            <strong>${escapeHtml(item.nome)}</strong> <br><small class="text-muted" style="font-size:0.75rem;">${escapeHtml(item.emissor)}</small>
-          </td>
-          <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
-          <td class="text-right">
-            <div><span class="text-small text-muted" style="font-size:0.7rem;">M:</span> ${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
-            <div style="margin-top: 3px;"><span class="text-small text-muted" style="font-size:0.7rem;">A:</span> ${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
+          <td colspan="7" style="padding: 0 0 10px 0 !important; border: none;">
+            <div class="mobile-asset-card">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <div>
+                  <span class="badge badge-rf" style="font-size:0.68rem; padding:2px 6px;">${item.tipo}</span>
+                  <span class="mobile-emissor-tag">${escapeHtml(item.emissor)}</span>
+                </div>
+              </div>
+              <div style="margin-top: 6px; font-weight: 700; font-size: 0.95rem; color: var(--text-main);">${escapeHtml(item.nome)}</div>
+              <!-- VALOR ATUAL EMBAIXO DO NOME -->
+              <div style="margin-top: 2px; font-size: 1.15rem; font-weight: 800; color: #10b981;">
+                ${formatCurrency(item.valorAtual)}
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+                <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                  <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
+                  <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                  <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
+                  <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       `).join('');
@@ -674,19 +738,31 @@ function renderEvolucaoTab(fin) {
           <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
           <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
         </tr>
+        <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO AÇÕES -->
         <tr class="col-mobile-row">
-          <td>
-            <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
-              <strong>${item.ticker}</strong>
+          <td colspan="8" style="padding: 0 0 10px 0 !important; border: none;">
+            <div class="mobile-asset-card">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 2px 6px; font-size: 0.78rem;">
+                  <strong>${item.ticker}</strong>
+                </div>
+                <span class="text-muted text-small" style="font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(item.nome)}</span>
+              </div>
+              <!-- VALOR ATUAL EMBAIXO DO NOME -->
+              <div style="margin-top: 6px; font-size: 1.15rem; font-weight: 800; color: #ffffff;">
+                ${formatCurrency(item.valorTotal)} <small class="text-muted" style="font-size:0.72rem; font-weight: 400;">(${formatCurrency(item.precoAtual)}/un)</small>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+                <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                  <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
+                  <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
+                  <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
+                  <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
+                </div>
+              </div>
             </div>
-            <div class="text-muted text-small" style="font-size:0.75rem; margin-top:2px;">${escapeHtml(item.nome)}</div>
-          </td>
-          <td class="text-right">
-            <strong>${formatCurrency(item.valorTotal)}</strong><br><small class="text-muted" style="font-size:0.72rem;">${formatCurrency(item.precoAtual)}/un</small>
-          </td>
-          <td class="text-right">
-            <div><span class="text-small text-muted" style="font-size:0.7rem;">M:</span> ${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
-            <div style="margin-top: 3px;"><span class="text-small text-muted" style="font-size:0.7rem;">A:</span> ${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
           </td>
         </tr>
       `).join('');
@@ -773,21 +849,43 @@ function renderRendaFixaTable(fin) {
       </td>
     </tr>
 
-    <!-- MOBILE ROW -->
-    <tr class="col-mobile-row clickable-row" onclick="openEditRfModal('${item.id}')" title="Clique para editar">
-      <td>
-        <div><strong style="font-size:0.88rem;">${escapeHtml(item.nome)}</strong> <span class="badge badge-rf" style="font-size:0.65rem; padding:1px 5px;">${item.tipo}</span></div>
-        <div class="text-muted text-small" style="font-size:0.76rem;">${escapeHtml(item.emissor)} ${item.taxa ? `• <span class="taxa-tag" style="font-size:0.7rem;">${escapeHtml(item.taxa)}</span>` : ''}</div>
-      </td>
-      <td class="text-right">
-        <strong style="white-space: nowrap;">${formatCurrency(item.valorAtual)}</strong>
-        <div class="text-muted" style="font-size:0.71rem; opacity:0.85; white-space: nowrap;">Mês: ${formatCurrency(item.valorMesAnt)}<br>Ano: ${formatCurrency(item.valorAnoAnt)}</div>
-      </td>
-      <td class="text-center" onclick="event.stopPropagation()">
-        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Ver Histórico">📜</button>
-          <button class="btn-icon" onclick="openEditRfModal('${item.id}')" title="Editar Ativo">✏️</button>
-          <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+    <!-- MOBILE ROW (CARD COMPLETO) -->
+    <tr class="col-mobile-row">
+      <td colspan="9" style="padding: 0 0 10px 0 !important; border: none;">
+        <div class="mobile-asset-card clickable-row" onclick="openEditRfModal('${item.id}')">
+          <div class="mobile-card-header">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span class="badge badge-rf">${item.tipo}</span>
+              <span class="mobile-emissor-tag">${escapeHtml(item.emissor)}</span>
+              ${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : ''}
+            </div>
+            <div class="mobile-action-buttons" onclick="event.stopPropagation()">
+              <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'rf')" title="Histórico">📜</button>
+              <button class="btn-icon" onclick="openEditRfModal('${item.id}')" title="Editar">✏️</button>
+              <button class="btn-icon danger" onclick="deleteRendaFixa('${item.id}')" title="Excluir">🗑️</button>
+            </div>
+          </div>
+
+          <div class="mobile-card-title">${escapeHtml(item.nome)}</div>
+
+          <div class="mobile-financial-grid">
+            <div class="mobile-stat-box highlight">
+              <span class="mobile-stat-label">Valor Atual</span>
+              <strong class="mobile-stat-val text-success">${formatCurrency(item.valorAtual)}</strong>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Val. Mês Ant.</span>
+              <span class="mobile-stat-val text-muted">${formatCurrency(item.valorMesAnt)}</span>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Val. Ano Ant.</span>
+              <span class="mobile-stat-val text-muted">${formatCurrency(item.valorAnoAnt)}</span>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Atualizado em</span>
+              <span class="mobile-stat-val text-muted" style="font-size:0.75rem;">${item.data || '-'}</span>
+            </div>
+          </div>
         </div>
       </td>
     </tr>
@@ -1100,27 +1198,42 @@ function renderAcoesTable(fin) {
       </td>
     </tr>
 
-    <!-- MOBILE ROW -->
-    <tr class="col-mobile-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar">
-      <td>
-        <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding:2px 6px; font-size:0.78rem;">
-          <strong>${item.ticker}</strong>
-        </div>
-        <div class="text-small text-muted" style="margin-top:2px;">${escapeHtml(item.nome)}</div>
-        <div class="text-small text-muted" style="font-size:0.74rem;">${item.quantidade} un. x ${formatCurrency(item.precoAtual)}</div>
-      </td>
-      <td class="text-right" style="white-space: nowrap;">
-        <strong>${formatCurrency(item.valorTotal)}</strong>
-        <div style="font-size: 0.70rem; margin-top: 2px;">
-          <span class="pct-pill" style="font-size: 0.67rem; padding: 0 4px;">${item.percentualAtual.toFixed(1)}%</span>
-          <span class="text-muted" style="font-size: 0.68rem; margin-left: 2px;">(Meta ${item.meta.toFixed(1)}%)</span>
-        </div>
-      </td>
-      <td class="text-center" onclick="event.stopPropagation()">
-        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico">📜</button>
-          <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
-          <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+    <!-- MOBILE ROW (CARD COMPLETO DE AÇÕES) -->
+    <tr class="col-mobile-row">
+      <td colspan="11" style="padding: 0 0 10px 0 !important; border: none;">
+        <div class="mobile-asset-card clickable-row" onclick="openEditAcaoModal('${item.id}')">
+          <div class="mobile-card-header">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 3px 8px; font-size: 0.85rem;">
+                <strong>${item.ticker}</strong>
+              </div>
+              <span class="text-muted text-small" style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${escapeHtml(item.nome)}</span>
+            </div>
+            <div class="mobile-action-buttons" onclick="event.stopPropagation()">
+              <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Histórico">📜</button>
+              <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar">✏️</button>
+              <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+            </div>
+          </div>
+
+          <div class="mobile-financial-grid">
+            <div class="mobile-stat-box highlight">
+              <span class="mobile-stat-label">Valor Total (R$)</span>
+              <strong class="mobile-stat-val text-success" style="font-size:1.1rem;">${formatCurrency(item.valorTotal)}</strong>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Preço / Qtd</span>
+              <span class="mobile-stat-val text-main" style="font-size:0.82rem;">${formatCurrency(item.precoAtual)} <small class="text-muted">(${item.quantidade} un)</small></span>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Alocação Atual</span>
+              <div><span class="pct-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.percentualAtual.toFixed(1)}%</span></div>
+            </div>
+            <div class="mobile-stat-box">
+              <span class="mobile-stat-label">Meta Desejada</span>
+              <div><span class="meta-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.meta.toFixed(1)}%</span></div>
+            </div>
+          </div>
         </div>
       </td>
     </tr>
