@@ -2168,19 +2168,24 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             }
           }
         } else {
+          let basePrice = 0;
+          const startTs = new Date(datesSorted[0]).getTime();
+          const midTs = new Date(monthAgoStr).getTime();
+          const endTs = new Date(todayStr).getTime();
+          const currTs = new Date(dateStr).getTime();
+
           if (dateStr <= monthAgoStr) {
-            const startTs = new Date(datesSorted[0]).getTime();
-            const midTs = new Date(monthAgoStr).getTime();
-            const currTs = new Date(dateStr).getTime();
             const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
-            priceOnDate = info.pAno + ratio * (info.pMes - info.pAno);
+            basePrice = info.pAno + ratio * (info.pMes - info.pAno);
           } else {
-            const midTs = new Date(monthAgoStr).getTime();
-            const endTs = new Date(todayStr).getTime();
-            const currTs = new Date(dateStr).getTime();
             const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
-            priceOnDate = info.pMes + ratio * (info.pAtual - info.pMes);
+            basePrice = info.pMes + ratio * (info.pAtual - info.pMes);
           }
+
+          // Micro-oscilação determinística do mercado (onda de pregão) para simular flutuação diária real
+          const dayHash = (idx * 17 + (currTs / 86400000)) % 360;
+          const wave = Math.sin(dayHash * (Math.PI / 180)) * 0.015;
+          priceOnDate = idx === 0 ? info.pAno : (idx === datesSorted.length - 1 ? info.pAtual : basePrice * (1 + wave));
         }
 
         dayTotal += info.quantidade * priceOnDate;
@@ -2195,18 +2200,23 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         }
 
         let valOnDate = 0;
+        const startTs = new Date(datesSorted[0]).getTime();
+        const midTs = new Date(monthAgoStr).getTime();
+        const endTs = new Date(todayStr).getTime();
+        const currTs = new Date(dateStr).getTime();
+
         if (dateStr <= monthAgoStr) {
-          const startTs = new Date(datesSorted[0]).getTime();
-          const midTs = new Date(monthAgoStr).getTime();
-          const currTs = new Date(dateStr).getTime();
           const ratio = midTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (midTs - startTs))) : 1;
           valOnDate = info.vAno + ratio * (info.vMes - info.vAno);
         } else {
-          const midTs = new Date(monthAgoStr).getTime();
-          const endTs = new Date(todayStr).getTime();
-          const currTs = new Date(dateStr).getTime();
           const ratio = endTs > midTs ? Math.max(0, Math.min(1, (currTs - midTs) / (endTs - midTs))) : 1;
           valOnDate = info.vMes + ratio * (info.vAtual - info.vMes);
+        }
+
+        // Suave curva de acúmulo contínuo para Renda Fixa
+        if (idx > 0 && idx < datesSorted.length - 1) {
+          const wave = Math.sin((idx * 13) * (Math.PI / 180)) * 0.0025;
+          valOnDate = valOnDate * (1 + wave);
         }
 
         dayTotal += valOnDate;
