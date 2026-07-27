@@ -1899,42 +1899,42 @@ async function triggerB3Sync(force = false) {
   try {
     const newQuotes = await fetchB3QuotesForTickers(tickers);
     
-    if (!cache) {
-      cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
-    } else {
-      cache.timestamp = now;
-      cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
-      if (!cache.quotes) cache.quotes = {};
-    }
-
     let updatedCount = 0;
     Object.keys(newQuotes).forEach(symbol => {
-      cache.quotes[symbol] = newQuotes[symbol];
-      updatedCount++;
-
-      appState.acoes.forEach(acaoItem => {
-        const t = acaoItem.ticker ? acaoItem.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
-        if (t === symbol && newQuotes[symbol]) {
-          if (newQuotes[symbol].currentPrice > 0) {
-            acaoItem.preco = newQuotes[symbol].currentPrice;
-            acaoItem.precoAtual = newQuotes[symbol].currentPrice;
-          }
-
-          const hist = newQuotes[symbol].history;
-          if (Array.isArray(hist) && hist.length > 1) {
-            const pAnoHistoric = hist[0].close;
-            if (pAnoHistoric > 0) {
-              acaoItem.precoAnoAnterior = pAnoHistoric;
-            }
-
-            const idxMes = Math.max(0, hist.length - 22);
-            const pMesHistoric = hist[idxMes].close;
-            if (pMesHistoric > 0) {
-              acaoItem.precoMesAnterior = pMesHistoric;
-            }
-          }
+      if (newQuotes[symbol] && Array.isArray(newQuotes[symbol].history) && newQuotes[symbol].history.length > 0) {
+        if (!cache) {
+          cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
         }
-      });
+        if (!cache.quotes) cache.quotes = {};
+        cache.quotes[symbol] = newQuotes[symbol];
+        cache.timestamp = now;
+        cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
+        updatedCount++;
+
+        appState.acoes.forEach(acaoItem => {
+          const t = acaoItem.ticker ? acaoItem.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
+          if (t === symbol && newQuotes[symbol]) {
+            if (newQuotes[symbol].currentPrice > 0) {
+              acaoItem.preco = newQuotes[symbol].currentPrice;
+              acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+            }
+
+            const hist = newQuotes[symbol].history;
+            if (Array.isArray(hist) && hist.length > 1) {
+              const pAnoHistoric = hist[0].close;
+              if (pAnoHistoric > 0) {
+                acaoItem.precoAnoAnterior = pAnoHistoric;
+              }
+
+              const idxMes = Math.max(0, hist.length - 22);
+              const pMesHistoric = hist[idxMes].close;
+              if (pMesHistoric > 0) {
+                acaoItem.precoMesAnterior = pMesHistoric;
+              }
+            }
+          }
+        });
+      }
     });
 
     saveB3QuotesCache(cache);
