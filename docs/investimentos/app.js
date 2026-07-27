@@ -1168,6 +1168,22 @@ function renderAcoesTable(fin) {
   document.getElementById('totalAcoesFooter').textContent = formatCurrency(fin.totalAcoes);
 }
 
+function recordAssetHistory(item, newPrice) {
+  if (!item) return;
+  if (!Array.isArray(item.historico)) {
+    item.historico = [];
+  }
+  const qty = parseFloat(item.quantidade) || 1;
+  const now = new Date();
+  const dateTimeStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  item.historico.push({
+    data: dateTimeStr,
+    preco: newPrice,
+    quantidade: qty,
+    valorTotal: newPrice * qty
+  });
+}
+
 function openEditAcaoModal(id) {
   const item = appState.acoes.find(a => String(a.id) === String(id) || String(a.ticker).trim().toUpperCase() === String(id).trim().toUpperCase());
   if (!item) {
