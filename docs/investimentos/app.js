@@ -1996,9 +1996,7 @@ function populateChartAssetFilter() {
 
   const currentVal = select.value || 'ALL';
   let optionsHtml = `
-    <option value="ALL">🌐 Patrimônio Total (Consolidado)</option>
-    <option value="GROUP_ACOES">📈 Grupo Ações & Renda Variável</option>
-    <option value="GROUP_RF">🏦 Grupo Renda Fixa</option>
+    <option value="ALL">🌐 Toda a Renda Variável (Consolidado)</option>
   `;
 
   if (appState.acoes && appState.acoes.length > 0) {
@@ -2009,15 +2007,6 @@ function populateChartAssetFilter() {
         const nome = ac.nome ? ` - ${ac.nome}` : '';
         optionsHtml += `<option value="AC_${ac.id || ticker}">${ticker}${nome}</option>`;
       }
-    });
-    optionsHtml += `</optgroup>`;
-  }
-
-  if (appState.rendaFixa && appState.rendaFixa.length > 0) {
-    optionsHtml += `<optgroup label="Renda Fixa">`;
-    appState.rendaFixa.forEach(rf => {
-      const nome = rf.nome || rf.tipo || 'Ativo RF';
-      optionsHtml += `<option value="RF_${rf.id}">${nome}</option>`;
     });
     optionsHtml += `</optgroup>`;
   }
@@ -2159,81 +2148,31 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     });
   }
 
-  // Mapear Renda Fixa
-  const rfMap = {};
-  if (appState.rendaFixa) {
-    appState.rendaFixa.forEach(rf => {
-      const vAtual = parseFloat(rf.valor) || 0;
-      let vMes = parseFloat(rf.valorMesAnterior);
-      let vAno = parseFloat(rf.valorAnoAnterior);
-
-      if (isNaN(vAno) || vAno <= 0 || vAno === vAtual) {
-        vAno = vAtual * 0.90; // Estimativa de crescimento CDI/IPCA (~10% a.a.)
-        if (isNaN(vMes) || vMes <= 0 || vMes === vAtual) {
-          vMes = vAtual * 0.99;
-        }
-      }
-      if (isNaN(vMes) || vMes <= 0) vMes = vAtual;
-
-      rfMap[rf.id] = {
-        id: rf.id,
-        vAno,
-        vMes,
-        vAtual
-      };
-    });
-  }
-
   const series = [];
   let prevTotal = 0;
 
   datesSorted.forEach((dateStr, idx) => {
     let dayTotal = 0;
 
-    // Processar Ações
-    if (selectedSymbol === 'ALL' || selectedSymbol === 'GROUP_ACOES' || selectedSymbol.startsWith('AC_')) {
-      Object.values(acoesMap).forEach(info => {
-        if (selectedSymbol.startsWith('AC_') && selectedSymbol !== `AC_${info.id}` && selectedSymbol !== `AC_${info.symbol}`) {
-          return;
+    // Processar Renda Variável (Ações, FIIs, BDRs)
+    Object.values(acoesMap).forEach(info => {
+      if (selectedSymbol.startsWith('AC_') && selectedSymbol !== `AC_${info.id}` && selectedSymbol !== `AC_${info.symbol}`) {
+        return;
+      }
+      if (info.quantidade <= 0) return;
+
+      let priceOnDate = info.dateToClose[dateStr];
+      if (priceOnDate === undefined) {
+        const pastEntries = info.history.filter(h => h.date <= dateStr);
+        if (pastEntries.length > 0) {
+          priceOnDate = pastEntries[pastEntries.length - 1].close;
+        } else {
+          priceOnDate = info.history[0].close;
         }
-        if (info.quantidade <= 0) return;
+      }
 
-        let priceOnDate = info.dateToClose[dateStr];
-        if (priceOnDate === undefined) {
-          const pastEntries = info.history.filter(h => h.date <= dateStr);
-          if (pastEntries.length > 0) {
-            priceOnDate = pastEntries[pastEntries.length - 1].close;
-          } else {
-            priceOnDate = info.history[0].close;
-          }
-        }
-
-        dayTotal += info.quantidade * priceOnDate;
-      });
-    }
-
-    // Processar Renda Fixa
-    if (selectedSymbol === 'ALL' || selectedSymbol === 'GROUP_RF' || selectedSymbol.startsWith('RF_')) {
-      Object.values(rfMap).forEach(info => {
-        if (selectedSymbol.startsWith('RF_') && selectedSymbol !== `RF_${info.id}`) {
-          return;
-        }
-
-        let valOnDate = 0;
-        const startTs = new Date(datesSorted[0]).getTime();
-        const endTs = new Date(todayStr).getTime();
-        const currTs = new Date(dateStr).getTime();
-        const t = endTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (endTs - startTs))) : 1;
-
-        // Curva Bezier Suave de acúmulo contínuo para Renda Fixa
-        const v0 = info.vAno;
-        const v1 = info.vMes;
-        const v2 = info.vAtual;
-        valOnDate = (1 - t) * (1 - t) * v0 + 2 * (1 - t) * t * v1 + t * t * v2;
-
-        dayTotal += valOnDate;
-      });
-    }
+      dayTotal += info.quantidade * priceOnDate;
+    });
 
     const diffVal = idx > 0 ? dayTotal - prevTotal : 0;
     const diffPct = idx > 0 && prevTotal > 0 ? (diffVal / prevTotal) * 100 : 0;
