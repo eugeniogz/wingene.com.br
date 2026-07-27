@@ -2034,8 +2034,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   let datesSorted = Array.from(dateSet).sort();
 
-  // Se ainda não houver histórico de pregões baixado da API, gerar timeline diária de 365 dias (1 ano completo)
-  if (datesSorted.length < 2) {
+  // Se não houver histórico diário completo de pregões (>10 dias), gerar timeline diária de 365 dias (1 ano completo)
+  if (datesSorted.length < 10) {
     const today = new Date();
     const timeline = [];
     for (let i = 365; i >= 0; i--) {
@@ -2088,7 +2088,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
       const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
-      if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+      if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
         const dateToClose = {};
         let lastPrice = pAtual;
         
