@@ -2042,8 +2042,12 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       if (!rawTicker) return;
 
       const symbol = rawTicker.replace(/\.SA$/i, '');
-      const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
-      
+      let cached = null;
+      if (cache && cache.quotes) {
+        const matchKey = Object.keys(cache.quotes).find(k => k.trim().toUpperCase().replace(/\.SA$/i, '') === symbol);
+        if (matchKey) cached = cache.quotes[matchKey];
+      }
+
       const qty = parseFloat(ac.quantidade) || 0;
       const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
       
@@ -2066,7 +2070,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
       const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
-      if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
+      if (cached && Array.isArray(cached.history) && cached.history.length > 0) {
         const dateToClose = {};
         let lastPrice = pAtual;
         
@@ -2146,26 +2150,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
             if (pastEntries.length > 0) {
               priceOnDate = pastEntries[pastEntries.length - 1].close;
             } else {
-              const firstApiDate = info.history[0].date;
-              const firstApiClose = info.history[0].close;
-              const startTs = new Date(datesSorted[0]).getTime();
-              const firstTs = new Date(firstApiDate).getTime();
-              const currTs = new Date(dateStr).getTime();
-              const ratio = firstTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (firstTs - startTs))) : 0;
-              priceOnDate = (info.pAno || firstApiClose) + ratio * (firstApiClose - (info.pAno || firstApiClose));
+              priceOnDate = info.history[0].close;
             }
           }
         } else {
-          const startTs = new Date(datesSorted[0]).getTime();
-          const endTs = new Date(todayStr).getTime();
-          const currTs = new Date(dateStr).getTime();
-          const t = endTs > startTs ? Math.max(0, Math.min(1, (currTs - startTs) / (endTs - startTs))) : 1;
-
-          // Curva Bezier Suave de Mercado conectando pAno (t=0) a pMes e pAtual (t=1)
-          const p0 = info.pAno;
-          const p1 = info.pMes;
-          const p2 = info.pAtual;
-          priceOnDate = (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+          priceOnDate = info.currentPrice;
         }
 
         dayTotal += info.quantidade * priceOnDate;
