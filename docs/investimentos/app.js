@@ -1725,19 +1725,28 @@ async function fetchQuoteSingleTicker(ticker) {
   if (!cleanSymbol) return null;
 
   const yahooSymbol = `${cleanSymbol}.SA`;
-  const yahooChartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+  const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`;
+  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`;
 
   const endpoints = [
     {
-      url: `https://api.allorigins.win/get?url=${encodeURIComponent(yahooChartUrl)}`,
-      type: 'allorigins'
-    },
-    {
-      url: `https://corsproxy.io/?${encodeURIComponent(yahooChartUrl)}`,
+      url: `https://corsproxy.io/?${rawYahooUrl}`,
       type: 'yahoo'
     },
     {
-      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooChartUrl)}`,
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(rawYahooUrl)}`,
+      type: 'allorigins'
+    },
+    {
+      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawYahooUrl)}`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://thingproxy.freeboard.io/fetch/${rawYahooUrl}`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://corsproxy.io/?${rawYahooUrl2}`,
       type: 'yahoo'
     },
     {
@@ -1745,7 +1754,7 @@ async function fetchQuoteSingleTicker(ticker) {
       type: 'brapi'
     },
     {
-      url: yahooChartUrl,
+      url: rawYahooUrl,
       type: 'yahoo'
     }
   ];
