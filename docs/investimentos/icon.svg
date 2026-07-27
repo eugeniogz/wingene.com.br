@@ -34,9 +34,7 @@
     </filter>
   </defs>
 
-  <!-- Fundo Arredondado PWA -->
-  <rect width="512" height="512" rx="104" fill="url(#bgGrad)" />
-  <rect width="496" height="496" x="8" y="8" rx="96" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="3" />
+  <!-- Fundo Transparente -->
 
   <!-- AURA DE BRILHO CENTRAL -->
   <circle cx="256" cy="256" r="170" fill="#10b981" opacity="0.15" filter="url(#glow)" />
