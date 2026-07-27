@@ -1806,7 +1806,7 @@ async function fetchQuoteSingleTicker(ticker) {
               }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
             : [];
 
-          if (history.length > 1) {
+          if (history.length >= 10) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
@@ -1833,7 +1833,7 @@ async function fetchQuoteSingleTicker(ticker) {
             }
           }
 
-          if (history.length > 1) {
+          if (history.length >= 10) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
@@ -2070,7 +2070,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
       const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
-      if (cached && Array.isArray(cached.history) && cached.history.length > 0) {
+      if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
         const dateToClose = {};
         let lastPrice = pAtual;
         
