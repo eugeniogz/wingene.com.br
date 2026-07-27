@@ -315,10 +315,24 @@
         </div>
       </div>
 
+      <div class="card mb-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+              <span>💰</span> Total Geral Investido em Renda Fixa
+            </div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 2px; white-space: nowrap;" id="totalRfHeaderCard">
+              R$ 0,00
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;" id="totalRfHeaderBadges"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="mb-3">
           <h2 class="card-title">Ativos de Renda Fixa</h2>
-          <p class="text-muted text-small mb-0">Adicione e edite os valores atuais e históricos (Mês/Ano Ant.) diretamente na tabela.</p>
+          <p class="text-muted text-small mb-0">Gerencie seus ativos de Renda Fixa, valores atuais e históricos (Mês/Ano Ant.).</p>
         </div>
 
         <div class="table-responsive">
@@ -349,12 +363,27 @@
       </div>
     </section>
 
-    <!-- ABA 4: CARTEIRA DE AÇÕES (EDIÇÃO INLINE) -->
+    <!-- ABA 4: CARTEIRA DE AÇÕES -->
     <section id="tab-acoes" class="tab-pane">
+      <!-- CARD DESTACADO: TOTAL GERAL EM AÇÕES E RENDA VARIÁVEL -->
+      <div class="card mb-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+              <span>💰</span> Total Geral em Ações & Renda Variável
+            </div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 2px; white-space: nowrap;" id="totalAcoesHeaderCard">
+              R$ 0,00
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;" id="totalAcoesHeaderBadges"></div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="mb-3">
           <h2 class="card-title">Carteira de Ações</h2>
-          <p class="text-muted text-small mb-0">Cadastre e altere código, preço atual, preços anteriores (Mês/Ano Ant.) e metas inline.</p>
+          <p class="text-muted text-small mb-0">Gerencie suas ações e FIIs, preços atuais, históricos (Mês/Ano Ant.) e metas de alocação.</p>
         </div>
 
         <div class="table-responsive">
@@ -376,12 +405,10 @@
             </thead>
             <tbody id="tbodyAcoes"></tbody>
             <tfoot>
-              <tr>
-                <td colspan="6" class="col-desktop-only text-right"><strong>Total em Ações:</strong></td>
-                <td class="col-mobile-only text-left"><strong>Total:</strong></td>
-                <td class="text-right"><strong id="totalAcoesFooter" class="text-primary">R$ 0,00</strong></td>
-                <td colspan="4" class="col-desktop-only"></td>
-                <td class="col-mobile-only"></td>
+              <tr class="col-desktop-row">
+                <td colspan="6" class="text-right"><strong>Total Geral em Ações:</strong></td>
+                <td class="text-right"><strong id="totalAcoesFooter" class="text-success">R$ 0,00</strong></td>
+                <td colspan="4"></td>
               </tr>
             </tfoot>
           </table>
@@ -418,7 +445,6 @@
             Conectar Conta Google Drive
           </button>
           <button id="btnForceDriveSync" class="btn btn-secondary">🔄 Sincronizar com o Drive Agora</button>
-          <button id="btnRestoreDriveVersion" class="btn btn-secondary">📜 Restaurar Versão Anterior do Drive</button>
         </div>
       </div>
 
@@ -433,42 +459,35 @@
         </div>
       </div>
     </section>
-
   </main>
 
-  <!-- MODAL HISTÓRICO DE ALTERAÇÕES DO ATIVO -->
-  <div class="modal-backdrop" id="assetHistoryModalBackdrop" style="display: none;" onclick="closeAssetHistoryModal()">
-    <div class="modal-card" onclick="event.stopPropagation()">
+  <!-- MODAL VISUALIZAÇÃO DE HISTÓRICO DE ALTERAÇÕES DO ATIVO -->
+  <div class="modal-backdrop" id="modalAssetHistoryBackdrop" style="display: none;" onclick="closeAssetHistoryModal()">
+    <div class="modal-card" style="max-width: 520px;" onclick="event.stopPropagation()">
       <div class="modal-header">
-        <h3 class="modal-title" id="assetHistoryTitle">📜 Histórico de Alterações</h3>
+        <h3 class="modal-title" id="assetHistoryTitle" style="display: flex; align-items: center; gap: 8px;">
+          <span>📜</span> Histórico de Alterações
+        </h3>
         <button type="button" class="modal-close" onclick="closeAssetHistoryModal()" aria-label="Fechar Modal">✕</button>
       </div>
       <div class="modal-body" id="assetHistoryBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAssetHistoryModal()">Fechar</button>
+      </div>
     </div>
   </div>
 
-  <!-- MODAL DE PROMPT GERADOR PARA IA (AGNÓSTICO) -->
-  <div class="modal-backdrop" id="aiPromptModalBackdrop" style="display: none;" onclick="closeAIPromptModal()">
-    <div class="modal-card" style="max-width: 620px;" onclick="event.stopPropagation()">
+  <!-- MODAL GERAR PROMPT DE DADOS PARA INTELIGÊNCIA ARTIFICIAL -->
+  <div class="modal-backdrop" id="modalAIPromptBackdrop" style="display: none;" onclick="closeAIPromptModal()">
+    <div class="modal-card" style="max-width: 600px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          🤖 Prompt para Análise de IA
+          <span>🤖</span> Prompt de Dados da Carteira para IA
         </h3>
         <button type="button" class="modal-close" onclick="closeAIPromptModal()" aria-label="Fechar Modal">✕</button>
       </div>
       <div class="modal-body">
-        <p class="text-small text-muted mb-3">
-          O Winvest gerou o raio-x da sua carteira (patrimônio, rentabilidade e metas). Copie o texto e cole na sua IA de preferência:
-        </p>
-
-        <!-- Links para IAs -->
-        <div class="ai-links-bar mb-3">
-          <span class="text-small text-muted" style="margin-right: 4px;">Abrir IA:</span>
-          <a href="https://gemini.google.com" target="_blank" rel="noopener" class="ai-link-pill">⚡ Gemini</a>
-          <a href="https://chatgpt.com" target="_blank" rel="noopener" class="ai-link-pill">💬 ChatGPT</a>
-          <a href="https://claude.ai" target="_blank" rel="noopener" class="ai-link-pill">🧠 Claude</a>
-          <a href="https://www.perplexity.ai" target="_blank" rel="noopener" class="ai-link-pill">🔮 Perplexity</a>
-        </div>
+        <p class="text-muted text-small mb-3">Copie o prompt estruturado com todas as cotações, patrimônio, percentuais e metas da sua carteira para colar no ChatGPT, Claude, Gemini ou DeepSeek:</p>
 
         <div class="form-group mb-3">
           <textarea id="aiPromptTextarea" class="form-control" rows="12" style="font-family: monospace; font-size: 0.82rem; line-height: 1.4; resize: vertical;"></textarea>
@@ -621,9 +640,12 @@
             <input type="text" inputmode="decimal" id="editModalRfValor" class="form-control" required />
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeEditRfModal()">Cancelar</button>
-          <button type="button" class="btn btn-primary" onclick="handleEditRfModalSubmit(event)">Salvar Alterações</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);" onclick="deleteCurrentRfFromModal()">🗑️ Excluir Ativo</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditRfModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="handleEditRfModalSubmit(event)">Salvar Alterações</button>
+          </div>
         </div>
       </form>
     </div>
@@ -670,16 +692,19 @@
             <input type="text" inputmode="decimal" id="editModalAcaoMeta" class="form-control" required />
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="closeEditAcaoModal()">Cancelar</button>
-          <button type="button" class="btn btn-primary" onclick="handleEditAcaoModalSubmit(event)">Salvar Alterações</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);" onclick="deleteCurrentAcaoFromModal()">🗑️ Excluir Ação</button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" onclick="closeEditAcaoModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="handleEditAcaoModalSubmit(event)">Salvar Alterações</button>
+          </div>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=1.9.8"></script>
-  <script src="app.js?v=1.9.8"></script>
+  <script src="drive-sync.js?v=2.0.0"></script>
+  <script src="app.js?v=2.0.0"></script>
 </body>
 </html>

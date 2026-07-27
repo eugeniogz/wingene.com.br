@@ -540,6 +540,27 @@ function renderApp() {
     ${formatEvolutionBadge(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct, 'Ano')}
   `;
 
+  // Atualizar Cards Verdes Destacados de Total Geral nas Abas
+  const totalAcoesHeaderCard = document.getElementById('totalAcoesHeaderCard');
+  if (totalAcoesHeaderCard) totalAcoesHeaderCard.textContent = formatCurrency(fin.totalAcoes);
+  const totalAcoesHeaderBadges = document.getElementById('totalAcoesHeaderBadges');
+  if (totalAcoesHeaderBadges) {
+    totalAcoesHeaderBadges.innerHTML = `
+      ${formatEvolutionBadge(fin.diffAcoesMesVal, fin.diffAcoesMesPct, 'Mês')}
+      ${formatEvolutionBadge(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct, 'Ano')}
+    `;
+  }
+
+  const totalRfHeaderCard = document.getElementById('totalRfHeaderCard');
+  if (totalRfHeaderCard) totalRfHeaderCard.textContent = formatCurrency(fin.totalRendaFixa);
+  const totalRfHeaderBadges = document.getElementById('totalRfHeaderBadges');
+  if (totalRfHeaderBadges) {
+    totalRfHeaderBadges.innerHTML = `
+      ${formatEvolutionBadge(fin.diffRfMesVal, fin.diffRfMesPct, 'Mês')}
+      ${formatEvolutionBadge(fin.diffRfAnoVal, fin.diffRfAnoPct, 'Ano')}
+    `;
+  }
+
   // Data do sistema
   const lastUpdateFormatted = new Date(appState.lastUpdated).toLocaleString('pt-BR');
   const lastUpdateEl = document.getElementById('lastUpdatedSpan');
@@ -916,6 +937,17 @@ function closeEditRfModal() {
   if (backdrop) backdrop.style.display = 'none';
 }
 
+function deleteCurrentRfFromModal() {
+  const idInput = document.getElementById('editModalRfId').value;
+  if (!idInput) return;
+  const item = appState.rendaFixa.find(r => String(r.id || '').trim() === String(idInput || '').trim());
+  const name = item ? item.nome : 'este ativo';
+  if (confirm(`Deseja realmente remover ${name}?`)) {
+    closeEditRfModal();
+    deleteRendaFixa(idInput);
+  }
+}
+
 function handleEditRfModalSubmit(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
   const idInput = document.getElementById('editModalRfId').value;
@@ -1284,6 +1316,17 @@ function closeEditAcaoModal() {
   }
   const backdrop = document.getElementById('modalEditAcaoBackdrop');
   if (backdrop) backdrop.style.display = 'none';
+}
+
+function deleteCurrentAcaoFromModal() {
+  const idInput = document.getElementById('editModalAcaoId').value;
+  if (!idInput) return;
+  const item = appState.acoes.find(a => String(a.id || '').trim() === String(idInput || '').trim());
+  const name = item ? item.ticker : 'esta ação';
+  if (confirm(`Deseja realmente remover ${name}?`)) {
+    closeEditAcaoModal();
+    deleteAcao(idInput);
+  }
 }
 
 function handleEditAcaoModalSubmit(e) {
