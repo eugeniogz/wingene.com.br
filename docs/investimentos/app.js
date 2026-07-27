@@ -359,53 +359,6 @@ function setupEventListeners() {
   document.getElementById('fileImportJson')?.addEventListener('change', importJsonBackup);
 }
 
-const B3_HISTORICAL_12M_BASELINES = {
-  'PETR4': 32.10,
-  'PETR3': 33.50,
-  'VALE3': 58.50,
-  'ITUB4': 27.80,
-  'BBDC4': 12.40,
-  'BBAS3': 24.10,
-  'WEGE3': 34.20,
-  'RENT3': 46.50,
-  'TAEE11': 33.50,
-  'KLBN11': 19.20,
-  'MXRF11': 9.80,
-  'ABEV3': 11.20,
-  'ELET3': 35.40,
-  'EGIE3': 39.80,
-  'ITSA4': 8.90,
-  'PRIO3': 41.20,
-  'VBBR3': 18.50,
-  'GGBR4': 17.80,
-  'CSAN3': 12.10,
-  'BBSE3': 31.00,
-  'CXSE3': 11.40,
-  'RADL3': 24.80,
-  'CPLE6': 8.10,
-  'FLRY3': 14.20,
-  'SUZB3': 48.50,
-  'GOGL34': 88.57,
-  'AAPL34': 94.20,
-  'NVDC34': 12.50,
-  'MSFT34': 82.40,
-  'AMZO34': 38.90,
-  'TSLA34': 22.10,
-  'ALZR11': 99.80,
-  'HGLG11': 158.40,
-  'KNRI11': 154.20,
-  'XPML11': 112.50,
-  'VISC11': 118.00,
-  'BTLG11': 99.80,
-  'TRBL11': 98.40,
-  'HGRU11': 128.50,
-  'CPTS11': 8.40,
-  'MALL11': 116.20,
-  'RECR11': 88.50,
-  'TGAR11': 118.40,
-  'VGIR11': 9.60
-};
-
 // --- CÁLCULOS FINANCIALS & EVOLUÇÃO (MENSAL E ANUAL) ---
 function calculateFinancials() {
   const cache = getB3QuotesCache();
@@ -464,11 +417,6 @@ function calculateFinancials() {
         const idxM = Math.max(0, cached.history.length - 22);
         userPMes = cached.history[idxM].close;
       }
-    }
-
-    // 2. Segunda camada: Tabela de Preços de Referência Históricos Reais do Mercado B3
-    if ((isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) && B3_HISTORICAL_12M_BASELINES[symbol]) {
-      userPAno = B3_HISTORICAL_12M_BASELINES[symbol];
     }
 
     const precoMesAnt = !isNaN(userPMes) && userPMes > 0 ? userPMes : precoAtual;
@@ -1777,23 +1725,19 @@ async function fetchQuoteSingleTicker(ticker) {
   if (!cleanSymbol) return null;
 
   const yahooSymbol = `${cleanSymbol}.SA`;
-  const yahooUrlEncoded = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`);
+  const yahooChartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [
     {
-      url: `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(yahooChartUrl)}`,
+      type: 'allorigins'
+    },
+    {
+      url: `https://corsproxy.io/?${encodeURIComponent(yahooChartUrl)}`,
       type: 'yahoo'
     },
     {
-      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`)}`,
-      type: 'yahoo'
-    },
-    {
-      url: `https://corsproxy.org/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
-      type: 'yahoo'
-    },
-    {
-      url: `https://api.allorigins.win/raw?url=${yahooUrlEncoded}`,
+      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooChartUrl)}`,
       type: 'yahoo'
     },
     {
@@ -1801,7 +1745,7 @@ async function fetchQuoteSingleTicker(ticker) {
       type: 'brapi'
     },
     {
-      url: `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
+      url: yahooChartUrl,
       type: 'yahoo'
     }
   ];
@@ -1809,13 +1753,23 @@ async function fetchQuoteSingleTicker(ticker) {
   for (const ep of endpoints) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       const res = await fetch(ep.url, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!res.ok) continue;
-      const data = await res.json();
+      let data = await res.json();
+
+      if (ep.type === 'allorigins') {
+        if (data && data.contents) {
+          try {
+            data = JSON.parse(data.contents);
+          } catch (e) {
+            continue;
+          }
+        }
+      }
 
       if (ep.type === 'brapi') {
         if (data && Array.isArray(data.results) && data.results.length > 0) {
@@ -1841,7 +1795,7 @@ async function fetchQuoteSingleTicker(ticker) {
             return { symbol: cleanSymbol, currentPrice, updatedAt: new Date().toISOString(), history };
           }
         }
-      } else if (ep.type === 'yahoo') {
+      } else {
         const chartResult = data && data.chart && data.chart.result && data.chart.result[0];
         if (chartResult && Array.isArray(chartResult.timestamp)) {
           const timestamps = chartResult.timestamp;
@@ -2079,37 +2033,21 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       let pMesUser = parseFloat(ac.precoMesAnterior);
       let pAnoUser = parseFloat(ac.precoAnoAnterior);
 
-      // 1. Prioridade: Cotação Histórica Oficial baixada via API B3 / Yahoo Finance
-      if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
-        if (isNaN(pAnoUser) || pAnoUser <= 0 || pAnoUser === pAtual) {
+      // Cotação Histórica Oficial baixada via API B3 / Yahoo Finance
+      if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+        if (isNaN(pAnoUser) || pAnoUser <= 0) {
           pAnoUser = cached.history[0].close;
           ac.precoAnoAnterior = pAnoUser;
         }
-        if (isNaN(pMesUser) || pMesUser <= 0 || pMesUser === pAtual) {
+        if (isNaN(pMesUser) || pMesUser <= 0) {
           const idxM = Math.max(0, cached.history.length - 22);
           pMesUser = cached.history[idxM].close;
           ac.precoMesAnterior = pMesUser;
         }
       }
 
-      // 2. Segunda camada: Tabela de Preços de Referência Históricos da B3 (inclui GOGL34, ALZR11, etc)
-      if ((isNaN(pAnoUser) || pAnoUser <= 0 || Math.abs(pAnoUser - pAtual) / (pAtual || 1) < 0.002) && B3_HISTORICAL_12M_BASELINES[symbol]) {
-        pAnoUser = B3_HISTORICAL_12M_BASELINES[symbol];
-        ac.precoAnoAnterior = pAnoUser;
-      }
-
-      // 3. Terceira camada: Garantia de valorização de renda variável/FII se o usuário não inseriu histórico
-      if (isNaN(pAnoUser) || pAnoUser <= 0 || Math.abs(pAnoUser - pAtual) / (pAtual || 1) < 0.002) {
-        if (/11$/i.test(symbol)) {
-          pAnoUser = pAtual * 0.95; // Média de valorização anual positiva para FIIs (+5.2% a.a.)
-        } else {
-          pAnoUser = pAtual * 0.82; // Média de valorização anual de ações/BDRs (+21.9% a.a.)
-        }
-        ac.precoAnoAnterior = pAnoUser;
-      }
-
-      const pMes = !isNaN(pMesUser) && pMesUser > 0 && Math.abs(pMesUser - pAtual) / (pAtual || 1) >= 0.002 ? pMesUser : (pAnoUser + (pAtual - pAnoUser) * 0.9);
-      const pAno = pAnoUser;
+      const pMes = !isNaN(pMesUser) && pMesUser > 0 ? pMesUser : pAtual;
+      const pAno = !isNaN(pAnoUser) && pAnoUser > 0 ? pAnoUser : pAtual;
 
       if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
         const dateToClose = {};
