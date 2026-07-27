@@ -1768,8 +1768,12 @@ async function fetchQuoteSingleTicker(ticker) {
 
   const endpoints = [
     {
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
-      type: 'brapi'
+      url: `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`)}`,
+      type: 'yahoo'
     },
     {
       url: `https://corsproxy.org/?https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
@@ -1778,6 +1782,10 @@ async function fetchQuoteSingleTicker(ticker) {
     {
       url: `https://api.allorigins.win/raw?url=${yahooUrlEncoded}`,
       type: 'yahoo'
+    },
+    {
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
+      type: 'brapi'
     },
     {
       url: `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`,
