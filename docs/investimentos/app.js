@@ -362,6 +362,19 @@ function setupEventListeners() {
   document.getElementById('fileImportJson')?.addEventListener('change', importJsonBackup);
 }
 
+function getAssetMacroCategory(rfItem) {
+  const tipo = (rfItem.tipo || '').toLowerCase();
+  const taxa = (rfItem.taxa || '').toLowerCase();
+  const nome = (rfItem.nome || '').toLowerCase();
+
+  if (tipo.includes('lci') || tipo.includes('lca') || tipo.includes('tesouro') || 
+      taxa.includes('ipca') || taxa.includes('lci') || taxa.includes('lca') || 
+      nome.includes('ipca') || nome.includes('lci') || nome.includes('lca') || nome.includes('ntnb')) {
+    return 'RF_IPCA_LCA';
+  }
+  return 'RF_CDI';
+}
+
 // --- CÁLCULOS FINANCIALS & EVOLUÇÃO (MENSAL E ANUAL) ---
 function calculateFinancials() {
   const cache = getB3QuotesCache();
@@ -471,7 +484,7 @@ function calculateFinancials() {
   const diffTotalAnoVal = patrimonioTotal - patrimonioAnoAnt;
   const diffTotalAnoPct = patrimonioAnoAnt > 0 ? (diffTotalAnoVal / patrimonioAnoAnt) * 100 : 0;
 
-  // Adicionar percentual individual e alocação de rebalanceamento
+  // Adicionar percentual individual e alocação de rebalanceamento de Ações
   const acoesComPercentual = acoesProcessadas.map(acao => {
     const percentualAtual = totalAcoesAtual > 0 ? (acao.valorTotal / totalAcoesAtual) * 100 : 0;
     const valorAlvoMeta = totalAcoesAtual > 0 ? (totalAcoesAtual * (acao.meta / 100)) : 0;
@@ -486,6 +499,31 @@ function calculateFinancials() {
   });
 
   const totalMetasPercent = acoesComPercentual.reduce((acc, item) => acc + item.meta, 0);
+
+  // --- MAPEAR MACRO CATEGORIAS DE DISTRIBUIÇÃO GERAL ---
+  const totalRfCdi = rendaFixaProcessada
+    .filter(rf => getAssetMacroCategory(rf) === 'RF_CDI')
+    .reduce((acc, rf) => acc + rf.valorAtual, 0);
+
+  const totalRfIpcaLca = rendaFixaProcessada
+    .filter(rf => getAssetMacroCategory(rf) === 'RF_IPCA_LCA')
+    .reduce((acc, rf) => acc + rf.valorAtual, 0);
+
+  const macroMetas = appState.macroMetas || { rfCdi: 40, rfIpcaLca: 30, acoes: 30 };
+
+  const pctRfCdi = patrimonioTotal > 0 ? (totalRfCdi / patrimonioTotal) * 100 : 0;
+  const pctRfIpcaLca = patrimonioTotal > 0 ? (totalRfIpcaLca / patrimonioTotal) * 100 : 0;
+  const pctAcoesMacro = patrimonioTotal > 0 ? (totalAcoesAtual / patrimonioTotal) * 100 : 0;
+
+  const valorAlvoRfCdi = patrimonioTotal > 0 ? (patrimonioTotal * ((macroMetas.rfCdi || 0) / 100)) : 0;
+  const valorAlvoRfIpcaLca = patrimonioTotal > 0 ? (patrimonioTotal * ((macroMetas.rfIpcaLca || 0) / 100)) : 0;
+  const valorAlvoAcoesMacro = patrimonioTotal > 0 ? (patrimonioTotal * ((macroMetas.acoes || 0) / 100)) : 0;
+
+  const diffValRfCdi = valorAlvoRfCdi - totalRfCdi;
+  const diffValRfIpcaLca = valorAlvoRfIpcaLca - totalRfIpcaLca;
+  const diffValAcoesMacro = valorAlvoAcoesMacro - totalAcoesAtual;
+
+  const totalMacroMetasPercent = (macroMetas.rfCdi || 0) + (macroMetas.rfIpcaLca || 0) + (macroMetas.acoes || 0);
 
   return {
     rendaFixa: rendaFixaProcessada,
@@ -516,7 +554,21 @@ function calculateFinancials() {
 
     pctRendaFixa: patrimonioTotal > 0 ? (totalRfAtual / patrimonioTotal) * 100 : 0,
     pctAcoes: patrimonioTotal > 0 ? (totalAcoesAtual / patrimonioTotal) * 100 : 0,
-    totalMetasPercent
+    totalMetasPercent,
+
+    macroMetas,
+    totalRfCdi,
+    totalRfIpcaLca,
+    pctRfCdi,
+    pctRfIpcaLca,
+    pctAcoesMacro,
+    valorAlvoRfCdi,
+    valorAlvoRfIpcaLca,
+    valorAlvoAcoesMacro,
+    diffValRfCdi,
+    diffValRfIpcaLca,
+    diffValAcoesMacro,
+    totalMacroMetasPercent
   };
 }
 
@@ -1534,7 +1586,133 @@ function closeAssetHistoryModal() {
   if (backdrop) backdrop.style.display = 'none';
 }
 
+function handleSaveMacroMetasSubmit(e) {
+  if (e) e.preventDefault();
+  const rfCdi = parsePtBrFloat(document.getElementById('inputMetaRfCdi').value) || 0;
+  const rfIpcaLca = parsePtBrFloat(document.getElementById('inputMetaRfIpcaLca').value) || 0;
+  const acoes = parsePtBrFloat(document.getElementById('inputMetaAcoes').value) || 0;
+
+  appState.macroMetas = {
+    rfCdi,
+    rfIpcaLca,
+    acoes
+  };
+
+  appState.isDemo = false;
+  saveLocalState();
+  renderApp();
+  showToast('Metas de distribuição geral salvas com sucesso!', 'success');
+}
+
+function renderMacroRebalanceamentoSection(fin) {
+  const container = document.getElementById('macroRebalanceamentoContainer');
+  const alertMacroMetas = document.getElementById('alertMacroMetasTotal');
+
+  const inputCdi = document.getElementById('inputMetaRfCdi');
+  const inputIpca = document.getElementById('inputMetaRfIpcaLca');
+  const inputAcoes = document.getElementById('inputMetaAcoes');
+
+  if (inputCdi && document.activeElement !== inputCdi) inputCdi.value = fin.macroMetas.rfCdi;
+  if (inputIpca && document.activeElement !== inputIpca) inputIpca.value = fin.macroMetas.rfIpcaLca;
+  if (inputAcoes && document.activeElement !== inputAcoes) inputAcoes.value = fin.macroMetas.acoes;
+
+  if (alertMacroMetas) {
+    if (Math.abs(fin.totalMacroMetasPercent - 100) > 0.1) {
+      alertMacroMetas.style.display = 'block';
+      alertMacroMetas.style.color = '#fbbf24';
+      alertMacroMetas.innerHTML = `⚠️ A soma das metas gerais é <strong>${fin.totalMacroMetasPercent.toFixed(1)}%</strong> (Deveria somar 100%). Ajuste os valores acima.`;
+    } else {
+      alertMacroMetas.style.display = 'block';
+      alertMacroMetas.style.color = '#34d399';
+      alertMacroMetas.innerHTML = `✅ Soma das metas gerais equilibrada em 100%!`;
+    }
+  }
+
+  if (!container) return;
+
+  const macroClasses = [
+    {
+      id: 'rfCdi',
+      title: 'Renda Fixa Pós / CDI (RDB, CDB)',
+      icon: '🏦',
+      color: '#10b981',
+      totalAtual: fin.totalRfCdi,
+      pctAtual: fin.pctRfCdi,
+      metaPct: fin.macroMetas.rfCdi,
+      diffVal: fin.diffValRfCdi
+    },
+    {
+      id: 'rfIpcaLca',
+      title: 'IPCA / LCA / LCI (Inflação & Isenta)',
+      icon: '🌾',
+      color: '#3b82f6',
+      totalAtual: fin.totalRfIpcaLca,
+      pctAtual: fin.pctRfIpcaLca,
+      metaPct: fin.macroMetas.rfIpcaLca,
+      diffVal: fin.diffValRfIpcaLca
+    },
+    {
+      id: 'acoes',
+      title: 'Ações & Renda Variável',
+      icon: '📈',
+      color: '#f59e0b',
+      totalAtual: fin.totalAcoes,
+      pctAtual: fin.pctAcoesMacro,
+      metaPct: fin.macroMetas.acoes,
+      diffVal: fin.diffValAcoesMacro
+    }
+  ];
+
+  container.innerHTML = macroClasses.map(cls => {
+    const diffPct = cls.pctAtual - cls.metaPct;
+    let statusBadge = '';
+    let recomendacao = '';
+
+    if (diffPct < -1) {
+      statusBadge = `<span class="badge badge-success">Aporte Recomendado</span>`;
+      recomendacao = `Aportar <strong>${formatCurrency(Math.abs(cls.diffVal))}</strong> nesta classe para atingir a meta.`;
+    } else if (diffPct > 1) {
+      statusBadge = `<span class="badge badge-warning">Acima da Meta</span>`;
+      recomendacao = `Acima da meta em <strong>${formatCurrency(Math.abs(cls.diffVal))}</strong>.`;
+    } else {
+      statusBadge = `<span class="badge badge-info">Em Equilíbrio</span>`;
+      recomendacao = `Alocação macro em perfeito equilíbrio!`;
+    }
+
+    return `
+      <div class="card card-rebalance" style="border-left: 5px solid ${cls.color}; margin-bottom: 0;">
+        <div class="rebalance-header">
+          <div>
+            <h3 class="m-0" style="font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+              <span>${cls.icon}</span> ${cls.title}
+            </h3>
+            <div class="text-small text-muted mt-1">Valor Atual: <strong>${formatCurrency(cls.totalAtual)}</strong></div>
+          </div>
+          <div>${statusBadge}</div>
+        </div>
+
+        <div class="rebalance-bars mt-3">
+          <div class="bar-labels" style="font-size: 0.8rem;">
+            <span>Participação Atual: <strong>${cls.pctAtual.toFixed(1)}%</strong></span>
+            <span>Meta Geral: <strong>${cls.metaPct.toFixed(1)}%</strong></span>
+          </div>
+          <div class="progress-container mt-1">
+            <div class="progress-bar current" style="width: ${Math.min(cls.pctAtual, 100)}%; background: ${cls.color}"></div>
+            <div class="progress-marker" style="left: ${Math.min(cls.metaPct, 100)}%" title="Meta: ${cls.metaPct}%"></div>
+          </div>
+        </div>
+
+        <div class="rebalance-footer mt-3" style="font-size: 0.82rem;">
+          <span>💡 ${recomendacao}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderRebalanceamentoSection(fin) {
+  renderMacroRebalanceamentoSection(fin);
+
   const container = document.getElementById('rebalanceamentoContainer');
   const alertMetas = document.getElementById('alertMetasTotal');
   if (!container) return;
@@ -1542,7 +1720,7 @@ function renderRebalanceamentoSection(fin) {
   // Alerta da soma das metas
   if (Math.abs(fin.totalMetasPercent - 100) > 0.1) {
     alertMetas.style.display = 'flex';
-    alertMetas.innerHTML = `⚠️ <strong>Atenção:</strong> A soma das metas atuais é <strong>${fin.totalMetasPercent.toFixed(1)}%</strong> (Deveria somar 100%). Ajuste as metas nas ações para um rebalanceamento perfeito.`;
+    alertMetas.innerHTML = `⚠️ <strong>Atenção:</strong> A soma das metas atuais de ações é <strong>${fin.totalMetasPercent.toFixed(1)}%</strong> (Deveria somar 100%). Ajuste as metas nas ações para um rebalanceamento perfeito.`;
   } else {
     alertMetas.style.display = 'none';
   }
@@ -1762,10 +1940,11 @@ function generateAIPromptText() {
 Por favor, faça um diagnóstico completo, analise a saúde da minha carteira de investimentos e forneça recomendações práticas com base nos dados reais abaixo (data de referência: ${lastUpdate}):
 
 ---
-### 1. RESUMO PATRIMONIAL & ALOCAÇÃO
+### 1. RESUMO PATRIMONIAL & MACRO ALOCAÇÃO DE ATIVOS
 - **Patrimônio Total**: ${formatCurrency(fin.patrimonioTotal)}
-- **Renda Fixa Total**: ${formatCurrency(fin.totalRendaFixa)} (${fin.pctRendaFixa.toFixed(1)}%)
-- **Ações Total**: ${formatCurrency(fin.totalAcoes)} (${fin.pctAcoes.toFixed(1)}%)
+- **Renda Fixa Pós (RDB / CDI)**: ${formatCurrency(fin.totalRfCdi)} (${fin.pctRfCdi.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.rfCdi.toFixed(1)}%)
+- **IPCA / LCA / LCI (Inflação & Isenta)**: ${formatCurrency(fin.totalRfIpcaLca)} (${fin.pctRfIpcaLca.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.rfIpcaLca.toFixed(1)}%)
+- **Ações & Renda Variável**: ${formatCurrency(fin.totalAcoes)} (${fin.pctAcoesMacro.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.acoes.toFixed(1)}%)
 
 ### 2. HISTÓRICO DE DESEMPENHO E VARIAÇÃO
 - **Variação Mensal do Patrimônio**: ${formatDiffValText(fin.diffTotalMesVal)} (${formatDiffPctText(fin.diffTotalMesPct)})
@@ -1784,9 +1963,9 @@ ${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | 
 ---
 
 ### INSTRUÇÕES PARA A ANÁLISE:
-1. **Diagnóstico de Alocação e Diversificação**: Comente sobre a divisão entre Renda Fixa e Ações e a diversificação entre empresas/setores.
+1. **Diagnóstico de Alocação Macro**: Comente sobre a distribuição entre RDB/CDI, IPCA/LCA e Ações em relação às metas estipuladas.
 2. **Avaliação da Rentabilidade e Evolução**: Destaque pontos positivos e alertas na evolução patrimonial recente.
-3. **Plano de Rebalanceamento Inteligente**: Quais ações estão mais abaixo da meta cadastrada e deveriam ser priorizadas nos próximos aportes?
+3. **Plano de Rebalanceamento Inteligente**: Quais grandes classes e quais ações estão mais abaixo das metas cadastradas e deveriam ser priorizadas nos próximos aportes?
 4. **Análise de Risco & Recomendações Práticas**: Identifique possíveis pontos céticos ou riscos de concentração de forma clara e estruturada.`;
 
   return prompt;

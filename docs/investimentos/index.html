@@ -418,8 +418,48 @@
 
     <!-- ABA 5: REBALANCEAMENTO & METAS -->
     <section id="tab-rebalanceamento" class="tab-pane">
+      <!-- 1. META DE DISTRIBUIÇÃO GERAL (MACRO ALOCAÇÃO) -->
+      <div class="card mb-4">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
+          <div>
+            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+              <span>🌐</span> Meta de Distribuição Geral (Macro Alocação)
+            </h2>
+            <p class="text-muted text-small mb-0">Defina o % ideal do patrimônio total para cada classe macro (RDB/CDI, IPCA/LCA e Ações).</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+          <form id="formMacroMetas" onsubmit="handleSaveMacroMetasSubmit(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; align-items: end;">
+            <div>
+              <label class="form-label" style="font-size:0.78rem;">🏦 Renda Fixa (RDB / CDI) %</label>
+              <input type="text" inputmode="decimal" id="inputMetaRfCdi" class="form-control form-control-sm" placeholder="40" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-size:0.78rem;">🌾 IPCA / LCA / LCI %</label>
+              <input type="text" inputmode="decimal" id="inputMetaRfIpcaLca" class="form-control form-control-sm" placeholder="30" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-size:0.78rem;">📈 Ações & Renda Variável %</label>
+              <input type="text" inputmode="decimal" id="inputMetaAcoes" class="form-control form-control-sm" placeholder="30" required />
+            </div>
+            <div>
+              <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; height: 38px; justify-content: center;">
+                💾 Salvar Metas Gerais
+              </button>
+            </div>
+          </form>
+          <div id="alertMacroMetasTotal" class="mt-2" style="font-size: 0.8rem; font-weight: 600; display: none;"></div>
+        </div>
+
+        <div id="macroRebalanceamentoContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;"></div>
+      </div>
+
+      <!-- 2. REBALANCEAMENTO INDIVIDUAL POR AÇÃO -->
       <div class="card">
-        <div class="card-title">Plano de Rebalanceamento por Metas</div>
+        <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+          <span>📊</span> Rebalanceamento Individual por Ação (Micro Alocação)
+        </h2>
         <p class="text-muted text-small mb-3">Defina o % ideal para cada ação na carteira. O sistema calcula a diferença e indica a necessidade de aporte.</p>
         
         <div id="alertMetasTotal" class="card" style="display: none; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3);"></div>
@@ -740,7 +780,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=2.1.1"></script>
-  <script src="app.js?v=2.1.1"></script>
+  <script src="drive-sync.js?v=2.2.0"></script>
+  <script src="app.js?v=2.2.0"></script>
 </body>
 </html>
