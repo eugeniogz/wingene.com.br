@@ -163,9 +163,12 @@
             <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
               <span>🤖</span> Análise da Carteira com Inteligência Artificial
             </h2>
-            <p class="text-muted text-small mb-0">Gere um prompt otimizado com a foto da sua carteira para enviar ao Gemini, ChatGPT, Claude ou sua IA preferida.</p>
+            <p class="text-muted text-small mb-0">Gere um prompt otimizado com a foto da sua carteira para enviar ao Gemini, ChatGPT, Claude ou DeepSeek.</p>
           </div>
-          <button type="button" class="btn btn-primary" onclick="openAIPromptModal()">✨ Gerar Prompt para IA</button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" onclick="openAIPromptModal('initial')">✨ Prompt Análise Inicial</button>
+            <button type="button" class="btn btn-secondary" onclick="openAIPromptModal('continue')">💬 Continuar Conversa IA</button>
+          </div>
         </div>
       </div>
     </section>
@@ -534,7 +537,7 @@
 
   <!-- MODAL GERAR PROMPT DE DADOS PARA INTELIGÊNCIA ARTIFICIAL -->
   <div class="modal-backdrop" id="modalAIPromptBackdrop" style="display: none;" onclick="closeAIPromptModal()">
-    <div class="modal-card" style="max-width: 600px;" onclick="event.stopPropagation()">
+    <div class="modal-card" style="max-width: 620px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
           <span>🤖</span> Prompt de Dados da Carteira para IA
@@ -542,7 +545,17 @@
         <button type="button" class="modal-close" onclick="closeAIPromptModal()" aria-label="Fechar Modal">✕</button>
       </div>
       <div class="modal-body">
-        <p class="text-muted text-small mb-3">Copie o prompt estruturado com todas as cotações, patrimônio, percentuais e metas da sua carteira para colar no ChatGPT, Claude, Gemini ou DeepSeek:</p>
+        <!-- SELETOR DE MODO DE PROMPT IA -->
+        <div style="display: flex; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-light); border-radius: 8px; padding: 4px; margin-bottom: 14px; gap: 4px;">
+          <button type="button" id="btnAiTabInitial" class="btn btn-sm" style="flex: 1; justify-content: center; background: var(--color-primary); color: #ffffff;" onclick="switchAIPromptMode('initial')">
+            ✨ 1º Prompt (Análise Inicial)
+          </button>
+          <button type="button" id="btnAiTabContinue" class="btn btn-sm" style="flex: 1; justify-content: center; background: transparent; color: var(--text-muted);" onclick="switchAIPromptMode('continue')">
+            💬 Continuar Conversa (Follow-up)
+          </button>
+        </div>
+
+        <p id="aiPromptModalDesc" class="text-muted text-small mb-3">Copie o prompt estruturado com todas as cotações, patrimônio, percentuais e metas da sua carteira para colar no ChatGPT, Claude, Gemini ou DeepSeek:</p>
 
         <div class="form-group mb-3">
           <textarea id="aiPromptTextarea" class="form-control" rows="12" style="font-family: monospace; font-size: 0.82rem; line-height: 1.4; resize: vertical;"></textarea>
@@ -780,7 +793,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=2.2.0"></script>
-  <script src="app.js?v=2.2.0"></script>
+  <script src="drive-sync.js?v=2.3.0"></script>
+  <script src="app.js?v=2.3.0"></script>
 </body>
 </html>

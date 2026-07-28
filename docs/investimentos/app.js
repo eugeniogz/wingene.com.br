@@ -1971,13 +1971,63 @@ ${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | 
   return prompt;
 }
 
-function openAIPromptModal() {
-  const backdrop = document.getElementById('modalAIPromptBackdrop');
-  const textarea = document.getElementById('aiPromptTextarea');
-  if (!backdrop || !textarea) return;
+function generateAIContinuePromptText() {
+  const fin = calculateFinancials();
+  const lastUpdate = new Date().toLocaleDateString('pt-BR');
 
-  textarea.value = generateAIPromptText();
+  let prompt = `Estou atualizando nossa conversa com a posição e cotações mais recentes da minha carteira de investimentos (data de referência: ${lastUpdate}).
+
+---
+### 1. RESUMO PATRIMONIAL & MACRO ALOCAÇÃO ATUALIZADA
+- **Patrimônio Total**: ${formatCurrency(fin.patrimonioTotal)}
+- **Renda Fixa Pós (RDB / CDI)**: ${formatCurrency(fin.totalRfCdi)} (${fin.pctRfCdi.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.rfCdi.toFixed(1)}%)
+- **IPCA / LCA / LCI (Inflação & Isenta)**: ${formatCurrency(fin.totalRfIpcaLca)} (${fin.pctRfIpcaLca.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.rfIpcaLca.toFixed(1)}%)
+- **Ações & Renda Variável**: ${formatCurrency(fin.totalAcoes)} (${fin.pctAcoesMacro.toFixed(1)}% atual | Meta Geral: ${fin.macroMetas.acoes.toFixed(1)}%)
+
+### 2. POSIÇÃO DOS ATIVOS DE RENDA FIXA
+${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'}`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
+
+### 3. POSIÇÃO DA CARTEIRA DE AÇÕES & REBALANCEAMENTO
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual: ${ac.percentualAtual.toFixed(1)}% | Meta Configurada: ${ac.meta.toFixed(1)}%`).join('\n') || 'Nenhuma ação registrada.'}
+
+---
+
+### INSTRUÇÕES PARA A CONTINUAÇÃO DO NOSSO DIÁLOGO:
+1. Com base na nossa conversa prévia e nestes dados atualizados, quais ajustes pontuais você recomenda?
+2. Quais ativos ou grandes classes estão mais distantes das metas configuradas e deveriam receber o meu próximo aporte?
+3. Houve alguma alteração relevante na dinâmica ou concentração que exija atenção?`;
+
+  return prompt;
+}
+
+let currentAIPromptMode = 'initial';
+
+function openAIPromptModal(mode = 'initial') {
+  const backdrop = document.getElementById('modalAIPromptBackdrop');
+  if (!backdrop) return;
+
+  switchAIPromptMode(mode);
   backdrop.style.display = 'flex';
+}
+
+function switchAIPromptMode(mode) {
+  currentAIPromptMode = mode;
+  const btnInitial = document.getElementById('btnAiTabInitial');
+  const btnContinue = document.getElementById('btnAiTabContinue');
+  const textarea = document.getElementById('aiPromptTextarea');
+  const descEl = document.getElementById('aiPromptModalDesc');
+
+  if (mode === 'continue') {
+    if (btnInitial) { btnInitial.style.background = 'transparent'; btnInitial.style.color = 'var(--text-muted)'; }
+    if (btnContinue) { btnContinue.style.background = 'var(--color-primary)'; btnContinue.style.color = '#ffffff'; }
+    if (descEl) descEl.textContent = 'Copie este prompt curto de atualização para enviar na sua conversa já aberta com o ChatGPT, Claude, Gemini ou DeepSeek:';
+    if (textarea) textarea.value = generateAIContinuePromptText();
+  } else {
+    if (btnInitial) { btnInitial.style.background = 'var(--color-primary)'; btnInitial.style.color = '#ffffff'; }
+    if (btnContinue) { btnContinue.style.background = 'transparent'; btnContinue.style.color = 'var(--text-muted)'; }
+    if (descEl) descEl.textContent = 'Copie o prompt estruturado com todas as cotações, patrimônio, percentuais e metas da sua carteira para iniciar uma nova conversa no ChatGPT, Claude, Gemini ou DeepSeek:';
+    if (textarea) textarea.value = generateAIPromptText();
+  }
 }
 
 function closeAIPromptModal() {
