@@ -54,31 +54,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Registrar retorno do Google Drive com proteção contra sobreposição de dados de demonstração
   window.onDriveDataLoaded = (remoteData) => {
-    if (remoteData && (Array.isArray(remoteData.rendaFixa) || Array.isArray(remoteData.acoes))) {
-      const localTime = appState.isDemo ? 0 : new Date(appState.lastUpdated || 0).getTime();
-      const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+    if (!remoteData || (!Array.isArray(remoteData.rendaFixa) && !Array.isArray(remoteData.acoes))) return;
 
-      // Se for dado de demonstração local ou se o arquivo do Drive for mais recente, aceita os dados do Drive
-      if (appState.isDemo || remoteTime >= localTime || (!appState.rendaFixa.length && !appState.acoes.length)) {
-        appState = {
-          isDemo: false,
-          rendaFixa: remoteData.rendaFixa || [],
-          acoes: remoteData.acoes || [],
-          desktopPassword: remoteData.desktopPassword || appState.desktopPassword || '',
-          lastUpdated: remoteData.lastUpdated || new Date().toISOString()
-        };
-        sanitizeAppState();
-        saveLocalState(false);
-        checkDesktopLockState();
-        renderApp();
-        showToast('Dados sincronizados com o Google Drive!', 'success');
+    const localTime = appState.isDemo ? 0 : new Date(appState.lastUpdated || 0).getTime();
+    const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+
+    // 1. Se for dados de demonstração ou se os dados do Drive forem mais recentes ou iguais
+    if (appState.isDemo || remoteTime >= localTime || (!appState.rendaFixa.length && !appState.acoes.length)) {
+      applyRemoteData(remoteData);
+      showToast('Dados sincronizados com o Google Drive!', 'success');
+    } else {
+      // 2. Se localTime > remoteTime, verificar se há real divergência
+      const localStr = JSON.stringify({ r: appState.rendaFixa, a: appState.acoes });
+      const remoteStr = JSON.stringify({ r: remoteData.rendaFixa || [], a: remoteData.acoes || [] });
+
+      if (localStr === remoteStr) {
+        applyRemoteData(remoteData);
       } else {
-        console.log('Dados reais locais mais recentes detectados. Enviando atualização para o Google Drive...');
-        saveToDrive(appState);
+        pendingRemoteData = remoteData;
+        showSyncConflictModal(remoteData);
       }
     }
   };
 });
+
+let pendingRemoteData = null;
+
+function applyRemoteData(remoteData) {
+  appState = {
+    isDemo: false,
+    rendaFixa: remoteData.rendaFixa || [],
+    acoes: remoteData.acoes || [],
+    macroMetas: remoteData.macroMetas || appState.macroMetas,
+    desktopPassword: remoteData.desktopPassword || appState.desktopPassword || '',
+    lastUpdated: remoteData.lastUpdated || new Date().toISOString()
+  };
+  sanitizeAppState();
+  saveLocalState(false, false);
+  checkDesktopLockState();
+  renderApp();
+}
+
+function showSyncConflictModal(remoteData) {
+  const modal = document.getElementById('modalSyncConflictBackdrop');
+  const remoteInfo = document.getElementById('syncConflictRemoteInfo');
+  const localInfo = document.getElementById('syncConflictLocalInfo');
+
+  if (remoteInfo) {
+    const rDate = remoteData.lastUpdated ? new Date(remoteData.lastUpdated).toLocaleString('pt-BR') : 'Desconhecida';
+    const rItems = (remoteData.rendaFixa ? remoteData.rendaFixa.length : 0) + (remoteData.acoes ? remoteData.acoes.length : 0);
+    remoteInfo.textContent = `Nuvem: ${rDate} (${rItems} ativos registrados)`;
+  }
+
+  if (localInfo) {
+    const lDate = appState.lastUpdated ? new Date(appState.lastUpdated).toLocaleString('pt-BR') : 'Desconhecida';
+    const lItems = (appState.rendaFixa ? appState.rendaFixa.length : 0) + (appState.acoes ? appState.acoes.length : 0);
+    localInfo.textContent = `Aparelho: ${lDate} (${lItems} ativos registrados)`;
+  }
+
+  if (modal) modal.style.display = 'flex';
+}
+
+function resolveSyncConflict(choice) {
+  const modal = document.getElementById('modalSyncConflictBackdrop');
+  if (modal) modal.style.display = 'none';
+
+  if (choice === 'remote' && pendingRemoteData) {
+    applyRemoteData(pendingRemoteData);
+    showToast('Dados do Google Drive aplicados com sucesso!', 'success');
+  } else if (choice === 'local') {
+    saveLocalState(true, true);
+    showToast('Dados locais mantidos e enviados ao Google Drive!', 'info');
+  }
+  pendingRemoteData = null;
+}
 
 function sanitizeAppState() {
   if (!appState) return;
@@ -109,8 +158,8 @@ function loadLocalState() {
     appState = {
       isDemo: true,
       rendaFixa: [
-        { id: 'rf-1', tipo: 'Tesouro Direto', emissor: 'Tesouro Nacional', nome: 'Tesouro IPCA+ 2035', valor: 15000, valorMesAnterior: 14750, valorAnoAnterior: 13800, taxa: 'IPCA + 6.1%', data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, valorMesAnterior: 8420, valorAnoAnterior: 7750, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
+        { id: 'rf-1', tipo: 'Tesouro Direto', emissor: 'Tesouro Nacional', nome: 'Tesouro IPCA+ 2035', valor: 15000, rendimento12m: 1200, taxa: 'IPCA + 6.1%', data: new Date().toLocaleDateString('pt-BR') },
+        { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, rendimento12m: 750, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
       ],
       acoes: [
         { id: 'ac-1', ticker: 'PETR4', nome: 'Petrobras PN', quantidade: 200, preco: 38.50, precoMesAnterior: 36.80, precoAnoAnterior: 32.10, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
@@ -120,12 +169,12 @@ function loadLocalState() {
       ],
       lastUpdated: 0
     };
-    saveLocalState(false);
+    saveLocalState(false, false);
   }
 }
 
-function saveLocalState(syncDrive = true) {
-  if (!appState.isDemo) {
+function saveLocalState(syncDrive = true, isUserMutation = false) {
+  if (!appState.isDemo && isUserMutation) {
     appState.lastUpdated = new Date().toISOString();
   }
   localStorage.setItem('wingene_investimentos_state', JSON.stringify(appState));
@@ -908,7 +957,7 @@ function handleAddRfModalSubmit(e) {
 
   closeAddRfModal();
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast('Ativo de Renda Fixa adicionado!', 'success');
 }
@@ -1059,7 +1108,7 @@ function handleEditRfModalSubmit(e) {
 
   closeEditRfModal();
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast('Ativo de Renda Fixa atualizado!', 'success');
 }
@@ -1113,7 +1162,7 @@ function saveRfInline(id) {
 
   editingRfId = null;
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast('Renda Fixa atualizada!', 'success');
 }
@@ -1122,7 +1171,7 @@ function deleteRendaFixa(id) {
   if (confirm('Deseja realmente remover este ativo de Renda Fixa?')) {
     appState.rendaFixa = appState.rendaFixa.filter(r => r.id !== id);
     if (editingRfId === id) editingRfId = null;
-    saveLocalState();
+    saveLocalState(true, true);
     renderApp();
     showToast('Ativo removido.', 'info');
   }
@@ -1176,7 +1225,7 @@ function handleAddAcaoModalSubmit(e) {
 
   closeAddAcaoModal();
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast(`Ação ${ticker} adicionada!`, 'success');
 }
@@ -1245,7 +1294,7 @@ function handleAddAcaoModalSubmit(e) {
 
   closeAddAcaoModal();
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast(`Ação ${ticker} adicionada com sucesso!`, 'success');
 }
@@ -1447,7 +1496,7 @@ function handleEditAcaoModalSubmit(e) {
 
   closeEditAcaoModal();
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast(`Ação ${ticker} atualizada com sucesso!`, 'success');
 }
@@ -1502,7 +1551,7 @@ function saveAcaoInline(id) {
 
   editingAcaoId = null;
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast(`Ação ${ticker} atualizada!`, 'success');
 }
@@ -1511,7 +1560,7 @@ function deleteAcao(id) {
   if (confirm('Deseja realmente remover esta ação da carteira?')) {
     appState.acoes = appState.acoes.filter(a => a.id !== id);
     if (editingAcaoId === id) editingAcaoId = null;
-    saveLocalState();
+    saveLocalState(true, true);
     renderApp();
     showToast('Ação removida.', 'info');
   }
@@ -1606,7 +1655,7 @@ function handleSaveMacroMetasSubmit(e) {
   };
 
   appState.isDemo = false;
-  saveLocalState();
+  saveLocalState(true, true);
   renderApp();
   showToast('Metas de distribuição geral salvas com sucesso!', 'success');
 }
@@ -1835,7 +1884,7 @@ function importJsonBackup(e) {
           acoes: imported.acoes || [],
           lastUpdated: new Date().toISOString()
         };
-        saveLocalState();
+        saveLocalState(true, true);
         renderApp();
         showToast('Backup JSON importado e aplicado com sucesso!', 'success');
       } else {
@@ -2372,7 +2421,7 @@ async function triggerB3Sync(force = false) {
     });
 
     saveB3QuotesCache(cache);
-    saveLocalState();
+    saveLocalState(false, false);
     renderApp();
 
     if (updatedCount > 0) {
@@ -2856,7 +2905,7 @@ function saveDesktopPasswordSetting() {
   if (!pwdInput) return;
   const newPwd = pwdInput.value.trim();
   appState.desktopPassword = newPwd;
-  saveLocalState();
+  saveLocalState(true, true);
   if (newPwd) {
     sessionStorage.setItem('winvest_desktop_unlocked', 'true');
     showToast('Senha de proteção desktop salva com sucesso!', 'success');

@@ -534,6 +534,33 @@
     </div>
   </div>
 
+  <!-- MODAL RESOLUÇÃO DE CONFLITO DE SINCRONIZAÇÃO DRIVE -->
+  <div class="modal-backdrop" id="modalSyncConflictBackdrop" style="display: none; z-index: 99999;">
+    <div class="modal-card" style="max-width: 520px; text-align: center; border: 1px solid rgba(245, 158, 11, 0.4); padding: 28px 24px;" onclick="event.stopPropagation()">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;">🔄</div>
+      <h2 style="font-size: 1.25rem; font-weight: 800; color: #ffffff; margin-bottom: 8px;">Diferença de Dados Detectada</h2>
+      <p class="text-muted text-small mb-4">
+        Ao conectar ao Google Drive, identificamos uma diferença entre os dados salvos na nuvem e os dados salvos neste aparelho. Qual versão deseja manter?
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 10px; padding: 14px; text-align: left; cursor: pointer; transition: all 0.2s;" onclick="resolveSyncConflict('remote')">
+          <div style="font-weight: 700; color: #34d399; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+            <span>☁️</span> Usar Dados do Google Drive (Recomendado)
+          </div>
+          <div style="font-size: 0.8rem; color: #d1d5db; margin-top: 4px;" id="syncConflictRemoteInfo">Data da nuvem: -</div>
+        </div>
+
+        <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 14px; text-align: left; cursor: pointer; transition: all 0.2s;" onclick="resolveSyncConflict('local')">
+          <div style="font-weight: 700; color: #60a5fa; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+            <span>📱</span> Usar Dados deste Aparelho Local
+          </div>
+          <div style="font-size: 0.8rem; color: #d1d5db; margin-top: 4px;" id="syncConflictLocalInfo">Data local: -</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL GERAR PROMPT DE DADOS PARA INTELIGÊNCIA ARTIFICIAL -->
   <div class="modal-backdrop" id="modalAIPromptBackdrop" style="display: none;" onclick="closeAIPromptModal()">
     <div class="modal-card" style="max-width: 620px;" onclick="event.stopPropagation()">
@@ -792,7 +819,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=2.5.0"></script>
-  <script src="app.js?v=2.5.0"></script>
+  <script src="drive-sync.js?v=2.6.0"></script>
+  <script src="app.js?v=2.6.0"></script>
 </body>
 </html>
