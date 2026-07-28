@@ -860,6 +860,7 @@ function openAddRfModal() {
   document.getElementById('modalRfNome').value = '';
   document.getElementById('modalRfTaxa').value = '';
   document.getElementById('modalRfValor').value = '';
+  if (document.getElementById('modalRfRendimento12m')) document.getElementById('modalRfRendimento12m').value = '';
   backdrop.style.display = 'flex';
 }
 
@@ -869,12 +870,18 @@ function closeAddRfModal() {
 }
 
 function handleAddRfModalSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const tipo = document.getElementById('modalRfTipo').value;
   const emissor = document.getElementById('modalRfEmissor').value.trim();
   const nome = document.getElementById('modalRfNome').value.trim();
   const taxa = document.getElementById('modalRfTaxa').value.trim();
-  const valor = parseFloat(document.getElementById('modalRfValor').value);
+  const valorInput = document.getElementById('modalRfValor').value;
+  const rend12mInput = document.getElementById('modalRfRendimento12m') ? document.getElementById('modalRfRendimento12m').value : '';
+
+  const valor = parsePtBrFloat(valorInput);
+  const rend12m = rend12mInput !== '' ? parsePtBrFloat(rend12mInput) : 0;
+  const rend1m = rend12m / 12;
+
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
   if (!emissor || !nome || isNaN(valor)) {
@@ -889,8 +896,10 @@ function handleAddRfModalSubmit(e) {
     nome,
     taxa,
     valor,
-    valorMesAnterior: valor,
-    valorAnoAnterior: valor,
+    rendimento12m: isNaN(rend12m) ? 0 : rend12m,
+    rendimento1m: isNaN(rend1m) ? 0 : rend1m,
+    valorMesAnterior: valor - (isNaN(rend1m) ? 0 : rend1m),
+    valorAnoAnterior: valor - (isNaN(rend12m) ? 0 : rend12m),
     data: currentDate,
     historico: [
       { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), valor: valor }
@@ -909,7 +918,7 @@ function renderRendaFixaTable(fin) {
   if (!tbody) return;
 
   if (fin.rendaFixa.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhum ativo de Renda Fixa cadastrado ainda.</td></tr>`;
     return;
   }
 
@@ -920,8 +929,7 @@ function renderRendaFixaTable(fin) {
       <td><strong>${escapeHtml(item.emissor)}</strong></td>
       <td>${escapeHtml(item.nome)}</td>
       <td>${item.taxa ? `<span class="taxa-tag">${escapeHtml(item.taxa)}</span>` : '<span class="text-muted">-</span>'}</td>
-      <td class="text-right text-muted">${formatCurrency(item.valorMesAnt)}</td>
-      <td class="text-right text-muted">${formatCurrency(item.valorAnoAnt)}</td>
+      <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
       <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
       <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
       <td class="text-center" onclick="event.stopPropagation()">
@@ -933,7 +941,7 @@ function renderRendaFixaTable(fin) {
 
     <!-- MOBILE ROW (CARD COMPLETO) -->
     <tr class="col-mobile-row">
-      <td colspan="9" style="padding: 0 0 10px 0 !important; border: none;">
+      <td colspan="8" style="padding: 0 0 10px 0 !important; border: none;">
         <div class="mobile-asset-card clickable-row" onclick="openEditRfModal('${item.id}')">
           <div class="mobile-card-header">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
@@ -950,18 +958,14 @@ function renderRendaFixaTable(fin) {
 
           <div class="mobile-card-title">${escapeHtml(item.nome)}</div>
 
-          <div class="mobile-financial-grid">
+          <div class="mobile-financial-grid" style="grid-template-columns: repeat(3, 1fr);">
             <div class="mobile-stat-box highlight">
               <span class="mobile-stat-label">Valor Atual</span>
               <strong class="mobile-stat-val text-success">${formatCurrency(item.valorAtual)}</strong>
             </div>
             <div class="mobile-stat-box">
-              <span class="mobile-stat-label">Val. Mês Ant.</span>
-              <span class="mobile-stat-val text-muted">${formatCurrency(item.valorMesAnt)}</span>
-            </div>
-            <div class="mobile-stat-box">
-              <span class="mobile-stat-label">Val. Ano Ant.</span>
-              <span class="mobile-stat-val text-muted">${formatCurrency(item.valorAnoAnt)}</span>
+              <span class="mobile-stat-label">Rend. 12M</span>
+              <span class="mobile-stat-val text-muted">${formatDiffVal(item.diffAnoVal)}</span>
             </div>
             <div class="mobile-stat-box">
               <span class="mobile-stat-label">Atualizado em</span>
@@ -979,14 +983,16 @@ function renderRendaFixaTable(fin) {
 function openEditRfModal(id) {
   const item = appState.rendaFixa.find(r => r.id === id);
   if (!item) return;
+
+  const currentR12m = item.rendimento12m !== undefined ? item.rendimento12m : (item.valorAnoAnterior !== undefined ? (item.valor - item.valorAnoAnterior) : 0);
+
   document.getElementById('editModalRfId').value = item.id;
   document.getElementById('editModalRfTipo').value = item.tipo;
   document.getElementById('editModalRfEmissor').value = item.emissor || '';
   document.getElementById('editModalRfNome').value = item.nome || '';
   document.getElementById('editModalRfTaxa').value = item.taxa || '';
-  document.getElementById('editModalRfValMes').value = item.valorMesAnterior !== undefined ? item.valorMesAnterior : item.valor;
-  document.getElementById('editModalRfValAno').value = item.valorAnoAnterior !== undefined ? item.valorAnoAnterior : item.valor;
   document.getElementById('editModalRfValor').value = item.valor;
+  if (document.getElementById('editModalRfRendimento12m')) document.getElementById('editModalRfRendimento12m').value = currentR12m;
   document.getElementById('modalEditRfBackdrop').style.display = 'flex';
 }
 
@@ -1023,13 +1029,12 @@ function handleEditRfModalSubmit(e) {
   const emissor = document.getElementById('editModalRfEmissor').value.trim();
   const nome = document.getElementById('editModalRfNome').value.trim();
   const taxa = document.getElementById('editModalRfTaxa').value.trim();
-  const valMesInput = document.getElementById('editModalRfValMes').value;
-  const valAnoInput = document.getElementById('editModalRfValAno').value;
   const valAtualInput = document.getElementById('editModalRfValor').value;
+  const rend12mInput = document.getElementById('editModalRfRendimento12m') ? document.getElementById('editModalRfRendimento12m').value : '';
 
   const valor = parsePtBrFloat(valAtualInput);
-  const valMes = valMesInput !== '' ? parsePtBrFloat(valMesInput) : valor;
-  const valAno = valAnoInput !== '' ? parsePtBrFloat(valAnoInput) : valor;
+  const rend12m = rend12mInput !== '' ? parsePtBrFloat(rend12mInput) : 0;
+  const rend1m = rend12m / 12;
 
   if (!emissor || !nome || isNaN(valor)) {
     closeEditRfModal();
@@ -1046,8 +1051,10 @@ function handleEditRfModalSubmit(e) {
   item.emissor = emissor;
   item.nome = nome;
   item.taxa = taxa;
-  item.valorMesAnterior = isNaN(valMes) ? item.valor : valMes;
-  item.valorAnoAnterior = isNaN(valAno) ? item.valor : valAno;
+  item.rendimento12m = isNaN(rend12m) ? 0 : rend12m;
+  item.rendimento1m = isNaN(rend1m) ? 0 : rend1m;
+  item.valorMesAnterior = valor - (isNaN(rend1m) ? 0 : rend1m);
+  item.valorAnoAnterior = valor - (isNaN(rend12m) ? 0 : rend12m);
   item.data = new Date().toLocaleDateString('pt-BR');
 
   closeEditRfModal();

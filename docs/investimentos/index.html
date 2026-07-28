@@ -346,8 +346,7 @@
                 <th>Emissor / Corretora</th>
                 <th>Nome do Ativo</th>
                 <th>Taxa</th>
-                <th class="text-right">Val. Mês Ant.</th>
-                <th class="text-right">Val. Ano Ant.</th>
+                <th class="text-right">Rend. 12M</th>
                 <th class="text-right">Valor Atual (R$)</th>
                 <th class="text-right">Data</th>
                 <th class="text-center">Ações</th>
@@ -607,9 +606,13 @@
             <label class="form-label">Taxa / Rendimento</label>
             <input type="text" id="modalRfTaxa" class="form-control" placeholder="ex: 100% CDI ou IPCA + 6.1%" />
           </div>
+          <div class="form-group mb-3">
+            <label class="form-label">Valor Aplicado / Atual (R$) *</label>
+            <input type="text" inputmode="decimal" id="modalRfValor" class="form-control" placeholder="ex: 15.000,00" required />
+          </div>
           <div class="form-group mb-0">
-            <label class="form-label">Valor Atual Investido (R$) *</label>
-            <input type="text" inputmode="decimal" id="modalRfValor" class="form-control" placeholder="0,00" required />
+            <label class="form-label">Rendimento em 12 Meses (R$)</label>
+            <input type="text" inputmode="decimal" id="modalRfRendimento12m" class="form-control" placeholder="ex: 1.500,00 ou -200,00" />
           </div>
         </div>
         <div class="modal-footer">
@@ -696,16 +699,12 @@
             <input type="text" id="editModalRfTaxa" class="form-control" />
           </div>
           <div class="form-group mb-3">
-            <label class="form-label">Valor Mês Anterior (R$)</label>
-            <input type="text" inputmode="decimal" id="editModalRfValMes" class="form-control" />
-          </div>
-          <div class="form-group mb-3">
-            <label class="form-label">Valor Ano Anterior (R$)</label>
-            <input type="text" inputmode="decimal" id="editModalRfValAno" class="form-control" />
+            <label class="form-label">Valor Aplicado / Atual (R$) *</label>
+            <input type="text" inputmode="decimal" id="editModalRfValor" class="form-control" required />
           </div>
           <div class="form-group mb-0">
-            <label class="form-label">Valor Atual (R$) *</label>
-            <input type="text" inputmode="decimal" id="editModalRfValor" class="form-control" required />
+            <label class="form-label">Rendimento em 12 Meses (R$)</label>
+            <input type="text" inputmode="decimal" id="editModalRfRendimento12m" class="form-control" placeholder="ex: 1.500,00 ou -200,00" />
           </div>
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
@@ -793,7 +792,7 @@
   </div>
 
   <!-- Scripts da Aplicação -->
-  <script src="drive-sync.js?v=2.3.0"></script>
-  <script src="app.js?v=2.3.0"></script>
+  <script src="drive-sync.js?v=2.5.0"></script>
+  <script src="app.js?v=2.5.0"></script>
 </body>
 </html>
