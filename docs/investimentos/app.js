@@ -1793,7 +1793,7 @@ ${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | 
 }
 
 function openAIPromptModal() {
-  const backdrop = document.getElementById('aiPromptModalBackdrop');
+  const backdrop = document.getElementById('modalAIPromptBackdrop');
   const textarea = document.getElementById('aiPromptTextarea');
   if (!backdrop || !textarea) return;
 
@@ -1802,7 +1802,7 @@ function openAIPromptModal() {
 }
 
 function closeAIPromptModal() {
-  const backdrop = document.getElementById('aiPromptModalBackdrop');
+  const backdrop = document.getElementById('modalAIPromptBackdrop');
   if (backdrop) backdrop.style.display = 'none';
 }
 
