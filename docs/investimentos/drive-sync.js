@@ -1,6 +1,7 @@
 /**
  * Module para Integração com Google Identity Services (GIS) e Google Drive API v3
  * Permite autenticação do usuário e salvamento privado dos dados em appDataFolder ou Drive do usuário.
+ * Inclui renovação automática e transparente de token sem desconectar o usuário.
  */
 
 const DRIVE_CONFIG = {
@@ -12,8 +13,94 @@ const DRIVE_CONFIG = {
 
 let tokenClient = null;
 let accessToken = localStorage.getItem('wingene_drive_access_token') || null;
+let tokenExpiresAt = parseInt(localStorage.getItem('wingene_drive_token_expires_at') || '0', 10);
 let googleUser = JSON.parse(localStorage.getItem('wingene_drive_user') || 'null');
 let driveFileId = localStorage.getItem('wingene_drive_file_id') || null;
+let refreshPromise = null;
+
+/**
+ * Tenta renovar o token de acesso silenciosamente em segundo plano sem abrir pop-ups
+ */
+function silentRefreshToken() {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = new Promise((resolve) => {
+    if (!tokenClient) {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+        initGoogleAuth();
+      }
+    }
+
+    if (!tokenClient) {
+      refreshPromise = null;
+      resolve(false);
+      return;
+    }
+
+    const originalCallback = tokenClient.callback;
+    const originalErrorCallback = tokenClient.error_callback;
+
+    const cleanup = () => {
+      if (tokenClient) {
+        tokenClient.callback = originalCallback;
+        tokenClient.error_callback = originalErrorCallback;
+      }
+      refreshPromise = null;
+    };
+
+    tokenClient.callback = async (tokenResponse) => {
+      if (tokenResponse.error) {
+        console.warn('Renovação silenciosa do token falhou:', tokenResponse.error);
+        cleanup();
+        resolve(false);
+        return;
+      }
+      accessToken = tokenResponse.access_token;
+      const expiresIn = parseInt(tokenResponse.expires_in || '3600', 10);
+      tokenExpiresAt = Date.now() + Math.max(expiresIn - 300, 60) * 1000;
+
+      localStorage.setItem('wingene_drive_access_token', accessToken);
+      localStorage.setItem('wingene_drive_token_expires_at', tokenExpiresAt.toString());
+
+      cleanup();
+      await fetchGoogleUserInfo(true);
+      updateDriveUIStatus(`Conectado como ${googleUser ? (googleUser.name || googleUser.email) : 'Google Drive'}`);
+      resolve(true);
+    };
+
+    tokenClient.error_callback = (error) => {
+      console.warn('GIS Error em renovação silenciosa:', error);
+      cleanup();
+      resolve(false);
+    };
+
+    try {
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (err) {
+      console.warn('Exceção ao solicitar token silencioso:', err);
+      cleanup();
+      resolve(false);
+    }
+  });
+
+  return refreshPromise;
+}
+
+/**
+ * Garante um token de acesso válido antes de qualquer requisição à API do Drive.
+ * Se o token estiver prestes a expirar ou já expirado, tenta renová-lo silenciosamente.
+ */
+async function ensureValidAccessToken() {
+  if (!accessToken || Date.now() >= tokenExpiresAt) {
+    if (googleUser || localStorage.getItem('wingene_drive_user') || accessToken) {
+      console.log('Token de acesso expirado ou ausente. Renovando silenciosamente...');
+      const ok = await silentRefreshToken();
+      if (ok) return accessToken;
+    }
+    return accessToken && Date.now() < tokenExpiresAt ? accessToken : null;
+  }
+  return accessToken;
+}
 
 /**
  * Inicializa o token client do Google Identity Services
@@ -48,12 +135,16 @@ function initGoogleAuth(clientId = null) {
         return;
       }
       accessToken = tokenResponse.access_token;
+      const expiresIn = parseInt(tokenResponse.expires_in || '3600', 10);
+      tokenExpiresAt = Date.now() + Math.max(expiresIn - 300, 60) * 1000;
+
       localStorage.setItem('wingene_drive_access_token', accessToken);
-      
+      localStorage.setItem('wingene_drive_token_expires_at', tokenExpiresAt.toString());
+
       // Obter dados do usuário
       await fetchGoogleUserInfo();
       updateDriveUIStatus(`Conectado como ${googleUser ? (googleUser.name || googleUser.email) : 'Google Drive'}`);
-      
+
       // Tentar carregar dados salvos no Drive automaticamente
       await syncFromDrive();
     },
@@ -70,9 +161,19 @@ function initGoogleAuth(clientId = null) {
     }
   });
 
-  if (accessToken) {
-    updateDriveUIStatus(`Sessão Google ativa`);
-    fetchGoogleUserInfo();
+  // Se já temos registro de login prévio, assegura a renovação automática caso o token tenha expirado
+  if (accessToken || googleUser) {
+    if (Date.now() >= tokenExpiresAt || !accessToken) {
+      silentRefreshToken().then(refreshed => {
+        if (!refreshed && accessToken) {
+          updateDriveUIStatus(`Sessão Google ativa`);
+          fetchGoogleUserInfo();
+        }
+      });
+    } else {
+      updateDriveUIStatus(`Sessão Google ativa`);
+      fetchGoogleUserInfo();
+    }
   }
 }
 
@@ -93,7 +194,6 @@ function requestGoogleLogin() {
   }
 
   if (tokenClient) {
-    // Usar prompt: '' no mobile para evitar exigir consentimento forçado a cada login (evita tela branca em PWAs/Safari Mobile)
     tokenClient.requestAccessToken({ prompt: '' });
   } else {
     initGoogleAuth();
@@ -104,19 +204,20 @@ function requestGoogleLogin() {
 /**
  * Busca perfil básico do usuário via UserInfo API
  */
-async function fetchGoogleUserInfo() {
-  if (!accessToken) return;
+async function fetchGoogleUserInfo(isRetry = false) {
+  const token = accessToken || await ensureValidAccessToken();
+  if (!token) return;
   try {
     const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
       googleUser = await res.json();
       localStorage.setItem('wingene_drive_user', JSON.stringify(googleUser));
       renderUserProfileUI();
+    } else if (res.status === 401 && !isRetry) {
+      await handleGoogleAuthError(401, () => fetchGoogleUserInfo(true));
     } else {
-      if (handleGoogleAuthError(res.status)) return;
-      // Se não tiver permissão para o perfil, mantém o login no Drive silenciosamente
       googleUser = null;
       localStorage.removeItem('wingene_drive_user');
       renderUserProfileUI();
@@ -130,23 +231,23 @@ async function fetchGoogleUserInfo() {
 /**
  * Procura o arquivo de dados na pasta appDataFolder ou raiz do Google Drive
  */
-async function findDriveFile() {
-  if (!accessToken) return null;
-  
+async function findDriveFile(isRetry = false) {
+  const token = await ensureValidAccessToken();
+  if (!token) return null;
+
   try {
-    // Procura na pasta reservada appDataFolder primeiro
     const q = `name = '${DRIVE_CONFIG.FILE_NAME}' and trashed = false`;
     let url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=appDataFolder,drive&fields=files(id, name, modifiedTime)`;
-    
+
     let res = await fetch(url, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
-    
+
     if (res.status === 403) {
       console.warn('Escopo appDataFolder negado (403). Tentando buscar na pasta principal do Drive...');
       url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id, name, modifiedTime)`;
       res = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
     }
 
@@ -157,8 +258,8 @@ async function findDriveFile() {
         localStorage.setItem('wingene_drive_file_id', driveFileId);
         return driveFileId;
       }
-    } else if (handleGoogleAuthError(res.status)) {
-      return null;
+    } else if (res.status === 401 && !isRetry) {
+      return await handleGoogleAuthError(401, () => findDriveFile(true));
     } else if (res.status === 403) {
       showToast('Erro 403: Ative a "Google Drive API" no Google Cloud Console.', 'error');
     }
@@ -171,13 +272,14 @@ async function findDriveFile() {
 /**
  * Baixa e sincroniza dados do Google Drive para a aplicação
  */
-async function syncFromDrive() {
-  if (!accessToken) return false;
+async function syncFromDrive(isRetry = false) {
+  const token = await ensureValidAccessToken();
+  if (!token) return false;
 
   try {
     updateDriveUIStatus('Sincronizando do Drive...');
     const fileId = driveFileId || await findDriveFile();
-    
+
     if (!fileId) {
       console.log('Nenhum arquivo prévio encontrado no Google Drive. Um novo será criado no próximo salvamento.');
       updateDriveUIStatus('Conectado (Novo arquivo no Drive)');
@@ -185,7 +287,7 @@ async function syncFromDrive() {
     }
 
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (res.ok) {
@@ -195,8 +297,8 @@ async function syncFromDrive() {
       }
       updateDriveUIStatus('Dados sincronizados com sucesso!', false, true);
       return true;
-    } else if (handleGoogleAuthError(res.status)) {
-      return false;
+    } else if (res.status === 401 && !isRetry) {
+      return await handleGoogleAuthError(401, () => syncFromDrive(true));
     } else if (res.status === 403) {
       updateDriveUIStatus('Erro 403: Acesso ao Drive Negado', true);
       showToast('Erro 403: Certifique-se de que a Google Drive API está ATIVADA no Google Cloud Console.', 'error');
@@ -211,8 +313,9 @@ async function syncFromDrive() {
 /**
  * Salva os dados atuais no Google Drive
  */
-async function saveToDrive(appData) {
-  if (!accessToken) {
+async function saveToDrive(appData, isRetry = false) {
+  const token = await ensureValidAccessToken();
+  if (!token) {
     updateDriveUIStatus('Salvo localmente (Offline)');
     return false;
   }
@@ -223,12 +326,11 @@ async function saveToDrive(appData) {
     const fileContent = JSON.stringify(appData, null, 2);
 
     if (fileId) {
-      // Atualiza arquivo existente
       const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`;
       const res = await fetch(uploadUrl, {
         method: 'PATCH',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: fileContent
@@ -237,14 +339,13 @@ async function saveToDrive(appData) {
       if (res.ok) {
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
-      } else if (handleGoogleAuthError(res.status)) {
-        return false;
+      } else if (res.status === 401 && !isRetry) {
+        return await handleGoogleAuthError(401, () => saveToDrive(appData, true));
       } else if (res.status === 403) {
         updateDriveUIStatus('Erro 403 no Drive', true);
         showToast('Erro 403: Ative a Google Drive API no Cloud Console.', 'error');
       }
     } else {
-      // Tentar criar novo arquivo na pasta appDataFolder primeiro, com fallback para o Drive principal
       let metadata = {
         name: DRIVE_CONFIG.FILE_NAME,
         parents: ['appDataFolder']
@@ -256,11 +357,10 @@ async function saveToDrive(appData) {
 
       let res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: form
       });
 
-      // Se appDataFolder der 403 Forbidden, tentar salvar na raiz do Drive do usuário
       if (res.status === 403) {
         console.warn('Criar em appDataFolder deu 403. Tentando criar na pasta raiz do Google Drive...');
         metadata = { name: DRIVE_CONFIG.FILE_NAME };
@@ -270,7 +370,7 @@ async function saveToDrive(appData) {
 
         res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: form
         });
       }
@@ -281,8 +381,8 @@ async function saveToDrive(appData) {
         localStorage.setItem('wingene_drive_file_id', driveFileId);
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
-      } else if (handleGoogleAuthError(res.status)) {
-        return false;
+      } else if (res.status === 401 && !isRetry) {
+        return await handleGoogleAuthError(401, () => saveToDrive(appData, true));
       } else if (res.status === 403) {
         updateDriveUIStatus('Erro 403 (Permissão do Drive)', true);
         showToast('Erro 403: Acesse o Google Cloud Console e ative a "Google Drive API" no projeto.', 'error');
@@ -296,19 +396,30 @@ async function saveToDrive(appData) {
 }
 
 /**
- *Trata erro 401 (Token Expirado) limpando a sessão e avisando o usuário
+ * Trata erro 401 (Token Expirado).
+ * Tenta renovação silenciosa primeiro e executa retryFn se fornecida.
+ * Apenas se a renovação silenciosa falhar é que limpa a sessão.
  */
-function handleGoogleAuthError(status) {
+async function handleGoogleAuthError(status, retryFn = null) {
   if (status === 401) {
-    console.warn('Token de acesso Google expirou (401). Limpando sessão...');
+    console.warn('Resposta 401 recebida do Google. Tentando renovação silenciosa...');
+    const renewed = await silentRefreshToken();
+    if (renewed && typeof retryFn === 'function') {
+      console.log('Token renovado com sucesso! Repetindo operação...');
+      return await retryFn();
+    }
+
+    console.warn('Renovação silenciosa não obteve sucesso. Limpando sessão...');
     accessToken = null;
     googleUser = null;
+    tokenExpiresAt = 0;
     localStorage.removeItem('wingene_drive_access_token');
+    localStorage.removeItem('wingene_drive_token_expires_at');
     localStorage.removeItem('wingene_drive_user');
     renderUserProfileUI();
-    updateDriveUIStatus('Sessão expirada (Offline)', true);
+    updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
     showToast('Sua sessão do Google Drive expirou. Clique em "Conectar Drive" para renovar o acesso.', 'warning');
-    return true;
+    return null;
   }
   return false;
 }
@@ -316,8 +427,9 @@ function handleGoogleAuthError(status) {
 /**
  * Lista o histórico de revisões/versões do arquivo no Google Drive (limitado às 12 mais recentes)
  */
-async function listDriveRevisions() {
-  if (!accessToken) {
+async function listDriveRevisions(isRetry = false) {
+  const token = await ensureValidAccessToken();
+  if (!token) {
     showToast('Conecte a conta do Google primeiro.', 'error');
     return null;
   }
@@ -329,20 +441,19 @@ async function listDriveRevisions() {
 
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/revisions?fields=revisions(id,modifiedTime,size)`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
       const data = await res.json();
       const revisions = data.revisions || [];
 
-      // Limitar e expurgar revisões antigas no Drive caso excedam 12
       if (revisions.length > 12) {
         cleanupOldDriveRevisions(fileId, revisions);
         return revisions.slice(-12);
       }
       return revisions;
-    } else if (handleGoogleAuthError(res.status)) {
-      return null;
+    } else if (res.status === 401 && !isRetry) {
+      return await handleGoogleAuthError(401, () => listDriveRevisions(true));
     }
   } catch (err) {
     console.error('Erro ao listar revisões no Google Drive:', err);
@@ -371,15 +482,16 @@ async function cleanupOldDriveRevisions(fileId, revisions) {
 /**
  * Restaura uma versão histórica do arquivo no Google Drive pelo ID da revisão
  */
-async function restoreDriveRevision(revisionId) {
-  if (!accessToken || !revisionId) return false;
+async function restoreDriveRevision(revisionId, isRetry = false) {
+  const token = await ensureValidAccessToken();
+  if (!token || !revisionId) return false;
   const fileId = driveFileId || await findDriveFile();
   if (!fileId) return false;
 
   try {
     updateDriveUIStatus('Restaurando versão histórica...');
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/revisions/${revisionId}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (res.ok) {
@@ -391,8 +503,8 @@ async function restoreDriveRevision(revisionId) {
         showToast('Versão anterior do Google Drive restaurada com sucesso!', 'success');
         return true;
       }
-    } else if (handleGoogleAuthError(res.status)) {
-      return false;
+    } else if (res.status === 401 && !isRetry) {
+      return await handleGoogleAuthError(401, () => restoreDriveRevision(revisionId, true));
     }
   } catch (err) {
     console.error('Erro ao restaurar revisão:', err);
@@ -413,7 +525,9 @@ function logoutGoogleDrive() {
   accessToken = null;
   googleUser = null;
   driveFileId = null;
+  tokenExpiresAt = 0;
   localStorage.removeItem('wingene_drive_access_token');
+  localStorage.removeItem('wingene_drive_token_expires_at');
   localStorage.removeItem('wingene_drive_user');
   localStorage.removeItem('wingene_drive_file_id');
   renderUserProfileUI();
@@ -500,7 +614,7 @@ function renderUserProfileUI() {
   const loginBtn = document.getElementById('btnGoogleLogin');
   const loginBtnConfig = document.getElementById('btnGoogleLoginConfig');
 
-  if (accessToken) {
+  if (accessToken || googleUser) {
     if (userContainer) {
       const userName = googleUser ? (googleUser.name || 'Conta Google') : 'Conta Google';
       const userEmail = googleUser ? (googleUser.email || '') : '';
@@ -519,7 +633,7 @@ function renderUserProfileUI() {
               <div class="user-avatar-fallback">${escapeHtml(initialLetter)}</div>
             `}
             <span class="avatar-status-badge ${badgeClass}" id="avatarStatusBadge" title="${escapeHtml(currentSyncStatus.message)}">
-              <svg class="sync-spin-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/></svg>
+              <svg class="sync-spin-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01-.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/></svg>
             </span>
           </button>
 
@@ -571,6 +685,24 @@ document.addEventListener('keydown', (e) => {
     closeUserDropdown();
   }
 });
+
+// Verificar validade do token ao focar na aba novamente (ex: quando o usuário volta pro PWA)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (accessToken || googleUser)) {
+    if (Date.now() >= tokenExpiresAt) {
+      console.log('Aba focada com token expirado. Renovando silenciosamente...');
+      silentRefreshToken();
+    }
+  }
+});
+
+// Timer periódico a cada 15 minutos para renovação proativa do token de acesso
+setInterval(() => {
+  if ((accessToken || googleUser) && Date.now() >= tokenExpiresAt - 300000) {
+    console.log('Timer de renovação proativa de token executado.');
+    silentRefreshToken();
+  }
+}, 15 * 60 * 1000);
 
 document.addEventListener('DOMContentLoaded', () => {
   renderUserProfileUI();
