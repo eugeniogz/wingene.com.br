@@ -37,10 +37,10 @@
   <!-- Fundo Transparente -->
 
   <!-- AURA DE BRILHO CENTRAL -->
-  <circle cx="256" cy="256" r="170" fill="#10b981" opacity="0.15" filter="url(#glow)" />
+  <circle cx="256" cy="256" r="220" fill="#10b981" opacity="0.15" filter="url(#glow)" />
 
   <!-- ESTRELA ORIGINAL DE 6 PONTAS FACETADA (3D) CENTRALIZADA -->
-  <g transform="translate(256, 256) scale(1.95)">
+  <g transform="translate(256, 256) scale(2.55)">
     <!-- Ponta 1: Superior (Norte) -->
     <polygon points="0,0 0,-85 -18,-31.18" fill="url(#goldLightGrad)" />
     <polygon points="0,0 0,-85 18,-31.18" fill="url(#goldGrad)" />
