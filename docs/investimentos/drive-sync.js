@@ -19,87 +19,22 @@ let driveFileId = localStorage.getItem('wingene_drive_file_id') || null;
 let refreshPromise = null;
 
 /**
- * Tenta renovar o token de acesso silenciosamente em segundo plano sem abrir pop-ups
+ * Garante um token de acesso válido antes de qualquer requisição à API do Drive.
+ * Se o token estiver expirado, retorna null sem disparar pop-ups automáticos em segundo plano
+ * (evitando erros de pop-up bloqueado e telas em branco em navegadores mobile).
  */
-function silentRefreshToken() {
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = new Promise((resolve) => {
-    if (!tokenClient) {
-      if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-        initGoogleAuth();
-      }
-    }
-
-    if (!tokenClient) {
-      refreshPromise = null;
-      resolve(false);
-      return;
-    }
-
-    const originalCallback = tokenClient.callback;
-    const originalErrorCallback = tokenClient.error_callback;
-
-    const cleanup = () => {
-      if (tokenClient) {
-        tokenClient.callback = originalCallback;
-        tokenClient.error_callback = originalErrorCallback;
-      }
-      refreshPromise = null;
-    };
-
-    tokenClient.callback = async (tokenResponse) => {
-      if (tokenResponse.error) {
-        console.warn('Renovação silenciosa do token falhou:', tokenResponse.error);
-        cleanup();
-        resolve(false);
-        return;
-      }
-      accessToken = tokenResponse.access_token;
-      const expiresIn = parseInt(tokenResponse.expires_in || '3600', 10);
-      tokenExpiresAt = Date.now() + Math.max(expiresIn - 300, 60) * 1000;
-
-      localStorage.setItem('wingene_drive_access_token', accessToken);
-      localStorage.setItem('wingene_drive_token_expires_at', tokenExpiresAt.toString());
-
-      cleanup();
-      await fetchGoogleUserInfo(true);
-      updateDriveUIStatus(`Conectado como ${googleUser ? (googleUser.name || googleUser.email) : 'Google Drive'}`);
-      resolve(true);
-    };
-
-    tokenClient.error_callback = (error) => {
-      console.warn('GIS Error em renovação silenciosa:', error);
-      cleanup();
-      resolve(false);
-    };
-
-    try {
-      tokenClient.requestAccessToken({ prompt: '' });
-    } catch (err) {
-      console.warn('Exceção ao solicitar token silencioso:', err);
-      cleanup();
-      resolve(false);
-    }
-  });
-
-  return refreshPromise;
+async function ensureValidAccessToken() {
+  if (accessToken && Date.now() < tokenExpiresAt) {
+    return accessToken;
+  }
+  return null;
 }
 
 /**
- * Garante um token de acesso válido antes de qualquer requisição à API do Drive.
- * Se o token estiver prestes a expirar ou já expirado, tenta renová-lo silenciosamente.
+ * Verifica de forma síncrona se existe um token de acesso ativo e dentro da validade
  */
-async function ensureValidAccessToken() {
-  if (!accessToken || Date.now() >= tokenExpiresAt) {
-    if (googleUser || localStorage.getItem('wingene_drive_user') || accessToken) {
-      console.log('Token de acesso expirado ou ausente. Renovando silenciosamente...');
-      const ok = await silentRefreshToken();
-      if (ok) return accessToken;
-    }
-    return accessToken && Date.now() < tokenExpiresAt ? accessToken : null;
-  }
-  return accessToken;
+function isDriveTokenValid() {
+  return !!(accessToken && Date.now() < tokenExpiresAt);
 }
 
 /**
@@ -154,22 +89,17 @@ function initGoogleAuth(clientId = null) {
       if (error.type === 'popup_closed') {
         showToast('Janela de login do Google fechada antes de concluir.', 'warning');
       } else if (error.type === 'popup_failed_to_open') {
-        showToast('Pop-up bloqueado pelo navegador mobile. Habilite pop-ups para fazer login.', 'error');
+        showToast('Pop-up bloqueado pelo navegador mobile. Habilite pop-ups para este site e tente novamente.', 'error');
       } else {
         showToast('Falha no Google Auth. Verifique se o domínio está autorizado no Google Cloud Console.', 'error');
       }
     }
   });
 
-  // Se já temos registro de login prévio, assegura a renovação automática caso o token tenha expirado
+  // Se já temos registro de login prévio, verifica a validade do token sem disparar pop-up automático
   if (accessToken || googleUser) {
     if (Date.now() >= tokenExpiresAt || !accessToken) {
-      silentRefreshToken().then(refreshed => {
-        if (!refreshed && accessToken) {
-          updateDriveUIStatus(`Sessão Google ativa`);
-          fetchGoogleUserInfo();
-        }
-      });
+      updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
     } else {
       updateDriveUIStatus(`Sessão Google ativa`);
       fetchGoogleUserInfo();
@@ -178,9 +108,14 @@ function initGoogleAuth(clientId = null) {
 }
 
 /**
- * Dispara a janela pop-up de login do Google
+ * Dispara a janela pop-up de login do Google (deve ser chamada diretamente em resposta a um toque/clique)
  */
 function requestGoogleLogin() {
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    showToast('Aguarde o carregamento do Google Identity Services...', 'warning');
+    return;
+  }
+
   if (!DRIVE_CONFIG.CLIENT_ID) {
     const userClientId = prompt(
       'Para habilitar a Sincronização Google Drive, informe o seu Google OAuth Client ID:\n\n' +
@@ -193,11 +128,15 @@ function requestGoogleLogin() {
     }
   }
 
-  if (tokenClient) {
-    tokenClient.requestAccessToken({ prompt: '' });
-  } else {
+  if (!tokenClient) {
     initGoogleAuth();
-    if (tokenClient) tokenClient.requestAccessToken({ prompt: '' });
+  }
+
+  if (tokenClient) {
+    // Exibe o seletor de contas do Google de forma limpa e síncrona com o clique do usuário
+    tokenClient.requestAccessToken({ prompt: 'select_account' });
+  } else {
+    showToast('Não foi possível iniciar o serviço de login do Google.', 'error');
   }
 }
 
@@ -402,20 +341,11 @@ async function saveToDrive(appData, isRetry = false) {
  */
 async function handleGoogleAuthError(status, retryFn = null) {
   if (status === 401) {
-    console.warn('Resposta 401 recebida do Google. Tentando renovação silenciosa...');
-    const renewed = await silentRefreshToken();
-    if (renewed && typeof retryFn === 'function') {
-      console.log('Token renovado com sucesso! Repetindo operação...');
-      return await retryFn();
-    }
-
-    console.warn('Renovação silenciosa não obteve sucesso. Limpando sessão...');
+    console.warn('Resposta 401 do Google. Sessão expirada.');
     accessToken = null;
-    googleUser = null;
     tokenExpiresAt = 0;
     localStorage.removeItem('wingene_drive_access_token');
     localStorage.removeItem('wingene_drive_token_expires_at');
-    localStorage.removeItem('wingene_drive_user');
     renderUserProfileUI();
     updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
     showToast('Sua sessão do Google Drive expirou. Clique em "Conectar Drive" para renovar o acesso.', 'warning');
@@ -646,6 +576,10 @@ function renderUserProfileUI() {
               </div>
             </div>
             <div class="user-dropdown-divider"></div>
+            <button type="button" class="user-dropdown-item" onclick="requestGoogleLogin(); closeUserDropdown();">
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              Reconectar Google
+            </button>
             <button type="button" class="user-dropdown-item" onclick="syncFromDrive(); closeUserDropdown();">
               <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6c0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6c0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4l-4-4v3z"/></svg>
               Sincronizar Agora
@@ -690,17 +624,16 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && (accessToken || googleUser)) {
     if (Date.now() >= tokenExpiresAt) {
-      console.log('Aba focada com token expirado. Renovando silenciosamente...');
-      silentRefreshToken();
+      console.log('Aba focada com token expirado.');
+      updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
     }
   }
 });
 
-// Timer periódico a cada 15 minutos para renovação proativa do token de acesso
+// Timer periódico a cada 15 minutos para atualizar status visual da sessão
 setInterval(() => {
-  if ((accessToken || googleUser) && Date.now() >= tokenExpiresAt - 300000) {
-    console.log('Timer de renovação proativa de token executado.');
-    silentRefreshToken();
+  if ((accessToken || googleUser) && Date.now() >= tokenExpiresAt) {
+    updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
   }
 }, 15 * 60 * 1000);
 

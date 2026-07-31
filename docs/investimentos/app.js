@@ -2849,20 +2849,15 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
   wrapper.addEventListener('touchend', handlePointerLeave);
 }
 
-// --- PROTEÇÃO POR SENHA NO DESKTOP ---
-function isMobileDevice() {
-  return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
+// --- PROTEÇÃO POR SENHA DE ACESSO ---
 function checkDesktopLockState() {
-  const isMobile = isMobileDevice();
   const hasPassword = appState && appState.desktopPassword && String(appState.desktopPassword).trim() !== '';
   const isUnlocked = sessionStorage.getItem('winvest_desktop_unlocked') === 'true';
 
   const modal = document.getElementById('modalDesktopLockBackdrop');
   if (!modal) return false;
 
-  if (!isMobile && hasPassword && !isUnlocked) {
+  if (hasPassword && !isUnlocked) {
     modal.style.display = 'flex';
     const input = document.getElementById('desktopUnlockPasswordInput');
     if (input) setTimeout(() => input.focus(), 100);
@@ -2890,6 +2885,15 @@ function handleDesktopUnlockSubmit(e) {
     if (modal) modal.style.display = 'none';
     showToast('Carteira desbloqueada!', 'success');
     renderApp();
+
+    // Se o Google Drive estiver desconectado ou com token expirado, conecta no mesmo gesto do clique
+    if (typeof isDriveTokenValid === 'function' && !isDriveTokenValid()) {
+      if (typeof requestGoogleLogin === 'function') {
+        requestGoogleLogin();
+      }
+    } else if (typeof syncFromDrive === 'function') {
+      syncFromDrive();
+    }
   } else {
     if (errorMsg) {
       errorMsg.textContent = 'Senha incorreta! Tente novamente.';
@@ -2908,10 +2912,10 @@ function saveDesktopPasswordSetting() {
   saveLocalState(true, true);
   if (newPwd) {
     sessionStorage.setItem('winvest_desktop_unlocked', 'true');
-    showToast('Senha de proteção desktop salva com sucesso!', 'success');
+    showToast('Senha de acesso salva com sucesso!', 'success');
   } else {
     sessionStorage.removeItem('winvest_desktop_unlocked');
-    showToast('Proteção por senha no desktop desativada.', 'info');
+    showToast('Proteção por senha desativada.', 'info');
   }
   checkDesktopLockState();
 }
