@@ -2929,3 +2929,16 @@ function lockDesktopSessionNow() {
   checkDesktopLockState();
   showToast('Tela bloqueada.', 'info');
 }
+
+// Trancar sessão automaticamente ao ir para segundo plano / minimizar no mobile ou trocar de aba se houver senha configurada
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (window.isGoogleAuthPopupActive) return; // Não bloqueia enquanto o pop-up do Google estiver aberto
+    const hasPassword = appState && appState.desktopPassword && String(appState.desktopPassword).trim() !== '';
+    if (hasPassword) {
+      sessionStorage.removeItem('winvest_desktop_unlocked');
+    }
+  } else if (document.visibilityState === 'visible') {
+    checkDesktopLockState();
+  }
+});

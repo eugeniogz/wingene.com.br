@@ -63,6 +63,7 @@ function initGoogleAuth(clientId = null) {
     client_id: DRIVE_CONFIG.CLIENT_ID,
     scope: DRIVE_CONFIG.SCOPES,
     callback: async (tokenResponse) => {
+      window.isGoogleAuthPopupActive = false;
       if (tokenResponse.error) {
         console.error('Erro de Autenticação Google:', tokenResponse);
         updateDriveUIStatus('Erro na Autenticação', true);
@@ -84,6 +85,7 @@ function initGoogleAuth(clientId = null) {
       await syncFromDrive();
     },
     error_callback: (error) => {
+      window.isGoogleAuthPopupActive = false;
       console.error('GIS Error Callback:', error);
       updateDriveUIStatus('Erro ao abrir Login Google', true);
       if (error.type === 'popup_closed') {
@@ -134,6 +136,8 @@ function requestGoogleLogin() {
 
   if (tokenClient) {
     // Exibe o seletor de contas do Google de forma limpa e síncrona com o clique do usuário
+    window.isGoogleAuthPopupActive = true;
+    setTimeout(() => { window.isGoogleAuthPopupActive = false; }, 12000);
     tokenClient.requestAccessToken({ prompt: 'select_account' });
   } else {
     showToast('Não foi possível iniciar o serviço de login do Google.', 'error');
