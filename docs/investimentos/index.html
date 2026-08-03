@@ -383,9 +383,17 @@
       </div>
 
       <div class="card">
-        <div class="mb-3">
-          <h2 class="card-title">Carteira de Ações</h2>
-          <p class="text-muted text-small mb-0">Gerencie suas ações e FIIs, preços atuais, históricos (Mês/Ano Ant.) e metas de alocação.</p>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
+          <div>
+            <h2 class="card-title mb-1">Carteira de Ações</h2>
+            <p class="text-muted text-small mb-0">Gerencie suas ações e FIIs, preços atuais, históricos (Mês/Ano Ant.) e metas de alocação.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="text-muted text-small" id="b3CacheStatusSpanAcoes">Cache: Não sincronizado</span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnSyncB3QuotesAcoes" onclick="triggerB3Sync(true)">
+              🔄 Atualizar Cotações em Tempo Real
+            </button>
+          </div>
         </div>
 
         <div class="table-responsive">
@@ -663,7 +671,10 @@
         <div class="modal-body">
           <div class="form-group mb-3">
             <label class="form-label">Código / Ticker *</label>
-            <input type="text" id="modalAcaoTicker" class="form-control" placeholder="ex: PETR4" required style="text-transform: uppercase;" />
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="modalAcaoTicker" class="form-control" placeholder="ex: PETR4" required style="text-transform: uppercase;" />
+              <button type="button" class="btn btn-secondary btn-sm" id="btnFetchAcaoQuote" onclick="fetchQuoteForModalInput('modalAcaoTicker', 'modalAcaoNome', 'modalAcaoPreco')" style="white-space: nowrap;">⚡ Cotação Atual</button>
+            </div>
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Nome da Empresa *</label>
@@ -759,7 +770,10 @@
         <div class="modal-body">
           <div class="form-group mb-3">
             <label class="form-label">Código / Ticker *</label>
-            <input type="text" id="editModalAcaoTicker" class="form-control" style="text-transform: uppercase;" required />
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="editModalAcaoTicker" class="form-control" style="text-transform: uppercase;" required />
+              <button type="button" class="btn btn-secondary btn-sm" id="btnFetchEditAcaoQuote" onclick="fetchQuoteForModalInput('editModalAcaoTicker', 'editModalAcaoNome', 'editModalAcaoPreco')" style="white-space: nowrap;">⚡ Cotação Atual</button>
+            </div>
           </div>
           <div class="form-group mb-3">
             <label class="form-label">Nome da Empresa *</label>

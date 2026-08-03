@@ -251,6 +251,10 @@ function switchTab(targetTab) {
     }
   }
 
+  if (targetTab === 'acoes' || targetTab === 'evolucao') {
+    triggerB3Sync(false);
+  }
+
   closeNavDrawer();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1178,57 +1182,6 @@ function deleteRendaFixa(id) {
 }
 
 // --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE COM HISTÓRICO) ---
-function openAddAcaoModal() {
-  const backdrop = document.getElementById('modalAddAcaoBackdrop');
-  if (!backdrop) return;
-  document.getElementById('modalAcaoTicker').value = '';
-  document.getElementById('modalAcaoNome').value = '';
-  document.getElementById('modalAcaoQtd').value = '';
-  document.getElementById('modalAcaoPreco').value = '';
-  document.getElementById('modalAcaoMeta').value = '';
-  backdrop.style.display = 'flex';
-}
-
-function closeAddAcaoModal() {
-  const backdrop = document.getElementById('modalAddAcaoBackdrop');
-  if (backdrop) backdrop.style.display = 'none';
-}
-
-function handleAddAcaoModalSubmit(e) {
-  e.preventDefault();
-  const ticker = document.getElementById('modalAcaoTicker').value.toUpperCase().trim();
-  const nome = document.getElementById('modalAcaoNome').value.trim();
-  const quantidade = parseFloat(document.getElementById('modalAcaoQtd').value);
-  const preco = parseFloat(document.getElementById('modalAcaoPreco').value);
-  const meta = parseFloat(document.getElementById('modalAcaoMeta').value) || 0;
-  const currentDate = new Date().toLocaleDateString('pt-BR');
-
-  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
-    showToast('Preencha os campos obrigatórios da ação.', 'error');
-    return;
-  }
-
-  appState.acoes.push({
-    id: 'ac-' + Date.now(),
-    ticker,
-    nome,
-    quantidade,
-    preco,
-    precoMesAnterior: preco,
-    precoAnoAnterior: preco,
-    meta,
-    data: currentDate,
-    historico: [
-      { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), preco: preco, quantidade: quantidade, valorTotal: preco * quantidade }
-    ]
-  });
-
-  closeAddAcaoModal();
-  appState.isDemo = false;
-  saveLocalState(true, true);
-  renderApp();
-  showToast(`Ação ${ticker} adicionada!`, 'success');
-}
 
 function parsePtBrFloat(val) {
   if (val === undefined || val === null) return NaN;
@@ -2322,13 +2275,62 @@ async function fetchB3QuotesForTickers(tickers, onProgress) {
   return results;
 }
 
+async function fetchQuoteForModalInput(tickerId, nameId, priceId) {
+  const tickerEl = document.getElementById(tickerId);
+  const nameEl = document.getElementById(nameId);
+  const priceEl = document.getElementById(priceId);
+  if (!tickerEl) return;
+
+  const rawTicker = tickerEl.value.trim().toUpperCase();
+  if (!rawTicker) {
+    showToast('Informe o ticker da ação (ex: PETR4, VALE3).', 'info');
+    return;
+  }
+
+  // Preencher nome se conhecido e estiver vazio
+  if (nameEl && !nameEl.value && B3_POPULAR_STOCKS[rawTicker]) {
+    nameEl.value = B3_POPULAR_STOCKS[rawTicker];
+  }
+
+  showToast(`⚡ Buscando cotação em tempo real de ${rawTicker}...`, 'info');
+  const btnFetch = document.querySelector(`button[onclick*="${tickerId}"]`);
+  if (btnFetch) btnFetch.disabled = true;
+
+  try {
+    const quoteData = await fetchQuoteSingleTicker(rawTicker);
+    if (quoteData && quoteData.currentPrice > 0) {
+      if (priceEl) {
+        priceEl.value = quoteData.currentPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      if (nameEl && !nameEl.value && quoteData.symbol && B3_POPULAR_STOCKS[quoteData.symbol]) {
+        nameEl.value = B3_POPULAR_STOCKS[quoteData.symbol];
+      }
+      showToast(`Cotação de ${rawTicker}: R$ ${quoteData.currentPrice.toFixed(2)}`, 'success');
+    } else {
+      showToast(`Não foi possível obter preço em tempo real para ${rawTicker}. Digite manualmente.`, 'warning');
+    }
+  } catch (err) {
+    showToast(`Erro ao buscar cotação de ${rawTicker}.`, 'error');
+  } finally {
+    if (btnFetch) btnFetch.disabled = false;
+  }
+}
+
 async function triggerB3Sync(force = false) {
   const tickers = appState.acoes.map(a => a.ticker).filter(Boolean);
   const statusEvol = document.getElementById('b3CacheStatusSpanEvol');
+  const statusAcoes = document.getElementById('b3CacheStatusSpanAcoes');
   const btnEvol = document.getElementById('btnSyncB3QuotesEvol');
+  const btnAcoes = document.getElementById('btnSyncB3QuotesAcoes');
 
   const updateStatusText = (msg) => {
     if (statusEvol) statusEvol.textContent = msg;
+    if (statusAcoes) statusAcoes.textContent = msg;
+  };
+
+  const setButtonsDisabled = (disabled) => {
+    if (btnEvol) btnEvol.disabled = disabled;
+    if (btnAcoes) btnAcoes.disabled = disabled;
   };
 
   if (tickers.length === 0) {
@@ -2358,7 +2360,7 @@ async function triggerB3Sync(force = false) {
   }
 
   updateStatusText('🔄 Atualizando cotações B3...');
-  if (btnEvol) btnEvol.disabled = true;
+  setButtonsDisabled(true);
 
   try {
     const newQuotes = await fetchB3QuotesForTickers(tickers, (curr, total, symbol) => {
@@ -2435,7 +2437,7 @@ async function triggerB3Sync(force = false) {
     console.error('Erro ao sincronizar cotações B3:', err);
     updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Histórico Local');
   } finally {
-    if (btnEvol) btnEvol.disabled = false;
+    setButtonsDisabled(false);
     renderDailyEvolutionCharts();
   }
 }
