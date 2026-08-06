@@ -105,6 +105,9 @@ function initGoogleAuth(clientId = null) {
     } else {
       updateDriveUIStatus(`Sessão Google ativa`);
       fetchGoogleUserInfo();
+      if (typeof syncFromDrive === 'function') {
+        syncFromDrive();
+      }
     }
   }
 }

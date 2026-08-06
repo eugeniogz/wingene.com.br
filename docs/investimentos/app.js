@@ -2888,13 +2888,11 @@ function handleDesktopUnlockSubmit(e) {
     showToast('Carteira desbloqueada!', 'success');
     renderApp();
 
-    // Se o Google Drive estiver desconectado ou com token expirado, conecta no mesmo gesto do clique
-    if (typeof isDriveTokenValid === 'function' && !isDriveTokenValid()) {
-      if (typeof requestGoogleLogin === 'function') {
-        requestGoogleLogin();
+    // Se o Google Drive estiver conectado e com token válido, sincroniza silenciosamente
+    if (typeof isDriveTokenValid === 'function' && isDriveTokenValid()) {
+      if (typeof syncFromDrive === 'function') {
+        syncFromDrive();
       }
-    } else if (typeof syncFromDrive === 'function') {
-      syncFromDrive();
     }
   } else {
     if (errorMsg) {
