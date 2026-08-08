@@ -702,7 +702,7 @@
   </div>
 
   <!-- MODAL EDITAR RENDA FIXA -->
-  <div class="modal-backdrop" id="modalEditRfBackdrop" style="display: none;" onclick="closeEditRfModal()">
+  <div class="modal-backdrop" id="modalEditRfBackdrop" style="display: none;" onclick="handleEditRfModalSubmit(event)">
     <div class="modal-card" style="max-width: 500px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
@@ -757,7 +757,7 @@
   </div>
 
   <!-- MODAL EDITAR AÇÃO -->
-  <div class="modal-backdrop" id="modalEditAcaoBackdrop" style="display: none;" onclick="closeEditAcaoModal()">
+  <div class="modal-backdrop" id="modalEditAcaoBackdrop" style="display: none;" onclick="handleEditAcaoModalSubmit(event)">
     <div class="modal-card" style="max-width: 500px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
@@ -834,6 +834,6 @@
 
   <!-- Scripts da Aplicação -->
   <script src="drive-sync.js?v=2.7.0"></script>
-  <script src="app.js?v=2.6.0"></script>
+  <script src="app.js?v=2.6.2"></script>
 </body>
 </html>

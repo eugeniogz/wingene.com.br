@@ -212,9 +212,42 @@ function closeNavDrawer() {
   if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 
-// Fechar menu gaveta ao pressionar ESC
+// Salvar diálogos de edição ou fechar modais/menu gaveta ao pressionar ESC
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    const editRfBackdrop = document.getElementById('modalEditRfBackdrop');
+    const editAcaoBackdrop = document.getElementById('modalEditAcaoBackdrop');
+
+    if (editRfBackdrop && editRfBackdrop.style.display !== 'none') {
+      handleEditRfModalSubmit(e);
+      return;
+    }
+    if (editAcaoBackdrop && editAcaoBackdrop.style.display !== 'none') {
+      handleEditAcaoModalSubmit(e);
+      return;
+    }
+
+    const addRfBackdrop = document.getElementById('modalAddRfBackdrop');
+    if (addRfBackdrop && addRfBackdrop.style.display !== 'none') {
+      closeAddRfModal();
+      return;
+    }
+    const addAcaoBackdrop = document.getElementById('modalAddAcaoBackdrop');
+    if (addAcaoBackdrop && addAcaoBackdrop.style.display !== 'none') {
+      closeAddAcaoModal();
+      return;
+    }
+    const historyBackdrop = document.getElementById('modalAssetHistoryBackdrop');
+    if (historyBackdrop && historyBackdrop.style.display !== 'none') {
+      closeAssetHistoryModal();
+      return;
+    }
+    const aiPromptBackdrop = document.getElementById('modalAIPromptBackdrop');
+    if (aiPromptBackdrop && aiPromptBackdrop.style.display !== 'none') {
+      closeAIPromptModal();
+      return;
+    }
+
     closeNavDrawer();
   }
 });
@@ -413,6 +446,62 @@ function setupEventListeners() {
   document.getElementById('btnExportJson')?.addEventListener('click', exportJsonBackup);
   document.getElementById('btnImportJsonTrigger')?.addEventListener('click', () => document.getElementById('fileImportJson').click());
   document.getElementById('fileImportJson')?.addEventListener('change', importJsonBackup);
+
+  // Listener para suporte a expressões matemáticas em campos numéricos
+  setupMathExpressionInputListeners();
+}
+
+function setupMathExpressionInputListeners() {
+  document.addEventListener('input', (e) => {
+    const target = e.target;
+    if (!target || !target.matches('input[type="text"], input:not([type]), input[inputmode="decimal"]')) return;
+
+    const val = target.value;
+    const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
+    const hasOperators = /[+\-*\/]/.test(sansLeadingSign);
+
+    let hintEl = target.parentElement ? target.parentElement.querySelector('.math-expr-hint') : null;
+
+    if (hasOperators) {
+      const calcVal = parsePtBrFloat(val);
+      if (!isNaN(calcVal)) {
+        if (!hintEl && target.parentElement) {
+          hintEl = document.createElement('div');
+          hintEl.className = 'math-expr-hint text-muted text-small mt-1';
+          hintEl.style.color = '#10b981';
+          hintEl.style.fontWeight = '600';
+          hintEl.style.fontSize = '0.82rem';
+          target.parentElement.appendChild(hintEl);
+        }
+        if (hintEl) {
+          const formatted = calcVal.toLocaleString('pt-BR', { maximumFractionDigits: 4 });
+          hintEl.textContent = `🧮 Total calculado: ${formatted}`;
+        }
+      } else if (hintEl) {
+        hintEl.remove();
+      }
+    } else if (hintEl) {
+      hintEl.remove();
+    }
+  });
+
+  document.addEventListener('blur', (e) => {
+    const target = e.target;
+    if (!target || !target.matches('input[type="text"], input:not([type]), input[inputmode="decimal"]')) return;
+
+    const val = target.value;
+    const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
+    const hasOperators = /[+\-*\/]/.test(sansLeadingSign);
+
+    if (hasOperators) {
+      const calcVal = parsePtBrFloat(val);
+      if (!isNaN(calcVal)) {
+        target.value = calcVal.toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false });
+      }
+    }
+    const hintEl = target.parentElement ? target.parentElement.querySelector('.math-expr-hint') : null;
+    if (hintEl) hintEl.remove();
+  }, true);
 }
 
 function getAssetMacroCategory(rfItem) {
@@ -1135,9 +1224,9 @@ function saveRfInline(id) {
   const emissor = document.getElementById(`editRfEmissor_${id}`).value.trim();
   const nome = document.getElementById(`editRfNome_${id}`).value.trim();
   const taxa = document.getElementById(`editRfTaxa_${id}`).value.trim();
-  const valMes = parseFloat(document.getElementById(`editRfValMes_${id}`).value);
-  const valAno = parseFloat(document.getElementById(`editRfValAno_${id}`).value);
-  const valor = parseFloat(document.getElementById(`editRfValor_${id}`).value);
+  const valMes = parsePtBrFloat(document.getElementById(`editRfValMes_${id}`).value);
+  const valAno = parsePtBrFloat(document.getElementById(`editRfValAno_${id}`).value);
+  const valor = parsePtBrFloat(document.getElementById(`editRfValor_${id}`).value);
 
   if (!emissor || !nome || isNaN(valor)) {
     showToast('Preencha os campos obrigatórios.', 'error');
@@ -1183,16 +1272,71 @@ function deleteRendaFixa(id) {
 
 // --- CARTEIRA DE AÇÕES (EDIÇÃO E ADIÇÃO INLINE COM HISTÓRICO) ---
 
+function parseSingleNumberToken(token) {
+  if (token === undefined || token === null) return NaN;
+  let str = String(token).trim();
+  if (!str) return NaN;
+
+  str = str.replace(/[^0-9,.-]/g, '');
+  if (!str) return NaN;
+
+  if (str.includes('.') && str.includes(',')) {
+    if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+      str = str.replace(/\./g, '').replace(',', '.');
+    } else {
+      str = str.replace(/,/g, '');
+    }
+  } else if (str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes('.')) {
+    const dots = (str.match(/\./g) || []).length;
+    if (dots > 1) {
+      str = str.replace(/\./g, '');
+    }
+  }
+
+  const num = parseFloat(str);
+  return isNaN(num) ? NaN : num;
+}
+
 function parsePtBrFloat(val) {
   if (val === undefined || val === null) return NaN;
   if (typeof val === 'number') return val;
-  const cleanStr = String(val).replace(/[^0-9,.-]/g, '').trim();
-  if (!cleanStr) return NaN;
-  let finalStr = cleanStr;
-  if (finalStr.includes(',')) {
-    finalStr = finalStr.replace(/\./g, '').replace(',', '.');
+
+  let str = String(val).trim();
+  if (!str) return NaN;
+
+  str = str.replace(/[R$]/gi, '').trim();
+  if (!/[0-9]/.test(str)) return NaN;
+
+  const sansLeadingSign = str.replace(/^[\s+\-]+/, '');
+  const hasOperators = /[+\-*\/]/.test(sansLeadingSign);
+
+  if (!hasOperators) {
+    return parseSingleNumberToken(str);
   }
-  return parseFloat(finalStr);
+
+  try {
+    const normalizedExpr = str.replace(/[0-9][0-9.,]*/g, (match) => {
+      const parsed = parseSingleNumberToken(match);
+      return isNaN(parsed) ? match : parsed;
+    });
+
+    if (/[^0-9.\-+\/*()\s]/.test(normalizedExpr)) {
+      return parseSingleNumberToken(str);
+    }
+
+    const fn = new Function(`"use strict"; return (${normalizedExpr});`);
+    const result = fn();
+
+    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
+      return Math.round((result + Number.EPSILON) * 10000) / 10000;
+    }
+  } catch (err) {
+    return parseSingleNumberToken(str);
+  }
+
+  return NaN;
 }
 
 function openAddAcaoModal() {
