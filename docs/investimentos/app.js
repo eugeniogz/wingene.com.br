@@ -2249,6 +2249,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // --- COTAÇÕES AUTOMÁTICAS B3 (AÇÕES, FIIS, BDRS) E HISTÓRICO DE PREGÕES (12 MESES) ---
 const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v1';
+const BENCHMARKS_CACHE_KEY = 'winvest_benchmarks_cache_v1';
+
+let showChartCdi = true;
+let showChartIbov = true;
 
 function getB3QuotesCache() {
   try {
@@ -2264,6 +2268,23 @@ function saveB3QuotesCache(cache) {
     localStorage.setItem(B3_CACHE_KEY, JSON.stringify(cache));
   } catch (e) {
     console.warn('Erro ao salvar cache de cotações B3:', e);
+  }
+}
+
+function getBenchmarksCache() {
+  try {
+    const raw = localStorage.getItem(BENCHMARKS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveBenchmarksCache(cache) {
+  try {
+    localStorage.setItem(BENCHMARKS_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('Erro ao salvar cache de benchmarks:', e);
   }
 }
 
@@ -2283,13 +2304,104 @@ function parseToIsoDate(d) {
   return str.split('T')[0];
 }
 
-async function fetchQuoteSingleTicker(ticker) {
-  const cleanSymbol = ticker.trim().toUpperCase().replace(/\.SA$/i, '');
-  if (!cleanSymbol) return null;
+async function fetchCdiDailySeries() {
+  const bcbUrl = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados/ultimos/365?formato=json';
+  const endpoints = [
+    { url: bcbUrl, type: 'direct' },
+    { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(bcbUrl)}`, type: 'direct' },
+    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(bcbUrl)}`, type: 'allorigins' },
+    { url: `https://corsproxy.io/?${encodeURIComponent(bcbUrl)}`, type: 'direct' },
+    { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(bcbUrl)}`, type: 'direct' }
+  ];
 
-  const yahooSymbol = `${cleanSymbol}.SA`;
-  const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`;
-  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=1y&interval=1d`;
+  for (const ep of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(ep.url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) continue;
+      let data = await res.json();
+      if (ep.type === 'allorigins' && data && data.contents) {
+        try {
+          data = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
+        } catch (err) {}
+      }
+
+      if (Array.isArray(data) && data.length > 10) {
+        const cdiHistory = [];
+        data.forEach(item => {
+          const isoDate = parseToIsoDate(item.data);
+          const rate = parseFloat(String(item.valor).replace(',', '.'));
+          if (isoDate && !isNaN(rate)) {
+            cdiHistory.push({ date: isoDate, rate });
+          }
+        });
+
+        cdiHistory.sort((a, b) => a.date.localeCompare(b.date));
+        if (cdiHistory.length >= 10) {
+          return cdiHistory;
+        }
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+async function syncBenchmarksData(force = false) {
+  let cache = getBenchmarksCache() || {};
+  const now = Date.now();
+
+  if (!force && cache && cache.timestamp && (now - cache.timestamp < 12 * 60 * 60 * 1000)) {
+    if (Array.isArray(cache.cdi) && cache.cdi.length >= 10 && Array.isArray(cache.ibov) && cache.ibov.length >= 10) {
+      return cache;
+    }
+  }
+
+  try {
+    const [cdiRes, ibovRes] = await Promise.all([
+      fetchCdiDailySeries(),
+      fetchQuoteSingleTicker('^BVSP')
+    ]);
+
+    if (cdiRes && cdiRes.length >= 10) {
+      cache.cdi = cdiRes;
+    }
+    if (ibovRes && Array.isArray(ibovRes.history) && ibovRes.history.length >= 10) {
+      cache.ibov = ibovRes.history;
+    }
+
+    cache.timestamp = now;
+    cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
+    saveBenchmarksCache(cache);
+  } catch (err) {
+    console.warn('Erro ao sincronizar benchmarks:', err);
+  }
+
+  return cache;
+}
+
+function toggleBenchmarkLine(type) {
+  if (type === 'cdi') {
+    showChartCdi = !showChartCdi;
+  } else if (type === 'ibov') {
+    showChartIbov = !showChartIbov;
+  }
+  renderDailyEvolutionCharts();
+}
+
+async function fetchQuoteSingleTicker(ticker) {
+  const rawTicker = ticker.trim().toUpperCase();
+  if (!rawTicker) return null;
+
+  const isIndex = rawTicker.startsWith('^') || rawTicker === 'IBOV' || rawTicker === 'BVSP';
+  const cleanSymbol = isIndex ? '^BVSP' : rawTicker.replace(/\.SA$/i, '');
+  const yahooSymbol = isIndex ? '^BVSP' : `${cleanSymbol}.SA`;
+  const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
+
+  const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [
     {
@@ -2309,7 +2421,7 @@ async function fetchQuoteSingleTicker(ticker) {
       type: 'yahoo'
     },
     {
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(cleanSymbol)}?range=1y&interval=1d`,
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d`,
       type: 'brapi'
     },
     {
@@ -2476,6 +2588,9 @@ async function triggerB3Sync(force = false) {
     if (btnEvol) btnEvol.disabled = disabled;
     if (btnAcoes) btnAcoes.disabled = disabled;
   };
+
+  // Sincronizar benchmarks de CDI e Ibovespa em segundo plano
+  await syncBenchmarksData(force);
 
   if (tickers.length === 0) {
     updateStatusText('Nenhuma ação cadastrada');
@@ -2782,6 +2897,55 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     });
   });
 
+  // --- NORMALIZAÇÃO DOS BENCHMARKS (100% CDI E IBOVESPA) ---
+  const benchCache = getBenchmarksCache();
+  const cdiRates = (benchCache && Array.isArray(benchCache.cdi)) ? benchCache.cdi : [];
+  const ibovHistory = (benchCache && Array.isArray(benchCache.ibov)) ? benchCache.ibov : [];
+
+  const cdiRateMap = {};
+  cdiRates.forEach(item => { cdiRateMap[item.date] = item.rate; });
+
+  const ibovCloseMap = {};
+  ibovHistory.forEach(item => { ibovCloseMap[item.date] = item.close; });
+
+  // Fator acumulado do CDI para a timeline
+  const cdiFactorMap = {};
+  let currentCdiFactor = 1.0;
+  datesSorted.forEach(d => {
+    const rate = cdiRateMap[d] !== undefined ? cdiRateMap[d] : 0.03968; // fallback ~10.5% a.a.
+    currentCdiFactor *= (1 + rate / 100);
+    cdiFactorMap[d] = currentCdiFactor;
+  });
+
+  // Preço de fechamento do Ibovespa para a timeline
+  const ibovPriceMap = {};
+  let lastIbov = ibovHistory.length > 0 ? ibovHistory[0].close : 130000;
+  datesSorted.forEach(d => {
+    if (ibovCloseMap[d] !== undefined && ibovCloseMap[d] > 0) {
+      lastIbov = ibovCloseMap[d];
+    }
+    ibovPriceMap[d] = lastIbov;
+  });
+
+  const firstDate = datesSorted[0];
+  const startCdiFactor = cdiFactorMap[firstDate] || 1.0;
+  const startIbovPrice = ibovPriceMap[firstDate] || 130000;
+
+  const startVal = series.length > 0 && series[0].total > 0 ? series[0].total : 1000;
+
+  series.forEach(s => {
+    const cdiVal = startVal * (cdiFactorMap[s.date] / startCdiFactor);
+    const cdiPct = startVal > 0 ? ((cdiVal - startVal) / startVal) * 100 : 0;
+
+    const ibovVal = startVal * (ibovPriceMap[s.date] / startIbovPrice);
+    const ibovPct = startVal > 0 ? ((ibovVal - startVal) / startVal) * 100 : 0;
+
+    s.cdiVal = cdiVal;
+    s.cdiPct = cdiPct;
+    s.ibovVal = ibovVal;
+    s.ibovPct = ibovPct;
+  });
+
   return series;
 }
 
@@ -2808,16 +2972,26 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     return;
   }
 
-  const values = series.map(s => s.total);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
+  // Coleção de valores para cálculo de Y-min e Y-max
+  let allValues = series.map(s => s.total);
+  if (showChartCdi) {
+    allValues = allValues.concat(series.map(s => s.cdiVal));
+  }
+  if (showChartIbov) {
+    allValues = allValues.concat(series.map(s => s.ibovVal));
+  }
+
+  const minVal = Math.min(...allValues);
+  const maxVal = Math.max(...allValues);
   const firstVal = series[0].total;
   const lastVal = series[series.length - 1].total;
   const totalChangeVal = lastVal - firstVal;
   const totalChangePct = firstVal > 0 ? (totalChangeVal / firstVal) * 100 : 0;
 
-  const minIndex = values.indexOf(minVal);
-  const maxIndex = values.indexOf(maxVal);
+  const lastCdiVal = series[series.length - 1].cdiVal;
+  const lastCdiPct = series[series.length - 1].cdiPct;
+  const lastIbovVal = series[series.length - 1].ibovVal;
+  const lastIbovPct = series[series.length - 1].ibovPct;
 
   const width = 800;
   const height = 240;
@@ -2839,6 +3013,19 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
   const points = series.map((s, idx) => `${getX(idx).toFixed(1)},${getY(s.total).toFixed(1)}`);
   const pathD = `M ${points.join(' L ')}`;
   const areaD = `M ${getX(0)},${padding.top + graphH} L ${points.join(' L ')} L ${getX(series.length - 1)},${padding.top + graphH} Z`;
+
+  // Linhas dos benchmarks
+  let cdiPathHtml = '';
+  if (showChartCdi) {
+    const cdiPts = series.map((s, idx) => `${getX(idx).toFixed(1)},${getY(s.cdiVal).toFixed(1)}`);
+    cdiPathHtml = `<path d="M ${cdiPts.join(' L ')}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round" />`;
+  }
+
+  let ibovPathHtml = '';
+  if (showChartIbov) {
+    const ibovPts = series.map((s, idx) => `${getX(idx).toFixed(1)},${getY(s.ibovVal).toFixed(1)}`);
+    ibovPathHtml = `<path d="M ${ibovPts.join(' L ')}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round" stroke-linejoin="round" />`;
+  }
 
   const gridYLevels = [yMin + yRange * 0.25, yMin + yRange * 0.5, yMin + yRange * 0.75, yMax];
   const gridYHtml = gridYLevels.map(val => {
@@ -2872,20 +3059,31 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     <div class="line-chart-card">
       <div class="line-chart-header mb-3">
         <div class="chart-stat-item">
-          <span class="text-muted text-small">Atual</span>
-          <strong class="stat-main-val">${formatCurrency(lastVal)}</strong>
+          <span class="text-muted text-small">Carteira</span>
+          <strong class="stat-main-val">${formatCurrency(lastVal)} <span class="${changeClass} font-normal" style="font-size: 0.85rem;">(${changeSign}${totalChangePct.toFixed(1)}%)</span></strong>
         </div>
+        ${showChartCdi ? `
         <div class="chart-stat-item">
-          <span class="text-muted text-small">Var. no Período (12M)</span>
-          <strong class="${changeClass}">${changeSign}${formatCurrency(totalChangeVal)} (${changeSign}${totalChangePct.toFixed(1)}%)</strong>
+          <span class="text-muted text-small" style="color: #60a5fa;">100% CDI</span>
+          <strong class="stat-main-val" style="color: #93c5fd;">${formatCurrency(lastCdiVal)} <span class="text-success font-normal" style="font-size: 0.85rem;">(+${lastCdiPct.toFixed(1)}%)</span></strong>
         </div>
-        <div class="chart-stat-item col-desktop-only">
-          <span class="text-muted text-small">Maior Valor (Pico)</span>
-          <span class="text-success">${formatCurrency(maxVal)}</span>
+        ` : ''}
+        ${showChartIbov ? `
+        <div class="chart-stat-item">
+          <span class="text-muted text-small" style="color: #fbbf24;">Ibovespa</span>
+          <strong class="stat-main-val" style="color: #fde68a;">${formatCurrency(lastIbovVal)} <span class="${lastIbovPct >= 0 ? 'text-success' : 'text-danger'} font-normal" style="font-size: 0.85rem;">(${lastIbovPct >= 0 ? '+' : ''}${lastIbovPct.toFixed(1)}%)</span></strong>
         </div>
-        <div class="chart-stat-item col-desktop-only">
-          <span class="text-muted text-small">Menor Valor (Vale)</span>
-          <span class="text-danger">${formatCurrency(minVal)}</span>
+        ` : ''}
+
+        <div class="benchmark-legend-toggles">
+          <label class="legend-checkbox cdi ${showChartCdi ? 'active' : ''}">
+            <input type="checkbox" ${showChartCdi ? 'checked' : ''} onchange="toggleBenchmarkLine('cdi')">
+            <span class="legend-dot" style="background:#3b82f6;"></span> 100% CDI
+          </label>
+          <label class="legend-checkbox ibov ${showChartIbov ? 'active' : ''}">
+            <input type="checkbox" ${showChartIbov ? 'checked' : ''} onchange="toggleBenchmarkLine('ibov')">
+            <span class="legend-dot" style="background:#f59e0b;"></span> Ibovespa
+          </label>
         </div>
       </div>
 
@@ -2906,15 +3104,23 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
           ${gridYHtml}
           ${gridXHtml.join('')}
 
-          <!-- Área sob a curva -->
+          <!-- Área sob a curva principal -->
           <path d="${areaD}" fill="${areaGradient}" />
 
-          <!-- Linha principal da curva -->
+          <!-- Linha 100% CDI -->
+          ${cdiPathHtml}
+
+          <!-- Linha Ibovespa -->
+          ${ibovPathHtml}
+
+          <!-- Linha principal da carteira -->
           <path d="${pathD}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 
-          <!-- Elemento interativo de Hover -->
+          <!-- Elementos interativos de Hover -->
           <line id="hoverLine_${containerUniqueId}" x1="0" y1="${padding.top}" x2="0" y2="${padding.top + graphH}" stroke="rgba(255,255,255,0.4)" stroke-dasharray="3 3" style="display:none;" />
-          <circle id="hoverPoint_${containerUniqueId}" r="5" fill="#3b82f6" stroke="#ffffff" stroke-width="2" style="display:none;" />
+          <circle id="hoverPoint_${containerUniqueId}" r="5" fill="${lineColor}" stroke="#ffffff" stroke-width="2" style="display:none;" />
+          <circle id="hoverPointCdi_${containerUniqueId}" r="4" fill="#3b82f6" stroke="#ffffff" stroke-width="1.5" style="display:none;" />
+          <circle id="hoverPointIbov_${containerUniqueId}" r="4" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" style="display:none;" />
         </svg>
 
         <!-- Tooltip Flutuante -->
@@ -2926,6 +3132,8 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
   const wrapper = document.getElementById(containerUniqueId);
   const hoverLine = document.getElementById(`hoverLine_${containerUniqueId}`);
   const hoverPoint = document.getElementById(`hoverPoint_${containerUniqueId}`);
+  const hoverPointCdi = document.getElementById(`hoverPointCdi_${containerUniqueId}`);
+  const hoverPointIbov = document.getElementById(`hoverPointIbov_${containerUniqueId}`);
   const tooltip = document.getElementById(`tooltip_${containerUniqueId}`);
 
   if (!wrapper || !hoverLine || !hoverPoint || !tooltip) return;
@@ -2940,6 +3148,8 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     if (svgX < padding.left || svgX > width - padding.right) {
       hoverLine.style.display = 'none';
       hoverPoint.style.display = 'none';
+      if (hoverPointCdi) hoverPointCdi.style.display = 'none';
+      if (hoverPointIbov) hoverPointIbov.style.display = 'none';
       tooltip.style.display = 'none';
       return;
     }
@@ -2959,32 +3169,66 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     hoverPoint.setAttribute('cy', cy);
     hoverPoint.style.display = 'block';
 
+    if (showChartCdi && hoverPointCdi) {
+      hoverPointCdi.setAttribute('cx', cx);
+      hoverPointCdi.setAttribute('cy', getY(item.cdiVal));
+      hoverPointCdi.style.display = 'block';
+    } else if (hoverPointCdi) {
+      hoverPointCdi.style.display = 'none';
+    }
+
+    if (showChartIbov && hoverPointIbov) {
+      hoverPointIbov.setAttribute('cx', cx);
+      hoverPointIbov.setAttribute('cy', getY(item.ibovVal));
+      hoverPointIbov.style.display = 'block';
+    } else if (hoverPointIbov) {
+      hoverPointIbov.style.display = 'none';
+    }
+
     const dateParts = item.date.split('-');
     const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
     
     const diffSign = item.diffVal >= 0 ? '+' : '';
-    const diffClass = item.diffVal >= 0 ? 'color: #34d399;' : 'color: #f87171;';
-    const arrow = item.diffVal >= 0 ? '▲' : '▼';
 
     tooltip.innerHTML = `
-      <div style="font-weight: 700; color: #f9fafb; margin-bottom: 2px;">📅 Pregão de ${formattedDate}</div>
-      <div style="font-size: 0.92rem; font-weight: 800; color: #ffffff;">${formatCurrency(item.total)}</div>
-      <div style="font-size: 0.76rem; ${diffClass} font-weight: 600; margin-top: 2px;">
-        ${arrow} ${diffSign}${formatCurrency(item.diffVal)} (${diffSign}${item.diffPct.toFixed(2)}%)
+      <div style="font-weight: 700; color: #f9fafb; margin-bottom: 6px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
+        📅 Pregão de ${formattedDate}
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span style="color: ${lineColor}; font-weight: 600;">🟢 Carteira:</span>
+          <strong style="color: #ffffff;">${formatCurrency(item.total)} (${diffSign}${item.diffPct.toFixed(2)}%)</strong>
+        </div>
+        ${showChartCdi ? `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span style="color: #60a5fa; font-weight: 600;">🔵 100% CDI:</span>
+          <strong style="color: #93c5fd;">${formatCurrency(item.cdiVal)} (${item.cdiPct >= 0 ? '+' : ''}${item.cdiPct.toFixed(2)}%)</strong>
+        </div>
+        ` : ''}
+        ${showChartIbov ? `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span style="color: #fbbf24; font-weight: 600;">🟠 Ibovespa:</span>
+          <strong style="color: #fde68a;">${formatCurrency(item.ibovVal)} (${item.ibovPct >= 0 ? '+' : ''}${item.ibovPct.toFixed(2)}%)</strong>
+        </div>
+        ` : ''}
       </div>
     `;
 
-    const leftPx = (cx / width) * rect.width;
-    const topPx = (cy / height) * rect.height - 70;
-
-    tooltip.style.left = `${Math.max(10, Math.min(rect.width - 160, leftPx - 80))}px`;
-    tooltip.style.top = `${Math.max(10, topPx)}px`;
     tooltip.style.display = 'block';
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let leftPos = offsetX + 15;
+    if (leftPos + tooltipRect.width > rect.width) {
+      leftPos = offsetX - tooltipRect.width - 15;
+    }
+    tooltip.style.left = `${Math.max(10, leftPos)}px`;
+    tooltip.style.top = `${Math.max(10, Math.min(rect.height - tooltipRect.height - 10, getY(item.total) * (rect.height / height) - 20))}px`;
   }
 
   function handlePointerLeave() {
     hoverLine.style.display = 'none';
     hoverPoint.style.display = 'none';
+    if (hoverPointCdi) hoverPointCdi.style.display = 'none';
+    if (hoverPointIbov) hoverPointIbov.style.display = 'none';
     tooltip.style.display = 'none';
   }
 
