@@ -519,9 +519,9 @@ h1, h2, h3, h4 {
 }
 
 .hero-title {
-    font-size: 5rem;
+    font-size: clamp(2.5rem, 8vw, 5rem);
     font-weight: 800;
-    letter-spacing: 0.15em;
+    letter-spacing: clamp(0.02em, 1.5vw, 0.15em);
     line-height: 1.1;
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, var(--hero-title-gradient-start) 60%, var(--hero-title-gradient-end) 100%);
@@ -551,6 +551,7 @@ h1, h2, h3, h4 {
 .hero-ctas {
     display: flex;
     gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
 /* Botões */
@@ -563,6 +564,9 @@ h1, h2, h3, h4 {
     font-size: 1rem;
     transition: var(--transition-smooth);
     cursor: pointer;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: center;
 }
 
 .btn-primary {
@@ -1017,7 +1021,8 @@ h1, h2, h3, h4 {
     }
     
     .hero-title {
-        font-size: 3.8rem;
+        font-size: clamp(2.2rem, 9vw, 3.8rem);
+        letter-spacing: clamp(0.02em, 1.5vw, 0.08em);
     }
     
     .hero-tagline {
@@ -1027,9 +1032,28 @@ h1, h2, h3, h4 {
         padding-top: 1rem;
     }
     
+    .hero-ctas {
+        justify-content: center;
+    }
+    
     .topics-grid {
         grid-template-columns: 1fr;
         gap: 3rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .hero-ctas {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.85rem;
+        align-items: center;
+    }
+    
+    .hero-ctas .btn {
+        width: 100%;
+        max-width: 280px;
+        padding: 0.8rem 1.5rem;
     }
 }
 
