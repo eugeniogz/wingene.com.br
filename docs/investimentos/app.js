@@ -2304,6 +2304,33 @@ function parseToIsoDate(d) {
   return str.split('T')[0];
 }
 
+function getFallbackSelicAnnualRate(dateStr) {
+  if (!dateStr) return 10.50;
+  // Histórico de reuniões do COPOM (Meta Selic / CDI a.a.)
+  if (dateStr < '2023-08-03') return 13.75;
+  if (dateStr < '2023-09-21') return 13.25;
+  if (dateStr < '2023-11-02') return 12.75;
+  if (dateStr < '2023-12-14') return 12.25;
+  if (dateStr < '2024-02-01') return 11.75;
+  if (dateStr < '2024-03-21') return 11.25;
+  if (dateStr < '2024-05-09') return 10.75;
+  if (dateStr < '2024-09-19') return 10.50;
+  if (dateStr < '2024-11-07') return 10.75;
+  if (dateStr < '2024-12-12') return 11.25;
+  if (dateStr < '2025-01-30') return 12.25;
+  if (dateStr < '2025-03-20') return 13.25;
+  if (dateStr < '2025-05-08') return 14.25;
+  if (dateStr < '2025-06-19') return 14.75;
+  return 14.75;
+}
+
+function selicAnnualToDailyRate(annualRate) {
+  if (!annualRate || annualRate <= 0) return 0;
+  // Taxa diária equivalente (252 dias úteis por ano)
+  const factor = Math.pow(1 + (annualRate / 100), 1 / 252);
+  return (factor - 1) * 100;
+}
+
 async function fetchCdiDailySeries() {
   const bcbUrl = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados/ultimos/365?formato=json';
   const endpoints = [
@@ -2908,12 +2935,26 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const ibovCloseMap = {};
   ibovHistory.forEach(item => { ibovCloseMap[item.date] = item.close; });
 
-  // Fator acumulado do CDI para a timeline
+  // Fator acumulado do CDI para a timeline (considerando finais de semana e variações da Selic/COPOM)
   const cdiFactorMap = {};
   let currentCdiFactor = 1.0;
   datesSorted.forEach(d => {
-    const rate = cdiRateMap[d] !== undefined ? cdiRateMap[d] : 0.03968; // fallback ~10.5% a.a.
-    currentCdiFactor *= (1 + rate / 100);
+    const dateObj = new Date(`${d}T12:00:00Z`);
+    const dayOfWeek = dateObj.getUTCDay();
+    const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+
+    let rate = 0;
+    if (cdiRateMap[d] !== undefined && cdiRateMap[d] !== null) {
+      rate = cdiRateMap[d];
+    } else if (isWeekend) {
+      rate = 0; // Finais de semana não têm rendimento no CDI (títulos pós-fixados 252 d.u.)
+    } else {
+      // Obter a taxa Selic/CDI anualizada equivalente à data conforme reuniões do COPOM
+      const annualRate = getFallbackSelicAnnualRate(d);
+      rate = selicAnnualToDailyRate(annualRate);
+    }
+
+    currentCdiFactor *= (1 + (rate / 100));
     cdiFactorMap[d] = currentCdiFactor;
   });
 
