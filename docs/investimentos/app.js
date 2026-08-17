@@ -1363,23 +1363,52 @@ function closeAddAcaoModal() {
 
 function handleAddAcaoModalSubmit(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
-  const ticker = document.getElementById('modalAcaoTicker').value.trim().toUpperCase();
-  const nome = document.getElementById('modalAcaoNome').value.trim();
-  const rawQtd = document.getElementById('modalAcaoQtd').value.trim();
+  const tickerInput = document.getElementById('modalAcaoTicker');
+  const ticker = tickerInput ? tickerInput.value.trim().toUpperCase() : '';
+  const nomeInput = document.getElementById('modalAcaoNome');
+  let nome = nomeInput ? nomeInput.value.trim() : '';
+
+  const rawQtd = document.getElementById('modalAcaoQtd') ? document.getElementById('modalAcaoQtd').value.trim() : '';
   const quantidade = rawQtd === '' ? 0 : parsePtBrFloat(rawQtd);
-  const preco = parsePtBrFloat(document.getElementById('modalAcaoPreco').value);
-  const rawMeta = document.getElementById('modalAcaoMeta').value.trim();
-  const meta = rawMeta === '' ? 0 : (parsePtBrFloat(rawMeta) || 0);
+
+  const rawPreco = document.getElementById('modalAcaoPreco') ? document.getElementById('modalAcaoPreco').value.trim() : '';
+  let preco = rawPreco === '' ? 0 : parsePtBrFloat(rawPreco);
+  if (isNaN(preco) || preco < 0) preco = 0;
+
+  const rawMeta = document.getElementById('modalAcaoMeta') ? document.getElementById('modalAcaoMeta').value.trim() : '';
+  let meta = rawMeta === '' ? 0 : parsePtBrFloat(rawMeta);
+  if (isNaN(meta) || meta < 0) meta = 0;
+
   const comentario = document.getElementById('modalAcaoComentario') ? document.getElementById('modalAcaoComentario').value.trim() : '';
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
-  if (!ticker || !nome || isNaN(quantidade) || quantidade < 0 || isNaN(preco) || isNaN(meta) || meta < 0) {
-    closeAddAcaoModal();
-    showToast('Preencha os campos obrigatórios da ação com valores válidos.', 'error');
+  if (!ticker) {
+    showToast('Informe o Código / Ticker da ação (ex: PETR4).', 'error');
     return;
   }
 
-  appState.acoes.push({
+  if (isNaN(quantidade) || quantidade < 0) {
+    showToast('Informe uma quantidade válida (ou 0).', 'error');
+    return;
+  }
+
+  if (!nome) {
+    nome = (typeof B3_POPULAR_STOCKS !== 'undefined' && B3_POPULAR_STOCKS[ticker]) ? B3_POPULAR_STOCKS[ticker] : ticker;
+  }
+
+  // Se o preço não foi informado (0), tenta buscar do cache de cotações da B3 se disponível
+  if (preco === 0) {
+    const cache = (typeof loadB3Cache === 'function') ? loadB3Cache() : null;
+    const symbol = ticker.replace(/\.SA$/i, '');
+    if (cache && cache.quotes && (cache.quotes[symbol] || cache.quotes[ticker])) {
+      const q = cache.quotes[symbol] || cache.quotes[ticker];
+      if (q && q.price > 0) {
+        preco = q.price;
+      }
+    }
+  }
+
+  const novaAcao = {
     id: 'ac-' + Date.now(),
     ticker,
     nome,
@@ -1394,13 +1423,20 @@ function handleAddAcaoModalSubmit(e) {
     historico: [
       { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), preco: preco, quantidade: quantidade, valorTotal: preco * quantidade }
     ]
-  });
+  };
+
+  appState.acoes.push(novaAcao);
 
   closeAddAcaoModal();
   appState.isDemo = false;
   saveLocalState(true, true);
   renderApp();
   showToast(`Ação ${ticker} adicionada com sucesso!`, 'success');
+
+  // Disparar sincronização em segundo plano para obter cotação oficial se o preço era 0
+  if (preco === 0 && typeof triggerB3Sync === 'function') {
+    triggerB3Sync(false);
+  }
 }
 
 function openAddModalForCurrentTab() {
@@ -1579,24 +1615,38 @@ function handleEditAcaoModalSubmit(e) {
   }
 
   const ticker = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
-  const nome = document.getElementById('editModalAcaoNome').value.trim();
+  let nome = document.getElementById('editModalAcaoNome').value.trim();
   const rawQtd = document.getElementById('editModalAcaoQtd').value.trim();
   const quantidade = rawQtd === '' ? 0 : parsePtBrFloat(rawQtd);
-  const precoMesInput = document.getElementById('editModalAcaoPrecoMes').value;
-  const precoAnoInput = document.getElementById('editModalAcaoPrecoAno').value;
-  const precoAtualInput = document.getElementById('editModalAcaoPreco').value;
+  const precoMesInput = document.getElementById('editModalAcaoPrecoMes').value.trim();
+  const precoAnoInput = document.getElementById('editModalAcaoPrecoAno').value.trim();
+  const precoAtualInput = document.getElementById('editModalAcaoPreco').value.trim();
   const rawMeta = document.getElementById('editModalAcaoMeta').value.trim();
-  const meta = rawMeta === '' ? 0 : (parsePtBrFloat(rawMeta) || 0);
+  let meta = rawMeta === '' ? 0 : parsePtBrFloat(rawMeta);
+  if (isNaN(meta) || meta < 0) meta = 0;
   const comentario = document.getElementById('editModalAcaoComentario') ? document.getElementById('editModalAcaoComentario').value.trim() : '';
 
-  const precoAtual = parsePtBrFloat(precoAtualInput);
-  const precoMes = precoMesInput !== '' ? parsePtBrFloat(precoMesInput) : precoAtual;
-  const precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
+  let precoAtual = precoAtualInput === '' ? (item.precoAtual || item.preco || 0) : parsePtBrFloat(precoAtualInput);
+  if (isNaN(precoAtual) || precoAtual < 0) precoAtual = 0;
 
-  if (!ticker || !nome || isNaN(quantidade) || quantidade < 0 || isNaN(precoAtual) || isNaN(meta) || meta < 0) {
-    closeEditAcaoModal();
-    showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
+  let precoMes = precoMesInput !== '' ? parsePtBrFloat(precoMesInput) : precoAtual;
+  if (isNaN(precoMes) || precoMes < 0) precoMes = precoAtual;
+
+  let precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
+  if (isNaN(precoAno) || precoAno < 0) precoAno = precoAtual;
+
+  if (!ticker) {
+    showToast('Informe o Código / Ticker da ação.', 'error');
     return;
+  }
+
+  if (isNaN(quantidade) || quantidade < 0) {
+    showToast('Informe uma quantidade válida (ou 0).', 'error');
+    return;
+  }
+
+  if (!nome) {
+    nome = (typeof B3_POPULAR_STOCKS !== 'undefined' && B3_POPULAR_STOCKS[ticker]) ? B3_POPULAR_STOCKS[ticker] : (item.nome || ticker);
   }
 
   if (item.precoAtual !== precoAtual || item.preco !== precoAtual) {
@@ -1608,8 +1658,8 @@ function handleEditAcaoModalSubmit(e) {
   item.quantidade = quantidade;
   item.preco = precoAtual;
   item.precoAtual = precoAtual;
-  item.precoMesAnterior = isNaN(precoMes) ? precoAtual : precoMes;
-  item.precoAnoAnterior = isNaN(precoAno) ? precoAtual : precoAno;
+  item.precoMesAnterior = precoMes;
+  item.precoAnoAnterior = precoAno;
   item.meta = meta;
   item.comentario = comentario;
   item.data = new Date().toLocaleDateString('pt-BR');
