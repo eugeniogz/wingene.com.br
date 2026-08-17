@@ -1344,9 +1344,12 @@ function openAddAcaoModal() {
   if (!backdrop) return;
   document.getElementById('modalAcaoTicker').value = '';
   document.getElementById('modalAcaoNome').value = '';
-  document.getElementById('modalAcaoQtd').value = '';
+  document.getElementById('modalAcaoQtd').value = '0';
   document.getElementById('modalAcaoPreco').value = '';
-  document.getElementById('modalAcaoMeta').value = '10';
+  document.getElementById('modalAcaoMeta').value = '0';
+  if (document.getElementById('modalAcaoComentario')) {
+    document.getElementById('modalAcaoComentario').value = '';
+  }
   backdrop.style.display = 'flex';
 }
 
@@ -1362,12 +1365,15 @@ function handleAddAcaoModalSubmit(e) {
   if (e && typeof e.preventDefault === 'function') e.preventDefault();
   const ticker = document.getElementById('modalAcaoTicker').value.trim().toUpperCase();
   const nome = document.getElementById('modalAcaoNome').value.trim();
-  const quantidade = parsePtBrFloat(document.getElementById('modalAcaoQtd').value);
+  const rawQtd = document.getElementById('modalAcaoQtd').value.trim();
+  const quantidade = rawQtd === '' ? 0 : parsePtBrFloat(rawQtd);
   const preco = parsePtBrFloat(document.getElementById('modalAcaoPreco').value);
-  const meta = parsePtBrFloat(document.getElementById('modalAcaoMeta').value) || 0;
+  const rawMeta = document.getElementById('modalAcaoMeta').value.trim();
+  const meta = rawMeta === '' ? 0 : (parsePtBrFloat(rawMeta) || 0);
+  const comentario = document.getElementById('modalAcaoComentario') ? document.getElementById('modalAcaoComentario').value.trim() : '';
   const currentDate = new Date().toLocaleDateString('pt-BR');
 
-  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
+  if (!ticker || !nome || isNaN(quantidade) || quantidade < 0 || isNaN(preco) || isNaN(meta) || meta < 0) {
     closeAddAcaoModal();
     showToast('Preencha os campos obrigatórios da ação com valores válidos.', 'error');
     return;
@@ -1383,6 +1389,7 @@ function handleAddAcaoModalSubmit(e) {
     precoMesAnterior: preco,
     precoAnoAnterior: preco,
     meta,
+    comentario,
     data: currentDate,
     historico: [
       { data: currentDate + ' ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), preco: preco, quantidade: quantidade, valorTotal: preco * quantidade }
@@ -1424,7 +1431,10 @@ function renderAcoesTable(fin) {
           <strong>${item.ticker}</strong>
         </div>
       </td>
-      <td>${escapeHtml(item.nome)}</td>
+      <td>
+        <div style="font-weight: 500;">${escapeHtml(item.nome)}</div>
+        ${item.comentario ? `<div class="asset-comment" style="font-size:0.75rem; margin-top:2px; color:#94a3b8; font-style:italic; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.comentario)}">💬 ${escapeHtml(item.comentario)}</div>` : ''}
+      </td>
       <td class="text-right">${item.quantidade}</td>
       <td class="text-right text-muted">${formatCurrency(item.precoMesAnt)}</td>
       <td class="text-right text-muted">${formatCurrency(item.precoAnoAnt)}</td>
@@ -1480,6 +1490,12 @@ function renderAcoesTable(fin) {
               <div><span class="meta-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.meta.toFixed(1)}%</span></div>
             </div>
           </div>
+
+          ${item.comentario ? `
+            <div class="mobile-comment-box" style="margin-top: 8px; font-size: 0.78rem; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border-left: 3px solid #3b82f6; border-radius: 4px; color: #93c5fd;">
+              <strong>💬 Nota:</strong> ${escapeHtml(item.comentario)}
+            </div>
+          ` : ''}
         </div>
       </td>
     </tr>
@@ -1493,7 +1509,7 @@ function recordAssetHistory(item, newPrice) {
   if (!Array.isArray(item.historico)) {
     item.historico = [];
   }
-  const qty = parseFloat(item.quantidade) || 1;
+  const qty = (item.quantidade !== undefined && !isNaN(parseFloat(item.quantidade))) ? parseFloat(item.quantidade) : 0;
   const now = new Date();
   const dateTimeStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   item.historico.push({
@@ -1516,11 +1532,14 @@ function openEditAcaoModal(id) {
   document.getElementById('editModalAcaoId').value = item.id;
   document.getElementById('editModalAcaoTicker').value = item.ticker || '';
   document.getElementById('editModalAcaoNome').value = item.nome || '';
-  document.getElementById('editModalAcaoQtd').value = item.quantidade || 0;
+  document.getElementById('editModalAcaoQtd').value = (item.quantidade !== undefined && !isNaN(item.quantidade)) ? item.quantidade : 0;
   document.getElementById('editModalAcaoPrecoMes').value = item.precoMesAnterior !== undefined ? item.precoMesAnterior : currentP;
   document.getElementById('editModalAcaoPrecoAno').value = item.precoAnoAnterior !== undefined ? item.precoAnoAnterior : currentP;
   document.getElementById('editModalAcaoPreco').value = currentP;
-  document.getElementById('editModalAcaoMeta').value = item.meta !== undefined ? item.meta : 10;
+  document.getElementById('editModalAcaoMeta').value = (item.meta !== undefined && !isNaN(item.meta)) ? item.meta : 0;
+  if (document.getElementById('editModalAcaoComentario')) {
+    document.getElementById('editModalAcaoComentario').value = item.comentario || '';
+  }
   document.getElementById('modalEditAcaoBackdrop').style.display = 'flex';
 }
 
@@ -1561,17 +1580,20 @@ function handleEditAcaoModalSubmit(e) {
 
   const ticker = document.getElementById('editModalAcaoTicker').value.trim().toUpperCase();
   const nome = document.getElementById('editModalAcaoNome').value.trim();
-  const quantidade = parsePtBrFloat(document.getElementById('editModalAcaoQtd').value);
+  const rawQtd = document.getElementById('editModalAcaoQtd').value.trim();
+  const quantidade = rawQtd === '' ? 0 : parsePtBrFloat(rawQtd);
   const precoMesInput = document.getElementById('editModalAcaoPrecoMes').value;
   const precoAnoInput = document.getElementById('editModalAcaoPrecoAno').value;
   const precoAtualInput = document.getElementById('editModalAcaoPreco').value;
-  const meta = parsePtBrFloat(document.getElementById('editModalAcaoMeta').value) || 0;
+  const rawMeta = document.getElementById('editModalAcaoMeta').value.trim();
+  const meta = rawMeta === '' ? 0 : (parsePtBrFloat(rawMeta) || 0);
+  const comentario = document.getElementById('editModalAcaoComentario') ? document.getElementById('editModalAcaoComentario').value.trim() : '';
 
   const precoAtual = parsePtBrFloat(precoAtualInput);
   const precoMes = precoMesInput !== '' ? parsePtBrFloat(precoMesInput) : precoAtual;
   const precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
 
-  if (!ticker || !nome || isNaN(quantidade) || isNaN(precoAtual)) {
+  if (!ticker || !nome || isNaN(quantidade) || quantidade < 0 || isNaN(precoAtual) || isNaN(meta) || meta < 0) {
     closeEditAcaoModal();
     showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
     return;
@@ -1589,6 +1611,7 @@ function handleEditAcaoModalSubmit(e) {
   item.precoMesAnterior = isNaN(precoMes) ? precoAtual : precoMes;
   item.precoAnoAnterior = isNaN(precoAno) ? precoAtual : precoAno;
   item.meta = meta;
+  item.comentario = comentario;
   item.data = new Date().toLocaleDateString('pt-BR');
 
   closeEditAcaoModal();
@@ -1614,14 +1637,16 @@ function saveAcaoInline(id) {
 
   const ticker = document.getElementById(`editAcaoTicker_${id}`).value.toUpperCase().trim();
   const nome = document.getElementById(`editAcaoNome_${id}`).value.trim();
-  const quantidade = parsePtBrFloat(document.getElementById(`editAcaoQtd_${id}`).value);
+  const rawQtd = document.getElementById(`editAcaoQtd_${id}`).value.trim();
+  const quantidade = rawQtd === '' ? 0 : parsePtBrFloat(rawQtd);
   const precoMes = parsePtBrFloat(document.getElementById(`editAcaoPrecoMes_${id}`).value);
   const precoAno = parsePtBrFloat(document.getElementById(`editAcaoPrecoAno_${id}`).value);
   const preco = parsePtBrFloat(document.getElementById(`editAcaoPreco_${id}`).value);
-  const meta = parsePtBrFloat(document.getElementById(`editAcaoMeta_${id}`).value) || 0;
+  const rawMeta = document.getElementById(`editAcaoMeta_${id}`).value.trim();
+  const meta = rawMeta === '' ? 0 : (parsePtBrFloat(rawMeta) || 0);
 
-  if (!ticker || !nome || isNaN(quantidade) || isNaN(preco)) {
-    showToast('Preencha os campos obrigatórios.', 'error');
+  if (!ticker || !nome || isNaN(quantidade) || quantidade < 0 || isNaN(preco) || isNaN(meta) || meta < 0) {
+    showToast('Preencha os campos obrigatórios com valores válidos.', 'error');
     return;
   }
 
@@ -1888,7 +1913,13 @@ function renderRebalanceamentoSection(fin) {
     let statusBadge = '';
     let recomendacao = '';
 
-    if (diffPct < -1) {
+    if (item.quantidade === 0 && item.meta === 0) {
+      statusBadge = `<span class="badge" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4);">Em Observação</span>`;
+      recomendacao = `Ativo cadastrado para planejamento futuro (0 cotas e 0% de meta).`;
+    } else if (item.quantidade === 0 && item.meta > 0) {
+      statusBadge = `<span class="badge badge-success">Aporte Recomendado</span>`;
+      recomendacao = `Posição zerada. Aporte recomendado de <strong>${formatCurrency(Math.abs(item.valorDiferenca))}</strong> para iniciar posição e atingir a meta.`;
+    } else if (diffPct < -1) {
       statusBadge = `<span class="badge badge-success">Aporte Recomendado</span>`;
       recomendacao = `Comprar <strong>${formatCurrency(Math.abs(item.valorDiferenca))}</strong> para atingir a meta.`;
     } else if (diffPct > 1) {
@@ -1904,7 +1935,7 @@ function renderRebalanceamentoSection(fin) {
         <div class="rebalance-header">
           <div>
             <h3 class="m-0">${item.ticker} <small class="text-muted">(${escapeHtml(item.nome)})</small></h3>
-            <div class="text-small text-muted mt-1">Valor Atual: ${formatCurrency(item.valorTotal)}</div>
+            <div class="text-small text-muted mt-1">Valor Atual: ${formatCurrency(item.valorTotal)} <span class="text-muted">(${item.quantidade || 0} cotas)</span></div>
           </div>
           <div>${statusBadge}</div>
         </div>
@@ -1923,6 +1954,16 @@ function renderRebalanceamentoSection(fin) {
         <div class="rebalance-footer mt-3">
           <span>💡 ${recomendacao}</span>
         </div>
+
+        ${item.comentario ? `
+          <div class="rebalance-comment mt-3" style="font-size: 0.82rem; padding: 8px 12px; background: rgba(59, 130, 246, 0.08); border-left: 3px solid #3b82f6; border-radius: 6px; color: #93c5fd; display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 1rem; line-height: 1;">📝</span>
+            <div>
+              <strong style="color: #60a5fa;">Planejamento / Anotações:</strong>
+              <div style="margin-top: 2px; color: #e2e8f0;">${escapeHtml(item.comentario)}</div>
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
   }).join('');
@@ -2111,14 +2152,14 @@ Por favor, faça um diagnóstico completo, analise a saúde da minha carteira de
 ${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'} | Var. Mês: ${formatDiffValText(rf.diffMesVal)} (${formatDiffPctText(rf.diffMesPct)}) | Var. Ano: ${formatDiffValText(rf.diffAnoVal)} (${formatDiffPctText(rf.diffAnoPct)})`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
 
 ### 4. DETALHAMENTO DA CARTEIRA DE AÇÕES & METAS DE REBALANCEAMENTO
-${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})`).join('\n') || 'Nenhuma ação registrada.'}
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}
 
 ---
 
 ### INSTRUÇÕES PARA A ANÁLISE:
 1. **Diagnóstico de Alocação Macro**: Comente sobre a distribuição entre RDB/CDI, IPCA/LCA e Ações em relação às metas estipuladas.
 2. **Avaliação da Rentabilidade e Evolução**: Destaque pontos positivos e alertas na evolução patrimonial recente.
-3. **Plano de Rebalanceamento Inteligente**: Quais grandes classes e quais ações estão mais abaixo das metas cadastradas e deveriam ser priorizadas nos próximos aportes?
+3. **Plano de Rebalanceamento Inteligente**: Quais grandes classes e quais ações estão mais abaixo das metas cadastradas e deveriam ser priorizadas nos próximos aportes? Considere também eventuais anotações/planejamentos registrados pelo usuário.
 4. **Análise de Risco & Recomendações Práticas**: Identifique possíveis pontos céticos ou riscos de concentração de forma clara e estruturada.`;
 
   return prompt;
@@ -2141,7 +2182,7 @@ function generateAIContinuePromptText() {
 ${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'}`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
 
 ### 3. POSIÇÃO DA CARTEIRA DE AÇÕES & REBALANCEAMENTO
-${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual: ${ac.percentualAtual.toFixed(1)}% | Meta Configurada: ${ac.meta.toFixed(1)}%`).join('\n') || 'Nenhuma ação registrada.'}
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual: ${ac.percentualAtual.toFixed(1)}% | Meta Configurada: ${ac.meta.toFixed(1)}%${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}
 
 ---
 
