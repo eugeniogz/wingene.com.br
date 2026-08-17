@@ -3179,6 +3179,20 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     `);
   }
 
+  let assetLabel = 'Renda Variável (Carteira)';
+  let assetShortLabel = 'Carteira';
+  if (selectedSymbol && selectedSymbol !== 'ALL') {
+    const matchAcao = appState.acoes ? appState.acoes.find(a => `AC_${a.id}` === selectedSymbol || `AC_${(a.ticker || '').trim().toUpperCase()}` === selectedSymbol) : null;
+    if (matchAcao) {
+      const ticker = (matchAcao.ticker || '').trim().toUpperCase();
+      assetLabel = ticker ? `${ticker}${matchAcao.nome ? ` - ${matchAcao.nome}` : ''}` : (matchAcao.nome || 'Ativo Selecionado');
+      assetShortLabel = ticker || 'Ativo';
+    } else {
+      assetLabel = 'Ativo Selecionado';
+      assetShortLabel = 'Ativo';
+    }
+  }
+
   const lineColor = totalChangeVal >= 0 ? '#10b981' : '#ef4444';
   const areaGradient = totalChangeVal >= 0 ? 'url(#greenGradient)' : 'url(#redGradient)';
 
@@ -3191,7 +3205,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     <div class="line-chart-card">
       <div class="line-chart-header mb-3">
         <div class="chart-stat-item">
-          <span class="text-muted text-small">Carteira</span>
+          <span class="text-muted text-small">${escapeHtml(assetLabel)}</span>
           <strong class="stat-main-val">${formatCurrency(lastVal)} <span class="${changeClass} font-normal" style="font-size: 0.85rem;">(${changeSign}${totalChangePct.toFixed(1)}%)</span></strong>
         </div>
         ${showChartCdi ? `
@@ -3328,7 +3342,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <span style="color: ${lineColor}; font-weight: 600;">🟢 Carteira:</span>
+          <span style="color: ${lineColor}; font-weight: 600;">🟢 ${escapeHtml(assetShortLabel)}:</span>
           <strong style="color: #ffffff;">${formatCurrency(item.total)} (${diffSign}${item.diffPct.toFixed(2)}%)</strong>
         </div>
         ${showChartCdi ? `
