@@ -212,7 +212,7 @@ function closeNavDrawer() {
   if (btn) btn.setAttribute('aria-expanded', 'false');
 }
 
-// Salvar diálogos de edição ou fechar modais/menu gaveta ao pressionar ESC
+// Salvar diálogos de edição ou fechar modais/menu gaveta ao pressionar ESC e acessibilidade de teclado
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const editRfBackdrop = document.getElementById('modalEditRfBackdrop');
@@ -249,6 +249,15 @@ document.addEventListener('keydown', (e) => {
     }
 
     closeNavDrawer();
+    return;
+  }
+
+  // Acionar clique com Enter ou Espaço em cards e itens com role="button" e tabindex
+  if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.getAttribute('role') === 'button' && e.target.hasAttribute('tabindex')) {
+    if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      e.target.click();
+    }
   }
 });
 
@@ -813,7 +822,7 @@ function renderEvolucaoTab(fin) {
   const tbodyGrupos = document.getElementById('tbodyEvolucaoGrupos');
   if (tbodyGrupos) {
     tbodyGrupos.innerHTML = `
-      <tr class="col-desktop-row" style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
+      <tr class="col-desktop-row clickable-row" onclick="switchTab('overview')" title="Clique para ver a Visão Geral" style="font-weight: 700; background: rgba(16, 64, 176, 0.08);">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg></span> PATRIMÔNIO TOTAL</td>
         <td class="text-right">${formatCurrency(fin.patrimonioTotal)}</td>
         <td class="text-right">${formatDiffVal(fin.diffTotalMesVal)}</td>
@@ -821,7 +830,7 @@ function renderEvolucaoTab(fin) {
         <td class="text-right">${formatDiffVal(fin.diffTotalAnoVal)}</td>
         <td class="text-right">${formatDiffPct(fin.diffTotalAnoPct)}</td>
       </tr>
-      <tr class="col-desktop-row">
+      <tr class="col-desktop-row clickable-row" onclick="switchTab('rendafixa')" title="Clique para ver a Carteira de Renda Fixa">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg></span> Grupo Renda Fixa</td>
         <td class="text-right">${formatCurrency(fin.totalRendaFixa)}</td>
         <td class="text-right">${formatDiffVal(fin.diffRfMesVal)}</td>
@@ -829,7 +838,7 @@ function renderEvolucaoTab(fin) {
         <td class="text-right">${formatDiffVal(fin.diffRfAnoVal)}</td>
         <td class="text-right">${formatDiffPct(fin.diffRfAnoPct)}</td>
       </tr>
-      <tr class="col-desktop-row">
+      <tr class="col-desktop-row clickable-row" onclick="switchTab('acoes')" title="Clique para ver a Carteira de Ações">
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Grupo Ações</td>
         <td class="text-right">${formatCurrency(fin.totalAcoes)}</td>
         <td class="text-right">${formatDiffVal(fin.diffAcoesMesVal)}</td>
@@ -841,8 +850,11 @@ function renderEvolucaoTab(fin) {
       <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO GRUPOS -->
       <tr class="col-mobile-row">
         <td colspan="7" style="padding: 0 0 10px 0 !important; border: none;">
-          <div class="mobile-asset-card" style="background: rgba(16, 64, 176, 0.14); border-color: rgba(59, 130, 246, 0.4);">
-            <div style="font-size:0.85rem; font-weight:700; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px;">PATRIMÔNIO TOTAL CONSOLIDADO</div>
+          <div class="mobile-asset-card clickable-row" onclick="switchTab('overview')" title="Clique para ver Visão Geral" style="background: rgba(16, 64, 176, 0.14); border-color: rgba(59, 130, 246, 0.4);">
+            <div style="font-size:0.85rem; font-weight:700; color:#60a5fa; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+              <span>PATRIMÔNIO TOTAL CONSOLIDADO</span>
+              <span style="font-size:0.72rem; color:#93c5fd;">Início →</span>
+            </div>
             <!-- VALOR ATUAL EMBAIXO DO NOME -->
             <div style="margin-top: 4px; font-size: 1.35rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.patrimonioTotal)}</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
@@ -857,8 +869,11 @@ function renderEvolucaoTab(fin) {
             </div>
           </div>
 
-          <div class="mobile-asset-card">
-            <div style="font-size:0.85rem; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.5px;">Grupo Renda Fixa</div>
+          <div class="mobile-asset-card clickable-row" onclick="switchTab('rendafixa')" title="Clique para ver Renda Fixa">
+            <div style="font-size:0.85rem; font-weight:700; color:#34d399; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+              <span>Grupo Renda Fixa</span>
+              <span style="font-size:0.72rem; color:#34d399;">Carteira →</span>
+            </div>
             <!-- VALOR ATUAL EMBAIXO DO NOME -->
             <div style="margin-top: 4px; font-size: 1.2rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.totalRendaFixa)}</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
@@ -873,8 +888,11 @@ function renderEvolucaoTab(fin) {
             </div>
           </div>
 
-          <div class="mobile-asset-card">
-            <div style="font-size:0.85rem; font-weight:700; color:#fbbf24; text-transform:uppercase; letter-spacing:0.5px;">Grupo Ações & Renda Variável</div>
+          <div class="mobile-asset-card clickable-row" onclick="switchTab('acoes')" title="Clique para ver Carteira de Ações">
+            <div style="font-size:0.85rem; font-weight:700; color:#fbbf24; text-transform:uppercase; letter-spacing:0.5px; display:flex; justify-content:space-between; align-items:center;">
+              <span>Grupo Ações & Renda Variável</span>
+              <span style="font-size:0.72rem; color:#fbbf24;">Carteira →</span>
+            </div>
             <!-- VALOR ATUAL EMBAIXO DO NOME -->
             <div style="margin-top: 4px; font-size: 1.2rem; font-weight: 800; color: #ffffff;">${formatCurrency(fin.totalAcoes)}</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
@@ -900,7 +918,7 @@ function renderEvolucaoTab(fin) {
       tbodyRf.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Nenhum ativo cadastrado.</td></tr>`;
     } else {
       tbodyRf.innerHTML = fin.rendaFixa.map(item => `
-        <tr class="col-desktop-row">
+        <tr class="col-desktop-row clickable-row" onclick="openEditRfModal('${item.id}')" title="Clique para editar este ativo">
           <td><span class="badge badge-rf">${item.tipo}</span></td>
           <td><strong>${escapeHtml(item.nome)}</strong> <small class="text-muted">(${escapeHtml(item.emissor)})</small></td>
           <td class="text-right"><strong>${formatCurrency(item.valorAtual)}</strong></td>
@@ -912,12 +930,13 @@ function renderEvolucaoTab(fin) {
         <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO RENDA FIXA -->
         <tr class="col-mobile-row">
           <td colspan="7" style="padding: 0 0 10px 0 !important; border: none;">
-            <div class="mobile-asset-card">
+            <div class="mobile-asset-card clickable-row" onclick="openEditRfModal('${item.id}')" title="Clique para editar este ativo">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                 <div>
                   <span class="badge badge-rf" style="font-size:0.68rem; padding:2px 6px;">${item.tipo}</span>
                   <span class="mobile-emissor-tag">${escapeHtml(item.emissor)}</span>
                 </div>
+                <span class="text-muted" style="font-size:0.72rem;">✏️ Editar</span>
               </div>
               <div style="margin-top: 6px; font-weight: 700; font-size: 0.95rem; color: var(--text-main);">${escapeHtml(item.nome)}</div>
               <!-- VALOR ATUAL EMBAIXO DO NOME -->
@@ -948,7 +967,7 @@ function renderEvolucaoTab(fin) {
       tbodyAcoes.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma ação cadastrada.</td></tr>`;
     } else {
       tbodyAcoes.innerHTML = fin.acoes.map((item, idx) => `
-        <tr class="col-desktop-row">
+        <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar esta ação">
           <td>
             <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
               <strong>${item.ticker}</strong>
@@ -965,12 +984,15 @@ function renderEvolucaoTab(fin) {
         <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO AÇÕES -->
         <tr class="col-mobile-row">
           <td colspan="8" style="padding: 0 0 10px 0 !important; border: none;">
-            <div class="mobile-asset-card">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 2px 6px; font-size: 0.78rem;">
-                  <strong>${item.ticker}</strong>
+            <div class="mobile-asset-card clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar esta ação">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 2px 6px; font-size: 0.78rem;">
+                    <strong>${item.ticker}</strong>
+                  </div>
+                  <span class="text-muted text-small" style="font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${escapeHtml(item.nome)}</span>
                 </div>
-                <span class="text-muted text-small" style="font-size:0.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(item.nome)}</span>
+                <span class="text-muted" style="font-size:0.72rem;">✏️ Editar</span>
               </div>
               <!-- VALOR ATUAL EMBAIXO DO NOME -->
               <div style="margin-top: 6px; font-size: 1.15rem; font-weight: 800; color: #ffffff;">
@@ -1907,8 +1929,11 @@ function renderMacroRebalanceamentoSection(fin) {
       recomendacao = `Alocação macro em perfeito equilíbrio!`;
     }
 
+    const targetTab = (cls.id === 'rfCdi' || cls.id === 'rfIpcaLca') ? 'rendafixa' : 'acoes';
+    const targetLabel = cls.id === 'acoes' ? 'Ver Carteira de Ações' : 'Ver Carteira de Renda Fixa';
+
     return `
-      <div class="card card-rebalance" style="border-left: 5px solid ${cls.color}; margin-bottom: 0;">
+      <div class="card card-rebalance clickable-card" onclick="switchTab('${targetTab}')" role="button" tabindex="0" title="${targetLabel} →" style="border-left: 5px solid ${cls.color}; margin-bottom: 0;">
         <div class="rebalance-header">
           <div>
             <h3 class="m-0" style="font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
@@ -1916,7 +1941,10 @@ function renderMacroRebalanceamentoSection(fin) {
             </h3>
             <div class="text-small text-muted mt-1">Valor Atual: <strong>${formatCurrency(cls.totalAtual)}</strong></div>
           </div>
-          <div>${statusBadge}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${statusBadge}
+            <span class="card-nav-hint" style="font-size: 0.75rem;">Ir →</span>
+          </div>
         </div>
 
         <div class="rebalance-bars mt-3">
@@ -1981,13 +2009,18 @@ function renderRebalanceamentoSection(fin) {
     }
 
     return `
-      <div class="card card-rebalance" style="border-left: 5px solid ${getPaletteColor(idx)}">
+      <div class="card card-rebalance clickable-card" onclick="openEditAcaoModal('${item.id}')" role="button" tabindex="0" title="Clique para editar meta e dados de ${item.ticker}" style="border-left: 5px solid ${getPaletteColor(idx)}">
         <div class="rebalance-header">
           <div>
-            <h3 class="m-0">${item.ticker} <small class="text-muted">(${escapeHtml(item.nome)})</small></h3>
+            <h3 class="m-0" style="display: flex; align-items: center; gap: 6px;">
+              ${item.ticker} <small class="text-muted">(${escapeHtml(item.nome)})</small>
+            </h3>
             <div class="text-small text-muted mt-1">Valor Atual: ${formatCurrency(item.valorTotal)} <span class="text-muted">(${item.quantidade || 0} cotas)</span></div>
           </div>
-          <div>${statusBadge}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${statusBadge}
+            <span class="badge" style="background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.3); font-size: 0.72rem; cursor: pointer;">✏️ Editar</span>
+          </div>
         </div>
 
         <div class="rebalance-bars mt-3">
@@ -2111,16 +2144,52 @@ function renderDonutChart(elementId, items) {
 
     const pathData = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
 
-    return `<path d="${pathData}" fill="${item.color}"><title>${item.label}: ${formatCurrency(item.value)} (${(percentage * 100).toFixed(1)}%)</title></path>`;
+    let clickAttr = '';
+    let clickTitle = `${item.label}: ${formatCurrency(item.value)} (${(percentage * 100).toFixed(1)}%)`;
+
+    if (elementId === 'chartAssetAllocation') {
+      if (item.label.toLowerCase().includes('renda fixa')) {
+        clickAttr = `onclick="switchTab('rendafixa')" class="clickable-slice"`;
+        clickTitle += ' — Clique para ver Carteira de Renda Fixa';
+      } else {
+        clickAttr = `onclick="switchTab('acoes')" class="clickable-slice"`;
+        clickTitle += ' — Clique para ver Carteira de Ações';
+      }
+    } else if (elementId === 'chartStockBreakdown') {
+      clickAttr = `onclick="openEditAcaoModal('${escapeHtml(item.label)}')" class="clickable-slice"`;
+      clickTitle += ' — Clique para editar esta ação';
+    }
+
+    return `<path d="${pathData}" fill="${item.color}" ${clickAttr}><title>${clickTitle}</title></path>`;
   });
 
-  const legend = items.filter(i => i.value > 0).map(item => `
-    <div class="legend-item">
-      <span class="legend-color" style="background: ${item.color}"></span>
-      <span class="legend-label">${item.label}</span>
-      <span class="legend-value">${((item.value / total) * 100).toFixed(1)}%</span>
-    </div>
-  `).join('');
+  const legend = items.filter(i => i.value > 0).map(item => {
+    let legendClickAttr = '';
+    let legendTitle = '';
+
+    if (elementId === 'chartAssetAllocation') {
+      if (item.label.toLowerCase().includes('renda fixa')) {
+        legendClickAttr = `onclick="switchTab('rendafixa')" class="legend-item clickable-legend" role="button" tabindex="0"`;
+        legendTitle = 'title="Clique para ver Carteira de Renda Fixa"';
+      } else {
+        legendClickAttr = `onclick="switchTab('acoes')" class="legend-item clickable-legend" role="button" tabindex="0"`;
+        legendTitle = 'title="Clique para ver Carteira de Ações"';
+      }
+    } else if (elementId === 'chartStockBreakdown') {
+      legendClickAttr = `onclick="openEditAcaoModal('${escapeHtml(item.label)}')" class="legend-item clickable-legend" role="button" tabindex="0"`;
+      legendTitle = `title="Clique para editar ${escapeHtml(item.label)}"`;
+    } else {
+      legendClickAttr = 'class="legend-item"';
+    }
+
+    return `
+      <div ${legendClickAttr} ${legendTitle}>
+        <span class="legend-color" style="background: ${item.color}"></span>
+        <span class="legend-label">${escapeHtml(item.label)}</span>
+        <span class="legend-value">${((item.value / total) * 100).toFixed(1)}%</span>
+      </div>
+    `;
+  }).join('');
 
   container.innerHTML = `
     <div class="donut-chart-wrapper">

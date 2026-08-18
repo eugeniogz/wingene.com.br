@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=1.5.1" />
+  <link rel="stylesheet" href="style.css?v=1.5.2" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -124,21 +124,30 @@
     <!-- ABA 1: VISÃO GERAL -->
     <section id="tab-overview" class="tab-pane active">
       <div class="grid-stats">
-        <div class="stat-card primary">
-          <div class="stat-label">Patrimônio Total</div>
+        <div class="stat-card primary clickable-card" onclick="switchTab('evolucao')" role="button" tabindex="0" title="Clique para ver a Evolução Patrimonial">
+          <div class="stat-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Patrimônio Total</span>
+            <span class="card-nav-hint">📈 Evolução →</span>
+          </div>
           <div id="statPatrimonioTotal" class="stat-value">R$ 0,00</div>
           <div id="statTotalEvolucaoBadges" class="stat-subvalue">--</div>
           <div class="text-small text-muted mt-1">Atualizado em: <span id="lastUpdatedSpan">-</span></div>
         </div>
 
-        <div class="stat-card green">
-          <div class="stat-label">Renda Fixa</div>
+        <div class="stat-card green clickable-card" onclick="switchTab('rendafixa')" role="button" tabindex="0" title="Clique para ver a Carteira de Renda Fixa">
+          <div class="stat-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Renda Fixa</span>
+            <span class="card-nav-hint">🏦 Carteira →</span>
+          </div>
           <div id="statRendaFixaTotal" class="stat-value">R$ 0,00</div>
           <div id="statRfEvolucaoBadges" class="stat-subvalue">--</div>
         </div>
 
-        <div class="stat-card gold">
-          <div class="stat-label">Carteira de Ações</div>
+        <div class="stat-card gold clickable-card" onclick="switchTab('acoes')" role="button" tabindex="0" title="Clique para ver a Carteira de Ações">
+          <div class="stat-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Carteira de Ações</span>
+            <span class="card-nav-hint">📊 Carteira →</span>
+          </div>
           <div id="statAcoesTotal" class="stat-value">R$ 0,00</div>
           <div id="statAcoesEvolucaoBadges" class="stat-subvalue">--</div>
         </div>
@@ -146,12 +155,18 @@
 
       <div class="chart-grid">
         <div class="card">
-          <div class="card-title mb-3">Alocação de Ativos</div>
+          <div class="card-title mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Alocação de Ativos</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('rebalanceamento')" style="padding: 3px 8px; font-size: 0.75rem; border-radius: 6px;" title="Ver Metas e Rebalanceamento">Metas 🎯</button>
+          </div>
           <div id="chartAssetAllocation"></div>
         </div>
 
         <div class="card">
-          <div class="card-title mb-3">Distribuição por Ação</div>
+          <div class="card-title mb-3" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Distribuição por Ação</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('acoes')" style="padding: 3px 8px; font-size: 0.75rem; border-radius: 6px;" title="Ver Tabela de Ações">Ações 📈</button>
+          </div>
           <div id="chartStockBreakdown"></div>
         </div>
       </div>
@@ -318,11 +333,12 @@
         </div>
       </div>
 
-      <div class="card mb-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
+      <div class="card mb-3 clickable-card" onclick="switchTab('rebalanceamento')" role="button" tabindex="0" title="Clique para ver Metas & Rebalanceamento" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <div>
             <div style="font-size: 0.8rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
               <span>💰</span> Total Geral Investido em Renda Fixa
+              <span class="card-nav-hint" style="color: #34d399; font-size: 0.72rem; margin-left: 4px;">Metas 🎯 →</span>
             </div>
             <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 2px; white-space: nowrap;" id="totalRfHeaderCard">
               R$ 0,00
@@ -368,11 +384,12 @@
     <!-- ABA 4: CARTEIRA DE AÇÕES -->
     <section id="tab-acoes" class="tab-pane">
       <!-- CARD DESTACADO: TOTAL GERAL EM AÇÕES E RENDA VARIÁVEL -->
-      <div class="card mb-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
+      <div class="card mb-3 clickable-card" onclick="switchTab('rebalanceamento')" role="button" tabindex="0" title="Clique para ver Metas & Rebalanceamento" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.2)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 16px 20px;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
           <div>
             <div style="font-size: 0.8rem; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
               <span>💰</span> Total Geral em Ações & Renda Variável
+              <span class="card-nav-hint" style="color: #34d399; font-size: 0.72rem; margin-left: 4px;">Metas 🎯 →</span>
             </div>
             <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 2px; white-space: nowrap;" id="totalAcoesHeaderCard">
               R$ 0,00
@@ -842,6 +859,6 @@
 
   <!-- Scripts da Aplicação -->
   <script src="drive-sync.js?v=2.7.0"></script>
-  <script src="app.js?v=2.6.2"></script>
+  <script src="app.js?v=2.7.0"></script>
 </body>
 </html>
