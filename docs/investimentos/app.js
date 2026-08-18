@@ -593,10 +593,10 @@ function calculateFinancials() {
     const valorTotalAnoAnt = qty * precoAnoAnt;
 
     const diffMesVal = valorTotalAtual - valorTotalMesAnt;
-    const diffMesPct = valorTotalMesAnt > 0 ? (diffMesVal / valorTotalMesAnt) * 100 : 0;
+    const diffMesPct = precoMesAnt > 0 ? ((precoAtual - precoMesAnt) / precoMesAnt) * 100 : (valorTotalMesAnt > 0 ? (diffMesVal / valorTotalMesAnt) * 100 : 0);
 
     const diffAnoVal = valorTotalAtual - valorTotalAnoAnt;
-    const diffAnoPct = valorTotalAnoAnt > 0 ? (diffAnoVal / valorTotalAnoAnt) * 100 : 0;
+    const diffAnoPct = precoAnoAnt > 0 ? ((precoAtual - precoAnoAnt) / precoAnoAnt) * 100 : (valorTotalAnoAnt > 0 ? (diffAnoVal / valorTotalAnoAnt) * 100 : 0);
 
     const meta = parseFloat(acao.meta) || 0;
 
@@ -809,7 +809,10 @@ function renderApp() {
 }
 
 function formatDiffBadgeCombined(diffVal, diffPct) {
-  const isPos = diffVal >= 0;
+  if (diffVal === 0 && (diffPct === 0 || isNaN(diffPct))) {
+    return `<span class="text-muted" style="font-size:0.83rem; font-weight:600; white-space:nowrap;">R$ 0,00<br><small style="font-size:0.73rem; opacity:0.85;">(0.0%)</small></span>`;
+  }
+  const isPos = diffVal !== 0 ? diffVal > 0 : diffPct >= 0;
   const arrow = isPos ? '▲' : '▼';
   const cls = isPos ? 'text-success' : 'text-danger';
   const sign = isPos ? '+' : '';
