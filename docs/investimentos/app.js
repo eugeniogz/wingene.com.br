@@ -461,9 +461,38 @@ function setupEventListeners() {
 }
 
 function setupMathExpressionInputListeners() {
+  function isNumericMathInput(target) {
+    if (!target || target.tagName !== 'INPUT') return false;
+    if (target.type === 'password' || target.type === 'file' || target.type === 'checkbox' || target.type === 'radio' || target.type === 'hidden') {
+      return false;
+    }
+
+    const id = (target.id || '').toLowerCase();
+    const name = (target.name || '').toLowerCase();
+
+    // Campos textuais como nome, taxa, emissor, ticker, senhas, etc. NUNCA devem calcular fórmulas matemáticas
+    if (id.includes('nome') || id.includes('taxa') || id.includes('emissor') || id.includes('ticker') || 
+        id.includes('clientid') || id.includes('password') || id.includes('senha') || id.includes('comentario') ||
+        name.includes('nome') || name.includes('taxa') || name.includes('emissor') || name.includes('ticker') ||
+        name.includes('clientid') || name.includes('password') || name.includes('senha') || name.includes('comentario')) {
+      return false;
+    }
+
+    // Apenas inputs numéricos ou com inputmode decimal ou ids específicos de valores numéricos
+    if (target.getAttribute('inputmode') === 'decimal' || target.type === 'number') {
+      return true;
+    }
+
+    if (id.includes('valor') || id.includes('preco') || id.includes('qtd') || id.includes('meta') || id.includes('rendimento') || id.includes('valmes') || id.includes('valano')) {
+      return true;
+    }
+
+    return false;
+  }
+
   document.addEventListener('input', (e) => {
     const target = e.target;
-    if (!target || !target.matches('input[type="text"], input:not([type]), input[inputmode="decimal"]')) return;
+    if (!isNumericMathInput(target)) return;
 
     const val = target.value;
     const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
@@ -496,7 +525,7 @@ function setupMathExpressionInputListeners() {
 
   document.addEventListener('blur', (e) => {
     const target = e.target;
-    if (!target || !target.matches('input[type="text"], input:not([type]), input[inputmode="decimal"]')) return;
+    if (!isNumericMathInput(target)) return;
 
     const val = target.value;
     const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
