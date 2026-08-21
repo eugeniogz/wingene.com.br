@@ -293,8 +293,9 @@ function switchTab(targetTab) {
     }
   }
 
-  if (targetTab === 'acoes' || targetTab === 'evolucao') {
-    triggerB3Sync(false);
+  // Atualizar visualização do status do cache (sem disparar requisições de rede)
+  if (typeof updateB3SyncStatusDisplay === 'function') {
+    updateB3SyncStatusDisplay();
   }
 
   closeNavDrawer();
@@ -399,13 +400,26 @@ function setupEventListeners() {
     });
   });
 
-  // Auto-fill nome da empresa ao digitar Ticker na modal de ações
+  // Auto-fill nome da empresa e cotação ao digitar Ticker na modal de ações
   document.getElementById('modalAcaoTicker')?.addEventListener('input', (e) => {
     const ticker = e.target.value.toUpperCase().trim();
     e.target.value = ticker;
     const nomeInput = document.getElementById('modalAcaoNome');
     if (ticker && B3_POPULAR_STOCKS[ticker] && !nomeInput.value) {
       nomeInput.value = B3_POPULAR_STOCKS[ticker];
+    }
+    const precoInput = document.getElementById('modalAcaoPreco');
+    if (ticker && precoInput && !precoInput.value) {
+      const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+      const symbol = ticker.replace(/\.SA$/i, '');
+      if (cache && cache.quotes && (cache.quotes[symbol] || cache.quotes[ticker])) {
+        const q = cache.quotes[symbol] || cache.quotes[ticker];
+        if (q && q.currentPrice > 0) {
+          precoInput.value = q.currentPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+      } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
+        precoInput.value = B3_MARKET_SERIES_REF[symbol].pAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
     }
   });
 
@@ -593,24 +607,35 @@ function calculateFinancials() {
 
   // --- AÇÕES ---
   const acoesProcessadas = appState.acoes.map(acao => {
-    const qty = parseFloat(acao.quantidade) || 0;
-    const precoAtual = parseFloat(acao.preco || acao.precoAtual) || 0;
-    const valorTotalAtual = qty * precoAtual;
-
     const rawTicker = acao.ticker ? acao.ticker.trim().toUpperCase() : '';
     const symbol = rawTicker.replace(/\.SA$/i, '');
     const cached = cache && cache.quotes ? (cache.quotes[symbol] || cache.quotes[rawTicker]) : null;
+
+    const qty = parseFloat(acao.quantidade) || 0;
+    let precoAtual = parseFloat(acao.precoAtual !== undefined ? acao.precoAtual : acao.preco) || 0;
+
+    // Se o preço estiver 0 no objeto, recupera da cotação em cache ou da tabela de referência do mercado
+    if (precoAtual === 0) {
+      if (cached && cached.currentPrice > 0) {
+        precoAtual = cached.currentPrice;
+      } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
+        precoAtual = B3_MARKET_SERIES_REF[symbol].pAtual || 0;
+      }
+      if (precoAtual > 0) {
+        acao.preco = precoAtual;
+        acao.precoAtual = precoAtual;
+      }
+    }
+
+    const valorTotalAtual = qty * precoAtual;
 
     let userPAno = parseFloat(acao.precoAnoAnterior);
     let userPMes = parseFloat(acao.precoMesAnterior);
 
     // 1. Prioridade: Cotação Histórica Oficial baixada via API B3 / Yahoo Finance
     let historyToUse = null;
-    if (cached && cached.quotes && (cache.quotes[symbol] || cache.quotes[rawTicker])) {
-      const q = cache.quotes[symbol] || cache.quotes[rawTicker];
-      if (q && Array.isArray(q.history) && q.history.length > 1) {
-        historyToUse = q.history;
-      }
+    if (cached && Array.isArray(cached.history) && cached.history.length > 1) {
+      historyToUse = cached.history;
     }
 
     if (!historyToUse && symbol) {
@@ -620,12 +645,22 @@ function calculateFinancials() {
     if (historyToUse && Array.isArray(historyToUse) && historyToUse.length > 1) {
       if (isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) {
         const h0 = historyToUse[0].close;
-        if (h0 > 0) userPAno = h0;
+        if (h0 > 0) {
+          userPAno = h0;
+          if (!acao.precoAnoAnterior || acao.precoAnoAnterior === 0) {
+            acao.precoAnoAnterior = h0;
+          }
+        }
       }
       if (isNaN(userPMes) || userPMes <= 0 || userPMes === precoAtual) {
         const idxM = Math.max(0, historyToUse.length - 22);
         const hm = historyToUse[idxM].close;
-        if (hm > 0) userPMes = hm;
+        if (hm > 0) {
+          userPMes = hm;
+          if (!acao.precoMesAnterior || acao.precoMesAnterior === 0) {
+            acao.precoMesAnterior = hm;
+          }
+        }
       }
     }
 
@@ -849,6 +884,11 @@ function renderApp() {
 
   // 6. Renderizar Gráficos Evolutivos Diários da B3 (12 Meses)
   renderDailyEvolutionCharts();
+
+  // 7. Atualizar texto indicador de cache
+  if (typeof updateB3SyncStatusDisplay === 'function') {
+    updateB3SyncStatusDisplay();
+  }
 }
 
 function formatDiffBadgeCombined(diffVal, diffPct) {
@@ -1464,15 +1504,17 @@ function handleAddAcaoModalSubmit(e) {
     nome = (typeof B3_POPULAR_STOCKS !== 'undefined' && B3_POPULAR_STOCKS[ticker]) ? B3_POPULAR_STOCKS[ticker] : ticker;
   }
 
-  // Se o preço não foi informado (0), tenta buscar do cache de cotações da B3 se disponível
+  // Se o preço não foi informado (0), tenta buscar do cache de cotações da B3 se disponível ou referência
   if (preco === 0) {
-    const cache = (typeof loadB3Cache === 'function') ? loadB3Cache() : null;
+    const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
     const symbol = ticker.replace(/\.SA$/i, '');
     if (cache && cache.quotes && (cache.quotes[symbol] || cache.quotes[ticker])) {
       const q = cache.quotes[symbol] || cache.quotes[ticker];
-      if (q && q.price > 0) {
-        preco = q.price;
+      if (q && q.currentPrice > 0) {
+        preco = q.currentPrice;
       }
+    } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
+      preco = B3_MARKET_SERIES_REF[symbol].pAtual || 0;
     }
   }
 
@@ -1501,9 +1543,24 @@ function handleAddAcaoModalSubmit(e) {
   renderApp();
   showToast(`Ação ${ticker} adicionada com sucesso!`, 'success');
 
-  // Disparar sincronização em segundo plano para obter cotação oficial se o preço era 0
-  if (preco === 0 && typeof triggerB3Sync === 'function') {
-    triggerB3Sync(false);
+  // Buscar apenas a cotação pontual deste ticker se o preço cadastrado for 0
+  if (preco === 0 && typeof fetchQuoteSingleTicker === 'function') {
+    fetchQuoteSingleTicker(ticker).then(quote => {
+      if (quote && quote.currentPrice > 0) {
+        const item = appState.acoes.find(a => a.id === novaAcao.id);
+        if (item) {
+          item.preco = quote.currentPrice;
+          item.precoAtual = quote.currentPrice;
+          if (Array.isArray(quote.history) && quote.history.length > 1) {
+            item.precoAnoAnterior = quote.history[0].close || quote.currentPrice;
+            const idxM = Math.max(0, quote.history.length - 22);
+            item.precoMesAnterior = quote.history[idxM].close || quote.currentPrice;
+          }
+          saveLocalState(true, true);
+          renderApp();
+        }
+      }
+    }).catch(() => {});
   }
 }
 
@@ -2446,11 +2503,13 @@ function setupPwaInstallation() {
   });
 }
 
-// Auto-sincronização inicial de Cotações B3 no carregamento
+// Atualizar indicadores de status no carregamento (sem sincronização automática)
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
-    triggerB3Sync(false);
-  }, 1200);
+    if (typeof updateB3SyncStatusDisplay === 'function') {
+      updateB3SyncStatusDisplay();
+    }
+  }, 500);
 });
 
 // --- COTAÇÕES AUTOMÁTICAS B3 (AÇÕES, FIIS, BDRS) E HISTÓRICO DE PREGÕES (12 MESES) ---
@@ -2805,7 +2864,26 @@ async function fetchQuoteForModalInput(tickerId, nameId, priceId) {
   }
 }
 
+let isB3SyncInProgress = false;
+
+function updateB3SyncStatusDisplay() {
+  const statusEvol = document.getElementById('b3CacheStatusSpanEvol');
+  const statusAcoes = document.getElementById('b3CacheStatusSpanAcoes');
+  if (!statusEvol && !statusAcoes) return;
+  if (isB3SyncInProgress) return;
+
+  const cache = getB3QuotesCache();
+  const msg = (cache && cache.lastSyncFormatted) ? `Cache: ${cache.lastSyncFormatted}` : 'Cache: Não sincronizado';
+  if (statusEvol) statusEvol.textContent = msg;
+  if (statusAcoes) statusAcoes.textContent = msg;
+}
+
 async function triggerB3Sync(force = false) {
+  if (isB3SyncInProgress) {
+    showToast('Sincronização de cotações já está em andamento...', 'info');
+    return;
+  }
+
   const tickers = appState.acoes.map(a => a.ticker).filter(Boolean);
   const statusEvol = document.getElementById('b3CacheStatusSpanEvol');
   const statusAcoes = document.getElementById('b3CacheStatusSpanAcoes');
@@ -2822,39 +2900,30 @@ async function triggerB3Sync(force = false) {
     if (btnAcoes) btnAcoes.disabled = disabled;
   };
 
-  // Sincronizar benchmarks de CDI e Ibovespa em segundo plano
-  await syncBenchmarksData(force);
-
   if (tickers.length === 0) {
     updateStatusText('Nenhuma ação cadastrada');
     renderDailyEvolutionCharts();
     return;
   }
 
-  if (force) {
-    try {
-      localStorage.removeItem(B3_CACHE_KEY);
-    } catch (e) {}
-  }
-
-  let cache = getB3QuotesCache();
-  const now = Date.now();
-  const cacheAgeHours = cache && cache.timestamp ? (now - cache.timestamp) / (1000 * 60 * 60) : 999;
-
-  const cleanTickers = [...new Set(tickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
-  const missingTickers = cleanTickers.filter(t => !cache || !cache.quotes || !cache.quotes[t] || !Array.isArray(cache.quotes[t].history) || cache.quotes[t].history.length < 10);
-
-  if (!force && cache && cache.timestamp && cacheAgeHours < 4 && missingTickers.length === 0) {
-    const timeStr = cache.lastSyncFormatted || new Date(cache.timestamp).toLocaleString('pt-BR');
-    updateStatusText(`Cache: ${timeStr}`);
-    renderDailyEvolutionCharts();
-    return;
-  }
-
-  updateStatusText('🔄 Atualizando cotações B3...');
+  isB3SyncInProgress = true;
   setButtonsDisabled(true);
+  updateStatusText('🔄 Atualizando cotações B3...');
+  showToast('Iniciando sincronização de cotações da B3...', 'info');
 
   try {
+    // Sincronizar benchmarks de CDI e Ibovespa em segundo plano
+    await syncBenchmarksData(force);
+
+    if (force) {
+      try {
+        localStorage.removeItem(B3_CACHE_KEY);
+      } catch (e) {}
+    }
+
+    let cache = getB3QuotesCache();
+    const now = Date.now();
+
     const newQuotes = await fetchB3QuotesForTickers(tickers, (curr, total, symbol) => {
       updateStatusText(`🔄 Sincronizando (${curr}/${total}): ${symbol}...`);
     });
@@ -2914,21 +2983,29 @@ async function triggerB3Sync(force = false) {
       }
     });
 
-    saveB3QuotesCache(cache);
+    if (cache) {
+      cache.timestamp = now;
+      cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
+      saveB3QuotesCache(cache);
+    }
+
     saveLocalState(false, false);
     renderApp();
 
     if (updatedCount > 0) {
       showToast(`Cotações e histórico de ${updatedCount} ativos sincronizados da B3!`, 'success');
-    } else if (force) {
-      showToast('Exibindo histórico local da carteira.', 'info');
+    } else {
+      showToast('Nenhuma nova cotação obtida. Exibindo dados locais.', 'info');
     }
 
-    updateStatusText(`Cache: ${cache.lastSyncFormatted}`);
+    updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Cache: Não sincronizado');
   } catch (err) {
     console.error('Erro ao sincronizar cotações B3:', err);
-    updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Histórico Local');
+    showToast('Erro ao sincronizar cotações da B3.', 'error');
+    const cache = getB3QuotesCache();
+    updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Cache: Não sincronizado');
   } finally {
+    isB3SyncInProgress = false;
     setButtonsDisabled(false);
     renderDailyEvolutionCharts();
   }
