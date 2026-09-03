@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página não encontrada — Wingene</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" type="image/svg+xml" href="/wingene-simplified.svg">
+    <script>
+    (function() {
+        var path = window.location.pathname.toLowerCase();
+        // Redireciona links antigos do Blogger como /p/wingene.html
+        if (path.indexOf('/p/wingene.html') !== -1 || path === '/wingene' || path === '/wingene/') {
+            window.location.replace("https://blog.wingene.com.br/wingene/");
+        } else if (path.indexOf('/p/') !== -1) {
+            window.location.replace("https://wingene.com.br/");
+        }
+    })();
+    </script>
+    <style>
+        .error-container {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        .error-code {
+            font-size: 5rem;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+            color: var(--accent-red, #b01010);
+            margin: 0;
+            line-height: 1;
+        }
+        .error-title {
+            font-size: 1.8rem;
+            margin: 1rem 0;
+            font-family: 'Outfit', sans-serif;
+        }
+        .error-desc {
+            color: var(--text-muted, #94a3b8);
+            max-width: 500px;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn-action {
+            display: inline-block;
+            padding: 0.8rem 1.6rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-primary {
+            background: var(--accent-blue, #1040b0);
+            color: #fff;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color, #f8fafc);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            opacity: 0.95;
+        }
+    </style>
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <h1 class="error-title">Página não encontrada</h1>
+        <p class="error-desc">
+            O endereço que você tentou acessar não existe ou foi transferido para um novo espaço.
+        </p>
+        <div class="error-actions">
+            <a href="/" class="btn-action btn-primary">Voltar para o Início</a>
+            <a href="https://blog.wingene.com.br/" class="btn-action btn-secondary">Ir para o Blog Wingene</a>
+        </div>
+    </div>
+</body>
+</html>
