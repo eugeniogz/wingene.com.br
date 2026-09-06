@@ -1,10 +1,10 @@
 /* ==========================================================================
-   WINGENE LANDING PAGE - INTERACTIVE JAVASCRIPT
+   WINGENE LANDING PAGE (ENGLISH) - INTERACTIVE JAVASCRIPT
    ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
     
-    // 1. Controle da Barra de Navegação no Scroll
+    // 1. Navigation Bar Scroll Effect
     const navbar = document.getElementById("navbar");
     window.addEventListener("scroll", () => {
         if (window.scrollY > 50) {
@@ -14,11 +14,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // 2. Interação Cruzada: Logotipo SVG e Cards do Método VIDA
-    const logoContainer = document.getElementById("logoContainer");
+    // 2. Interactive SVG Logo and VIDA Method Cards Cross-Highlighting
     const vidaCards = document.querySelectorAll(".vida-card");
     
-    // Elementos das estrelas no SVG
+    // SVG star path elements
     const stars = {
         "star-valores": document.getElementById("path-valores"),
         "star-imperfeicoes": document.getElementById("path-imperfeicoes"),
@@ -27,16 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
         "star-atencao-bg": document.getElementById("path-atencao-bg")
     };
 
-    // A) Passar o mouse no Card -> Destacar estrela correspondente no SVG
+    // A) Hovering on Card -> Highlights corresponding star in SVG
     vidaCards.forEach(card => {
         const starId = card.getAttribute("data-star");
         
         card.addEventListener("mouseenter", () => {
-            // Adiciona classe de destaque à estrela
             if (stars[starId]) {
                 stars[starId].classList.add(`highlight-${starId.replace("star-", "")}`);
                 
-                // Se for a estrela de Atenção, também destaca o fundo branco dela
                 if (starId === "star-atencao" && stars["star-atencao-bg"]) {
                     stars["star-atencao-bg"].classList.add("highlight-atencao");
                 }
@@ -44,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         card.addEventListener("mouseleave", () => {
-            // Remove o destaque da estrela
             if (stars[starId]) {
                 stars[starId].classList.remove(`highlight-${starId.replace("star-", "")}`);
                 
@@ -55,12 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // B) Passar o mouse nas estrelas do SVG -> Destacar Card correspondente
+    // B) Hovering on SVG star -> Highlights corresponding Card
     Object.keys(stars).forEach(key => {
         const pathElement = stars[key];
         if (!pathElement) return;
 
-        // Mapeamento inverso do ID do Path para o Card correspondente
         let cardId = "card-valores";
         if (key === "path-imperfeicoes" || key === "star-imperfeicoes") cardId = "card-imperfeicoes";
         else if (key === "path-decisoes" || key === "star-decisoes") cardId = "card-decisoes";
@@ -81,20 +76,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // 3. Rotador de Citações (Quotes Rotator)
+    // 3. Philosophical Quotes Rotator (English)
     const quotes = [
-        "Eudaimonia: cadência do pulsar e pensar.",
-        "Serena euforia: a mente transcende a mente.",
-        "Solitude: árvore que sente floresta.",
-        "Viver: ausência presente.",
-        "Distração: atenção ao vazio.",
-        "Tecer virtudes, semear atitudes.",
-        "Vida breve, rotas eternas.",
-        "A matéria é instrumento; a sinapse é música.",
-        "Recordar: seiva que adoça a alegria.",
-        "Pilares da felicidade: Criar, Amar, Recordar e Evoluir.",
-        "Viver tece tons indescritíveis.",
-        "Paciência: quando a razão respira."
+        "Eudaimonia: the cadence of pulse and thought.",
+        "Serene euphoria: the mind transcends the mind.",
+        "Solitude: a tree that senses the forest.",
+        "To live: a present absence.",
+        "Distraction: attention to emptiness.",
+        "Weave virtues, sow conscious attitudes.",
+        "Brief life, eternal routes.",
+        "Matter is the instrument; synapse is the music.",
+        "To remember: the sap that sweetens joy.",
+        "Pillars of flourishing: Create, Love, Remember, and Evolve.",
+        "Living weaves indescribable tones.",
+        "Patience: when reason takes a conscious breath."
     ];
 
     let currentQuoteIndex = 0;
@@ -104,12 +99,11 @@ document.addEventListener("DOMContentLoaded", () => {
     let quoteInterval;
 
     function showQuote(index) {
-        // Efeito de fade-out
+        if (!quoteTextElement) return;
         quoteTextElement.style.opacity = "0";
         
         setTimeout(() => {
             quoteTextElement.textContent = quotes[index];
-            // Efeito de fade-in
             quoteTextElement.style.opacity = "1";
         }, 400);
     }
@@ -124,27 +118,26 @@ document.addEventListener("DOMContentLoaded", () => {
         showQuote(currentQuoteIndex);
     }
 
-    // Inicializar o rotador automático (a cada 7 segundos)
     function startQuoteRotation() {
         clearInterval(quoteInterval);
         quoteInterval = setInterval(nextQuote, 7000);
     }
 
-    // Listeners dos Botões do Rotador
-    nextQuoteBtn.addEventListener("click", () => {
-        nextQuote();
-        startQuoteRotation(); // Reinicia o cronômetro após interação manual
-    });
+    if (nextQuoteBtn && prevQuoteBtn) {
+        nextQuoteBtn.addEventListener("click", () => {
+            nextQuote();
+            startQuoteRotation();
+        });
 
-    prevQuoteBtn.addEventListener("click", () => {
-        prevQuote();
-        startQuoteRotation(); // Reinicia o cronômetro após interação manual
-    });
+        prevQuoteBtn.addEventListener("click", () => {
+            prevQuote();
+            startQuoteRotation();
+        });
 
-    // Início automático
-    startQuoteRotation();
+        startQuoteRotation();
+    }
 
-    // 5. Salvar preferência ao clicar no Seletor de Idioma
+    // 4. Language Switcher Click Event
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const lang = btn.getAttribute('data-lang') || (btn.textContent.trim().toLowerCase() === 'pt' ? 'pt' : 'en');

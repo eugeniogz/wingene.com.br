@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wingene — Philosophy and Practice of Conscious Heritage</title>
+    <meta name="description" content="Official Wingene portal: A contemporary naturalistic philosophy exploring conscious heritage, eudaimonia, and the VIDA Method. Discover translated essays, philosophy of life, and our complete body of work.">
+    <meta name="author" content="José Eugênio de Assis Gonçalves">
+    <meta name="keywords" content="Wingene, Wingene philosophy, conscious heritage, VIDA method, eudaimonia, ethical naturalism, José Eugênio de Assis Gonçalves, values, imperfections, decisions, attention, ancestral future, serene euphoria">
+    <link rel="canonical" href="https://wingene.com.br/en/">
+    <link rel="alternate" hreflang="en" href="https://wingene.com.br/en/">
+    <link rel="alternate" hreflang="pt-BR" href="https://wingene.com.br/">
+    <link rel="alternate" hreflang="x-default" href="https://wingene.com.br/">
+
+    <!-- Language Preference Check -->
+    <script>
+    (function() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            if (langParam === 'en') {
+                localStorage.setItem('wingene_lang', 'en');
+                return;
+            }
+            if (langParam === 'pt') {
+                localStorage.setItem('wingene_lang', 'pt');
+                window.location.replace('../');
+                return;
+            }
+
+            const savedLang = localStorage.getItem('wingene_lang');
+            if (savedLang === 'pt') {
+                window.location.replace('../');
+                return;
+            }
+        } catch(e) {}
+    })();
+    </script>
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="Wingene">
+    <meta property="og:title" content="Wingene — Philosophy and Practice of Conscious Heritage">
+    <meta property="og:description" content="Official Wingene portal: The union between ancestral heritage and the conscious striving for human flourishing. Explore ethical naturalism, eudaimonia, and the VIDA Method.">
+    <meta property="og:url" content="https://wingene.com.br/en/">
+    <meta property="og:image" content="https://wingene.com.br/wingene.svg">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Wingene — Philosophy and Practice of Conscious Heritage">
+    <meta name="twitter:description" content="Official Wingene portal: Philosophy, core essays, and the practical VIDA Method for human flourishing and eudaimonia.">
+    <meta name="twitter:image" content="https://wingene.com.br/wingene.svg">
+
+    <!-- Schema.org JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://wingene.com.br/en/#website",
+          "url": "https://wingene.com.br/en/",
+          "name": "Wingene",
+          "alternateName": [
+            "Wingene Philosophy",
+            "The Wingene Project",
+            "Conscious Heritage Philosophy",
+            "VIDA Method"
+          ],
+          "description": "Official portal dedicated to the philosophy and practice of conscious heritage, eudaimonia, and the VIDA Method.",
+          "inLanguage": "en-US",
+          "publisher": {
+            "@id": "https://wingene.com.br/#organization"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://wingene.com.br/#organization",
+          "name": "Wingene",
+          "url": "https://wingene.com.br/",
+          "logo": "https://wingene.com.br/wingene.svg",
+          "founder": {
+            "@type": "Person",
+            "name": "José Eugênio de Assis Gonçalves",
+            "url": "https://blog.wingene.com.br/sobre-o-autor.html"
+          },
+          "sameAs": [
+            "https://blog.wingene.com.br/"
+          ]
+        }
+      ]
+    }
+    </script>
+    
+    <!-- Google Fonts: Outfit for titles and Inter for body text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="../wingene-simplified.svg">
+</head>
+<body>
+
+    <!-- Dynamic Starfield Background -->
+    <div class="stars-bg"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-brand">
+                <span class="brand-text">WINGENE</span>
+            </a>
+            <div class="nav-links">
+                <a href="#philosophy">Philosophy</a>
+                <a href="#vida-method">The VIDA Method</a>
+                <a href="#essays">English Essays</a>
+                <a href="#portuguese-repository">Portuguese Works</a>
+                <a href="#quotes">Inspirations</a>
+                <a href="https://blog.wingene.com.br/" class="nav-cta-small" target="_blank">Blog ↗</a>
+                <div class="lang-switcher" aria-label="Language selector">
+                    <a href="/?lang=pt" class="lang-btn" title="Português">PT</a>
+                    <span class="lang-divider">|</span>
+                    <a href="/en/?lang=en" class="lang-btn active" title="English">EN</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <div class="hero-container">
+            <div class="hero-logo-area">
+                <!-- Interactive Animated SVG Logo -->
+                <div class="logo-container" id="logoContainer" aria-label="Official Wingene Logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" class="wingene-logo-svg">
+                        <!-- Values (Red) - {12/5} -->
+                        <path id="path-valores" class="wingene-star star-valores" 
+                              d="M 126.55840598263214 88.81503324608225 L 61.18496675391776 23.441594017367862 L 37.25662726345011 112.7433727365499 L 126.55840598263214 88.81503324608222 L 61.18496675391775 23.44159401736787 L 37.25662726345009 112.74337273654987 L 126.55840598263215 88.81503324608221 L 61.184966753917735 23.44159401736787 L 37.2566272634501 112.74337273654987 L 126.55840598263212 88.81503324608228 L 61.18496675391772 23.441594017367876 L 37.25662726345017 112.74337273654996 L 126.55840598263214 88.81503324608227 Z M 112.7433727365499 112.74337273654989 L 88.81503324608222 23.441594017367855 L 23.44159401736787 88.81503324608227 L 112.7433727365499 112.74337273654987 L 88.81503324608221 23.441594017367855 L 23.441594017367862 88.81503324608225 L 112.74337273654987 112.7433727365499 L 88.815033246082 23.441594017367848 L 23.44159401736787 88.81503324608227 L 112.74337273654989 112.7433727365499 L 88.81503324608218 23.441594017367848 L 23.441594017367848 88.81503324608218 L 112.7433727365499 112.74337273654989 Z M 88.81503324608225 126.55840598263214 L 112.74337273654987 37.2566272634501 L 23.441594017367862 61.18496675391775 L 88.81503324608225 126.55840598263214 L 112.7433727365499 37.25662726345013 L 23.441594017367855 61.18496675391779 L 88.81503324608227 126.55840598263214 L 112.74337273654983 37.25662726345005 L 23.441594017367848 61.184966753917806 L 88.81503324608227 126.55840598263214 L 112.74337273654982 37.25662726345004 L 23.441594017367876 61.18496675391772 L 88.81503324608228 126.55840598263212 Z M 61.18496675391775 126.55840598263214 L 126.55840598263214 61.184966753917756 L 37.2566272634501 37.25662726345011 L 61.184966753917784 126.55840598263214 L 126.55840598263214 61.18496675391774 L 37.256627263450135 37.25662726345009 L 61.1849667539178 126.55840598263215 L 126.55840598263215 61.18496675391782 L 37.25662726345012 37.2566272634501 L 61.18496675391781 126.55840598263215 L 126.55840598263215 61.18496675391781 L 37.256627263450106 37.256627263450106 L 61.18496675391782 126.55840598263215 Z" 
+                              fill="#b01010" stroke="#b01010" />
+                              
+                        <!-- Imperfections (Gold) - {12/4} -->
+                        <path id="path-imperfeicoes" class="wingene-star star-imperfeicoes" 
+                              d="M 126.55840598263214 88.81503324608225 L 37.25662726345011 112.7433727365499 L 61.18496675391776 23.441594017367862 L 126.55840598263214 88.81503324608222 L 37.25662726345009 112.74337273654987 L 61.18496675391775 23.44159401736787 L 126.55840598263215 88.81503324608221 L 37.2566272634501 112.74337273654987 L 61.184966753917735 23.44159401736787 L 126.55840598263212 88.81503324608228 L 37.25662726345017 112.74337273654996 L 61.18496675391772 23.441594017367876 L 126.55840598263214 88.81503324608227 Z M 112.7433727365499 112.74337273654989 L 23.44159401736787 88.81503324608227 L 88.81503324608222 23.441594017367855 L 112.7433727365499 112.74337273654987 L 23.441594017367862 88.81503324608225 L 88.81503324608221 23.441594017367855 L 112.74337273654987 112.7433727365499 L 23.44159401736787 88.81503324608227 L 88.815033246082 23.441594017367848 L 112.74337273654989 112.7433727365499 L 23.441594017367848 88.81503324608218 L 88.81503324608218 23.441594017367848 L 112.7433727365499 112.74337273654989 Z M 88.81503324608225 126.55840598263214 L 23.441594017367862 61.18496675391775 L 112.74337273654987 37.2566272634501 L 88.81503324608225 126.55840598263214 L 23.441594017367855 61.18496675391779 L 112.7433727365499 37.25662726345013 L 88.81503324608227 126.55840598263214 L 23.441594017367848 61.184966753917806 L 112.74337273654983 37.25662726345005 L 88.81503324608227 126.55840598263214 L 23.441594017367876 61.18496675391772 L 112.74337273654982 37.25662726345004 L 88.81503324608228 126.55840598263212 Z M 61.18496675391775 126.55840598263214 L 37.2566272634501 37.25662726345011 L 126.55840598263214 61.184966753917756 L 61.184966753917784 126.55840598263214 L 37.256627263450135 37.25662726345009 L 126.55840598263214 61.18496675391774 L 61.1849667539178 126.55840598263215 L 37.25662726345012 37.2566272634501 L 126.55840598263215 61.18496675391782 L 61.18496675391781 126.55840598263215 L 37.256627263450106 37.256627263450106 L 126.55840598263215 61.18496675391781 L 61.18496675391782 126.55840598263215 Z" 
+                              fill="#b0b010" stroke="#b0b010" />
+                              
+                        <!-- Decisions (Green) - {12/3} -->
+                        <path id="path-decisoes" class="wingene-star star-decisoes" 
+                              d="M 119.88468740250485 75 L 75 119.88468740250485 L 30.11531259749514 75 L 74.99999999999999 30.11531259749514 L 119.88468740250485 74.99999999999999 L 75.00000000000001 119.88468740250485 L 30.11531259749514 75.00000000000001 L 74.99999999999999 30.11531259749514 L 119.88468740250485 74.99999999999997 L 75.00000000000003 119.88468740250485 L 30.11531259749514 75.00000000000003 L 75.00000000000004 30.11531259749514 L 119.88468740250485 74.99999999999997 Z M 113.87127953149258 97.44234370125243 L 52.55765629874758 113.87127953149258 L 36.128720468507424 52.55765629874757 L 97.44234370125244 36.128720468507424 L 113.87127953149258 97.44234370125243 L 52.5576562987476 113.8712795314926 L 36.1287204685074 52.55765629874761 L 97.44234370125238 36.1287204685074 L 113.8712795314926 97.44234370125238 L 52.557656298747546 113.87127953149258 L 36.128720468507396 52.55765629874762 L 97.44234370125245 36.12872046850743 L 113.8712795314926 97.44234370125238 Z M 97.44234370125244 113.87127953149258 L 36.12872046850742 97.44234370125243 L 52.557656298747546 36.12872046850743 L 113.87127953149258 52.557656298747546 L 97.44234370125241 113.87127953149258 L 36.12872046850742 97.44234370125241 L 52.557656298747574 36.12872046850742 L 113.87127953149258 52.557656298747574 L 97.44234370125243 113.87127953149258 L 36.128720468507424 97.44234370125243 L 52.5576562987475 36.12872046850747 L 113.87127953149258 52.55765629874757 L 97.4423437012525 113.87127953149253 Z" 
+                              fill="#0f9010" stroke="#0f9010" />
+                              
+                        <!-- Attention - Background (White) -->
+                        <path id="path-atencao-bg" class="wingene-star star-atencao-bg" 
+                              d="M 109.41110756154805 84.2204284817773 L 84.2204284817773 109.41110756154805 L 49.80932092022925 100.19067907977076 L 40.58889243845194 65.7795715182227 L 65.7795715182227 40.58889243845194 L 100.19067907977075 49.80932092022924 L 109.41110756154806 84.22042848177728 L 84.2204284817773 109.41110756154805 L 49.809320920229226 100.19067907977075 L 40.588892438451936 65.77957151822272 L 65.7795715182227 40.58889243845194 L 100.19067907977076 49.809320920229254 L 109.41110756154806 84.22042848177728 Z M 100.19067907977076 100.19067907977075 L 65.7795715182227 109.41110756154805 L 40.58889243845194 84.2204284817773 L 49.80932092022924 49.80932092022925 L 84.22042848177729 40.588892438451936 L 109.41110756154805 65.7795715182227 L 100.19067907977076 100.19067907977075 L 65.77957151822272 109.41110756154806 L 40.58889243845194 84.2204284817773 L 49.809320920229254 49.809320920229226 L 84.22042848177728 40.588892438451936 L 109.41110756154805 65.7795715182227 L 100.19067907977075 100.19067907977076 Z" 
+                              fill="#ffffff" stroke="#ffffff" />
+                              
+                        <!-- Attention - Foreground (Blue) - {12/2} -->
+                        <path id="path-atencao" class="wingene-star star-atencao" 
+                              d="M 109.41110756154805 84.2204284817773 L 84.2204284817773 109.41110756154805 L 49.80932092022925 100.19067907977076 L 40.58889243845194 65.7795715182227 L 65.7795715182227 40.58889243845194 L 100.19067907977075 49.80932092022924 L 109.41110756154806 84.22042848177728 L 84.2204284817773 109.41110756154805 L 49.809320920229226 100.19067907977075 L 40.588892438451936 65.77957151822272 L 65.7795715182227 40.58889243845194 L 100.19067907977076 49.809320920229254 L 109.41110756154806 84.22042848177728 Z M 100.19067907977076 100.19067907977075 L 65.7795715182227 109.41110756154805 L 40.58889243845194 84.2204284817773 L 49.80932092022924 49.80932092022925 L 84.22042848177729 40.588892438451936 L 109.41110756154805 65.7795715182227 L 100.19067907977076 100.19067907977075 L 65.77957151822272 109.41110756154806 L 40.58889243845194 84.2204284817773 L 49.809320920229254 49.809320920229226 L 84.22042848177728 40.588892438451936 L 109.41110756154805 65.7795715182227 L 100.19067907977075 100.19067907977076 Z" 
+                              fill="#1040b0" stroke="#1040b0" opacity="0.83" />
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="hero-content-area">
+                <h1 class="hero-title">WINGENE</h1>
+                <p class="hero-subtitle">Philosophy and practice of conscious heritage</p>
+                
+                <div class="hero-ctas">
+                    <a href="https://blog.wingene.com.br/wingene/wingene-happiness-now-ancestral-future.html" class="btn btn-primary" target="_blank">Read the Core Essay</a>
+                    <a href="#vida-method" class="btn btn-secondary">The VIDA Method</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Section: Philosophy & Foundations -->
+    <section id="philosophy" class="section-container">
+        <div class="container">
+            <h2 class="section-title text-center">Conscious Heritage and Human Flourishing</h2>
+            <p class="section-intro text-center">A contemporary philosophy connecting our biological roots to intentional moral evolution.</p>
+            
+            <div class="cards-grid">
+                <!-- Card 1: Etymology -->
+                <div class="card glassmorphism">
+                    <div class="card-icon">🌱</div>
+                    <h3>Win + Gene</h3>
+                    <p class="card-subtitle">Heritage and Triumph</p>
+                    <p>Coined in September 1998, <em>Wingene</em> fuses <strong>gene</strong> (biological inheritance, origin, the internal flow of life) and <strong>win</strong> (not accidental rivalry, but the joyful satisfaction of <em>Wunjo</em> achieved through focused labor, <em>Winnan</em>). True victory is drawing closer to what one truly loves.</p>
+                </div>
+
+                <!-- Card 2: Naturalism & Spirit -->
+                <div class="card glassmorphism">
+                    <div class="card-icon">🧠</div>
+                    <h3>Ethical Naturalism</h3>
+                    <p class="card-subtitle">Spirit as Living Process</p>
+                    <p>Wingene departs from metaphysical dualism. The human spirit is understood as the emergence of living neural processes. The mind is a dense, interconnected forest rooted throughout the living body: feeling, commanding, thinking, and dancing in harmonious consciousness.</p>
+                </div>
+
+                <!-- Card 3: Eudaimonia & Ancestral Future -->
+                <div class="card glassmorphism">
+                    <div class="card-icon">🌌</div>
+                    <h3>Eudaimonia & Legacy</h3>
+                    <p class="card-subtitle">Serene Joy for Tomorrow</p>
+                    <p>Building upon Aristotelian virtue ethics, Stoic equanimity, Spinoza's naturalism, and Logosophical self-improvement: we strive for happiness today while preserving our cultural sap and ecosystems as an ancestral future for generations to come.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: The VIDA Method -->
+    <section id="vida-method" class="section-container">
+        <div class="container">
+            <h2 class="section-title text-center">The VIDA Method</h2>
+            <p class="section-intro text-center">An ethical-existential framework for moral refinement. Hover over the pillars to explore their connection to the Wingene symbol.</p>
+            
+            <div class="vida-grid">
+                <!-- V - Values -->
+                <a href="https://blog.wingene.com.br/wingene/the-vida-method.html#values" class="card glassmorphism vida-card card-valores" id="card-valores" data-star="star-valores" target="_blank">
+                    <div class="card-pillar-tag badge-valores">V</div>
+                    <h3>Values <span class="card-arrow">→</span></h3>
+                    <p class="pillar-subtitle">Direction & Moral Compass</p>
+                    <p>The foundational principles guiding decisions. Free from dogmatism, values are continuously calibrated through three criteria: personal biological limits, harmonious coexistence, and ongoing revision.</p>
+                </a>
+
+                <!-- I - Imperfections -->
+                <a href="https://blog.wingene.com.br/wingene/the-vida-method.html#imperfections" class="card glassmorphism vida-card card-imperfeicoes" id="card-imperfeicoes" data-star="star-imperfeicoes" target="_blank">
+                    <div class="card-pillar-tag badge-imperfeicoes">I</div>
+                    <h3>Imperfections <span class="card-arrow">→</span></h3>
+                    <p class="pillar-subtitle">Informational Signals</p>
+                    <p>Deviations between assumed values and concrete actions. Imperfection is not a condemnation or source of guilt, but the opening of the ethical system—an informational signal showing where to direct conscious effort.</p>
+                </a>
+
+                <!-- D - Decisions -->
+                <a href="https://blog.wingene.com.br/wingene/the-vida-method.html#decisions" class="card glassmorphism vida-card card-decisoes" id="card-decisoes" data-star="star-decisoes" target="_blank">
+                    <div class="card-pillar-tag badge-decisoes">D</div>
+                    <h3>Decisions <span class="card-arrow">→</span></h3>
+                    <p class="pillar-subtitle">Conscious Action</p>
+                    <p>The courageous act that converts purpose into movement. Deciding to confront our flaws, step out of automatic routines, and solidify better attitudes into daily habits through conscious repetition.</p>
+                </a>
+
+                <!-- A - Attention -->
+                <a href="https://blog.wingene.com.br/wingene/the-vida-method.html#attention" class="card glassmorphism vida-card card-atencao" id="card-atencao" data-star="star-atencao" target="_blank">
+                    <div class="card-pillar-tag badge-atencao">A</div>
+                    <h3>Attention <span class="card-arrow">→</span></h3>
+                    <p class="pillar-subtitle">Presence & Proprioception</p>
+                    <p>Mindful presence in the here-and-now. Attention silences autopilot, intercepts reactive impulses, notices subtleties, and opens consciousness to profound joy: Serene Euphoria.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Featured English Essays -->
+    <section id="essays" class="section-container">
+        <div class="container">
+            <h2 class="section-title text-center">Core Philosophical Essays in English</h2>
+            <p class="section-intro text-center">The two cornerstone treatises of Wingene translated in full for international readers.</p>
+            
+            <div class="featured-essay-grid">
+                <!-- Essay 1 -->
+                <a href="https://blog.wingene.com.br/wingene/wingene-happiness-now-ancestral-future.html" class="card glassmorphism featured-essay-card" target="_blank">
+                    <div>
+                        <div class="featured-essay-header">
+                            <span class="badge-lang-tag en">English Edition</span>
+                            <span class="featured-essay-time">⏱️ 12 min read</span>
+                        </div>
+                        <h3>Wingene: Happiness Now, Ancestral Future <span class="card-arrow">→</span></h3>
+                        <p class="pillar-subtitle">The Foundational Essay on Philosophy & Cosmic Time</p>
+                        <p>A panoramic exploration of biological heritage, self-refinement, the power of discovery (<em>invenire</em>), and an ancestral future built in the present moment amid infinite cosmogonies.</p>
+                    </div>
+                    <div class="margin-top-large">
+                        <span class="btn btn-primary" style="display: inline-block; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Read Full Essay →</span>
+                    </div>
+                </a>
+
+                <!-- Essay 2 -->
+                <a href="https://blog.wingene.com.br/wingene/the-vida-method.html" class="card glassmorphism featured-essay-card" target="_blank">
+                    <div>
+                        <div class="featured-essay-header">
+                            <span class="badge-lang-tag en">English Edition</span>
+                            <span class="featured-essay-time">⏱️ 14 min read</span>
+                        </div>
+                        <h3>The VIDA Method: Wingene in Practice <span class="card-arrow">→</span></h3>
+                        <p class="pillar-subtitle">Ethical Architecture for Personal Flourishing</p>
+                        <p>A systematic and revisable blueprint for moral growth through the four interdependent axes: Values, Imperfections, Decisions, and Attention.</p>
+                    </div>
+                    <div class="margin-top-large">
+                        <span class="btn btn-primary" style="display: inline-block; padding: 0.6rem 1.2rem; font-size: 0.9rem;">Read Full Essay →</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Portuguese Works & Repository Index -->
+    <section id="portuguese-repository" class="section-container content-directory-section">
+        <div class="container">
+            <h2 class="section-title text-center">Complete Repository & Original Works</h2>
+            <p class="section-intro text-center">Explore the broader Wingene intellectual and creative ecosystem hosted on our main blog.</p>
+            
+            <div class="lang-notice-banner">
+                <span class="lang-notice-icon">🇧🇷</span>
+                <div>
+                    <strong>Original Works in Portuguese:</strong> While our two cornerstone essays above are translated into English, the rich library of accompanying philosophical essays, daily literary chronicles, and educational applications below are available in Portuguese.
+                </div>
+            </div>
+
+            <div class="topics-grid">
+                <!-- Group 1: Philosophical Essays -->
+                <div class="topic-group">
+                    <h3 class="topic-group-title">📜 Philosophical Essays</h3>
+                    
+                    <a href="https://blog.wingene.com.br/manifesto-wingene.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Manifesto Wingene <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>The concise, assertive declaration on biological heritage, cultural evolution, and the flowering of consciousness.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/wingene/fundamentos-filosoficos-e-cientificos-da-wingene.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Foundations of Wingene <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>The intersection between classical ethical tradition (Aristotle, Stoics, Spinoza) and natural science.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/wingene/etimologias-da-wingene-o-florescimento-do-espirito.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Etymology of Wingene <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Linguistic archaeology uniting ancestral lineage to the deliberate labor of spiritual flourishing.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/wingene/metaconsciencia-pensar-o-sentir-sentir-o-pensar.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Metaconsciousness <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Thinking what we feel, feeling what we think: pure mindful presence and serene euphoria.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/wingene/o-sistema-gene-e-a-wingene-coletiva-a-arquitetura-da-eudaimonia-social.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>The GENE System <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>The collective architecture of social eudaimonia and intergenerational responsibility.</p>
+                    </a>
+                </div>
+
+                <!-- Group 2: Literature & Daily Reflections -->
+                <div class="topic-group">
+                    <h3 class="topic-group-title">✍️ Literature & Daily Reflections</h3>
+                    
+                    <a href="https://blog.wingene.com.br/reflexoes/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Pillars of VIDA: Practical Maxims <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Dated, concise reflections and actionable maxims exploring each of the four VIDA pillars.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/ipes-e-tijolos/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Ipês e Tijolos <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Human existence balancing between rigid urban asphalt and the blossoming beauty of nature.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/cronicas/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Daily Chronicles <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Intimate, everyday narratives on memory, proprioception, affection, and subtle awareness.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/poesias-e-aforismos/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Poetry & Aphorisms <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Short, contemplative verses on time's flow, attentive awareness, and existential serenity.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/odisseiaInterior/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Illustrated Stories <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Reflective narratives paired with visual art: <em>Odisseia Interior</em> and <em>A Varanda de Aurora</em>.</p>
+                    </a>
+                </div>
+
+                <!-- Group 3: Art, Education & Interactive Apps -->
+                <div class="topic-group">
+                    <h3 class="topic-group-title">🎨 Education, Art & Web Apps</h3>
+                    
+                    <a href="https://blog.wingene.com.br/wingene-vida-app/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Wingene VIDA App <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Interactive web application designed for personal self-cultivation based on the VIDA Method.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/cuidados/landing.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>+afeto Application <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>A digital platform dedicated to family caregiving, health records, and empathetic connection.</p>
+                    </a>
+                    
+                    <a href="../geometria3d/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Interactive 3D Geometry <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Interactive explorations of geometric regular star polygons and spatial harmony.</p>
+                    </a>
+                    
+                    <a href="../Mapas/" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Educational Maps <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Playful educational geography and map explorations for youth and learners.</p>
+                    </a>
+                    
+                    <a href="https://blog.wingene.com.br/apps.html" class="card glassmorphism topic-card" target="_blank">
+                        <h4>Complete Apps Catalog <span class="badge-lang-tag pt">PT</span> <span class="card-arrow">→</span></h4>
+                        <p>Explore the full software suite and open-source experimental web tools created by the author.</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: Rotating Philosophical Quotes -->
+    <section id="quotes" class="section-container quote-rotator-section">
+        <div class="container">
+            <h2 class="section-title text-center">Inspirations</h2>
+            <div class="quote-box glassmorphism">
+                <p id="quote-text" class="quote-text">"Eudaimonia: the cadence of pulse and thought."</p>
+                <div class="quote-controls">
+                    <button id="prev-quote" class="quote-btn" aria-label="Previous quote">←</button>
+                    <button id="next-quote" class="quote-btn" aria-label="Next quote">→</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p class="footer-title">WINGENE</p>
+            <p class="footer-desc">Philosophy and practice of conscious heritage · Eudaimonia · The VIDA Method</p>
+            <p class="footer-author">By <strong>José Eugênio de Assis Gonçalves</strong></p>
+            <div class="footer-links">
+                <a href="https://blog.wingene.com.br/" target="_blank">Official Blog</a>
+                <a href="https://blog.wingene.com.br/sobre-o-autor.html" target="_blank">About the Author</a>
+                <a href="../sitemap.xml">Sitemap</a>
+                <a href="/?lang=pt">Versão em Português</a>
+            </div>
+            <p class="footer-copy">&copy; 1998 - 2026 Wingene. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Interactive JS -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -33,6 +33,10 @@ find "$DOCS_DIR" -type f -name "*.html" | sort | while read -r file; do
     url="$BASE_URL/"
     priority="1.0"
     changefreq="weekly"
+  elif [ "$rel_path" = "en/index.html" ]; then
+    url="$BASE_URL/en/"
+    priority="1.0"
+    changefreq="weekly"
   elif [[ "$rel_path" =~ /index\.html$ ]]; then
     dir_path="${rel_path%/index.html}"
     url="$BASE_URL/$dir_path/"

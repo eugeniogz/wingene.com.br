@@ -8,6 +8,43 @@
     <meta name="author" content="José Eugênio de Assis Gonçalves">
     <meta name="keywords" content="Wingene, Método VIDA, herança consciente, eudaimonia, filosofia de vida, José Eugênio de Assis Gonçalves, valores, imperfeições, decisões, atitudes, futuro ancestral, blog wingene">
     <link rel="canonical" href="https://wingene.com.br/">
+    <link rel="alternate" hreflang="pt-BR" href="https://wingene.com.br/">
+    <link rel="alternate" hreflang="en" href="https://wingene.com.br/en/">
+    <link rel="alternate" hreflang="x-default" href="https://wingene.com.br/">
+    
+    <!-- Detecção automática de idioma e redirecionamento -->
+    <script>
+    (function() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            if (langParam === 'pt') {
+                localStorage.setItem('wingene_lang', 'pt');
+                return;
+            }
+            if (langParam === 'en') {
+                localStorage.setItem('wingene_lang', 'en');
+                window.location.replace('en/');
+                return;
+            }
+
+            const savedLang = localStorage.getItem('wingene_lang');
+            if (savedLang === 'en') {
+                window.location.replace('en/');
+                return;
+            }
+            if (savedLang === 'pt') {
+                return;
+            }
+
+            const userLangs = navigator.languages || [navigator.language || navigator.userLanguage || ''];
+            const primaryLang = userLangs[0] ? userLangs[0].toLowerCase() : '';
+            if (primaryLang.startsWith('en')) {
+                window.location.replace('en/');
+            }
+        } catch(e) {}
+    })();
+    </script>
     
     <!-- Open Graph / Redes Sociais -->
     <meta property="og:type" content="website">
@@ -93,6 +130,11 @@
                 <a href="#conteudo">Tópicos</a>
                 <a href="#citacoes">Inspirações</a>
                 <a href="https://blog.wingene.com.br/" class="nav-cta-small">Acessar o Blog</a>
+                <div class="lang-switcher" aria-label="Seletor de idioma">
+                    <a href="/?lang=pt" class="lang-btn active" title="Português">PT</a>
+                    <span class="lang-divider">|</span>
+                    <a href="/en/?lang=en" class="lang-btn" title="English">EN</a>
+                </div>
             </div>
         </div>
     </nav>
