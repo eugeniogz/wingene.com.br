@@ -775,6 +775,8 @@ function openEditAssetHealthModal(assetId) {
   document.getElementById('editHealthUpdatedAt').value = f.fundamentalsUpdatedAt || '';
 
   // Fundamentos
+  document.getElementById('editHealthPe').value = f.pe !== null && f.pe !== undefined ? f.pe : '';
+  document.getElementById('editHealthEps').value = f.eps !== null && f.eps !== undefined ? f.eps : '';
   document.getElementById('editHealthRoic').value = f.roic !== null && f.roic !== undefined ? f.roic : '';
   document.getElementById('editHealthRoe').value = f.roe !== null && f.roe !== undefined ? f.roe : '';
   document.getElementById('editHealthRevenue').value = f.revenue !== null && f.revenue !== undefined ? f.revenue : '';
@@ -852,6 +854,8 @@ function closeEditAssetHealthModal() {
 }
 
 const MODAL_METRIC_INPUT_MAP = [
+  { id: 'editHealthPe', badgeId: 'statusBadgePe', key: 'pe' },
+  { id: 'editHealthEps', badgeId: 'statusBadgeEps', key: 'eps' },
   { id: 'editHealthRoic', badgeId: 'statusBadgeRoic', key: 'roic' },
   { id: 'editHealthRoe', badgeId: 'statusBadgeRoe', key: 'roe' },
   { id: 'editHealthNetMargin', badgeId: 'statusBadgeNetMargin', key: 'netMargin' },
@@ -873,6 +877,14 @@ function evaluateModalIndicatorValue(metricKey, rawVal) {
   }
   const val = parseFloat(rawVal);
   switch (metricKey) {
+    case 'pe':
+      if (val <= 0) return { icon: '🔴', label: 'Prejuízo', badgeClass: 'badge-danger' };
+      if (val <= 15) return { icon: '🟢', label: 'Atrativo', badgeClass: 'badge-success' };
+      if (val <= 25) return { icon: '🟡', label: 'Moderado', badgeClass: 'badge-warning' };
+      return { icon: '🔴', label: 'Esticado', badgeClass: 'badge-danger' };
+    case 'eps':
+      if (val > 0) return { icon: '🟢', label: 'Lucrativo', badgeClass: 'badge-success' };
+      return { icon: '🔴', label: 'Prejuízo', badgeClass: 'badge-danger' };
     case 'roic':
     case 'roe':
       if (val >= 15) return { icon: '🟢', label: 'Forte', badgeClass: 'badge-success' };
@@ -1141,6 +1153,8 @@ function handleSaveAssetHealthSubmit(e) {
 
   // 1. Atualizar Fundamentos
   asset.fundamentals = {
+    pe: parseOrNull('editHealthPe'),
+    eps: parseOrNull('editHealthEps'),
     roic: parseOrNull('editHealthRoic'),
     roe: parseOrNull('editHealthRoe'),
     revenue: parseOrNull('editHealthRevenue'),
@@ -1743,12 +1757,34 @@ async function executeFetchFundamentalsForModal(asset, token) {
 /**
  * Abre o modal para colar JSON da Brapi ou dados externos
  */
+/**
+ * Abre o modal para colar JSON da Brapi ou dados externos (StatusInvest / Fundamentus)
+ */
 function openPasteJsonModal() {
   const modal = document.getElementById('modalPasteJsonBackdrop');
   const input = document.getElementById('pasteJsonInput');
   const fb = document.getElementById('pasteJsonFeedback');
   if (input) input.value = '';
   if (fb) fb.innerHTML = '';
+
+  const assetId = document.getElementById('editHealthAssetId')?.value;
+  const asset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => String(a.id) === String(assetId));
+  const linksContainer = document.getElementById('pasteModalQuickLinks');
+  if (linksContainer && asset) {
+    const cleanTicker = (asset.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+    const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || (asset.tipo === 'BDR');
+    const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
+    const statusInvestSection = isBdr ? 'bdrs' : (isFii ? 'fundos-imobiliarios' : 'acoes');
+    const fundamentusPapel = cleanTicker;
+    const investidor10Section = isBdr ? 'bdrs' : (isFii ? 'fiis' : 'acoes');
+
+    linksContainer.innerHTML = `
+      <a href="https://statusinvest.com.br/${statusInvestSection}/${cleanTicker.toLowerCase()}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 3px 8px; color: #60a5fa; font-weight: 600;">📊 StatusInvest (${cleanTicker}) ↗</a>
+      <a href="https://www.fundamentus.com.br/detalhes.php?papel=${fundamentusPapel}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 3px 8px; color: #60a5fa; font-weight: 600;">📈 Fundamentus ↗</a>
+      <a href="https://investidor10.com.br/${investidor10Section}/${cleanTicker.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 3px 8px; color: #60a5fa; font-weight: 600;">🌐 Investidor10 ↗</a>
+    `;
+  }
+
   if (modal) modal.style.display = 'flex';
   setTimeout(() => { if (input) input.focus(); }, 60);
 }
@@ -1756,63 +1792,91 @@ function openPasteJsonModal() {
 function closePasteJsonModal() {
   const modal = document.getElementById('modalPasteJsonBackdrop');
   if (modal) modal.style.display = 'none';
+  window._pendingPastedItem = null;
 }
 
 /**
- * Processa o JSON ou dados colados pelo usuário e preenche o modal atual
+ * Extrai indicadores fundamentalistas a partir de texto puro copiado do StatusInvest, Fundamentus, Investidor10 etc.
  */
-function applyPastedApiJson() {
-  const input = document.getElementById('pasteJsonInput');
-  const fb = document.getElementById('pasteJsonFeedback');
-  let raw = (input ? input.value : '').trim();
+function parsePastedTextIndicators(raw) {
+  const getMatch = (regex) => {
+    const m = raw.match(regex);
+    return m && m[1] ? m[1].replace(',', '.').trim() : null;
+  };
+  
+  const parseNum = (val) => {
+    if (val === null || val === undefined || val === '') return null;
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+  };
 
-  if (!raw) {
-    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">⚠️ Por favor, cole o JSON antes de continuar.</span>';
-    return;
+  return {
+    pe: parseNum(getMatch(/(?:P\/L|P\/E|Preço\s*\/\s*Lucro)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
+    eps: parseNum(getMatch(/(?:LPA|EPS|Lucro\s*por\s*Ação)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
+    roic: parseNum(getMatch(/(?:ROIC)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    roe: parseNum(getMatch(/(?:ROE)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    netMargin: parseNum(getMatch(/(?:MARGEM\s*LÍQUIDA|MARGEM\s*LIQUIDA|Marg\.?\s*Líquida|Marg\.?\s*Liquida)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    ebitdaMargin: parseNum(getMatch(/(?:MARGEM\s*EBITDA|Marg\.?\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    netDebtEbitda: parseNum(getMatch(/(?:DÍVIDA\s*LÍQUIDA\s*\/\s*EBITDA|DIVIDA\s*LIQUIDA\s*\/\s*EBITDA|Dív\.?\s*Líq\.?\s*\/\s*EBITDA|Div\.?\s*Liq\.?\s*\/\s*EBITDA|DL\s*\/\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
+    interestCoverage: parseNum(getMatch(/(?:Cobert\.?\s*Juros|Cobertura\s*de\s*Juros)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
+    revenueGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Receita|Crescimento\s*Receita|CAGR\s*Receita)\s*(?:\(?[0-9a-zA-Z\s]*\)?)?[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    netIncomeGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Lucro|Crescimento\s*Lucro|CAGR\s*Lucro)\s*(?:\(?[0-9a-zA-Z\s]*\)?)?[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    fcfGrowth: parseNum(getMatch(/(?:Cresc\.?\s*FCF|Crescimento\s*FCF|Cresc\.?\s*Fluxo)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    dividendYield: parseNum(getMatch(/(?:DY|Dividend\s*Yield|Div\.?\s*Yield)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i))
+  };
+}
+
+/**
+ * Cria um novo ativo na carteira diretamente a partir do JSON colado
+ */
+function addAssetFromPastedJson() {
+  const item = window._pendingPastedItem;
+  if (!item || !item.symbol) return;
+  const sym = item.symbol.toUpperCase().replace(/\.SA$/i, '');
+  const isBdr = sym.endsWith('34') || sym.endsWith('35') || sym.endsWith('39') || 
+                (item.longName && item.longName.toLowerCase().includes('depository receipt'));
+  const isFii = sym.endsWith('11') && !sym.startsWith('BOVA') && !sym.startsWith('SMAL');
+  const price = parseFloat(item.regularMarketPrice || 0);
+
+  // Verificar se ativo já existe
+  let targetAsset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => a.ticker === sym);
+  if (!targetAsset) {
+    targetAsset = {
+      id: Date.now(),
+      ticker: sym,
+      nome: item.longName || item.shortName || sym,
+      tipo: isBdr ? 'BDR' : (isFii ? 'FII' : 'STOCK'),
+      setor: isBdr ? 'BDR Internacional (EUA)' : '',
+      quantidade: 0,
+      precoMedio: price,
+      precoAtual: price,
+      dataCompra: new Date().toISOString().split('T')[0],
+      pesoAlvo: 5,
+      notaQualidade: 8,
+      proventosRecebidos: 0,
+      historicoTransacoes: [],
+      fundamentals: {},
+      qualitative: {},
+      thesis: {},
+      dcfScenarios: {}
+    };
+    appState.acoes = appState.acoes || [];
+    appState.acoes.push(targetAsset);
+    saveLocalState(true, true);
+    if (typeof renderTabelaCarteira === 'function') renderTabelaCarteira();
   }
 
-  const assetId = document.getElementById('editHealthAssetId')?.value;
-  const asset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => String(a.id) === String(assetId));
-  if (!asset) {
-    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Ação não encontrada para preenchimento.</span>';
-    return;
-  }
+  closePasteJsonModal();
+  openEditAssetHealthModal(targetAsset.id);
+  setTimeout(() => {
+    applyPastedItemToAsset(targetAsset, item);
+  }, 100);
+}
 
-  // Limpar formatação Markdown (ex: ```json ... ```)
-  if (raw.startsWith('```')) {
-    raw = raw.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
-  }
-
-  let item = null;
-  try {
-    const parsed = JSON.parse(raw);
-    if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
-      item = parsed.results[0];
-    } else if (Array.isArray(parsed) && parsed.length > 0) {
-      item = parsed[0];
-    } else if (parsed && typeof parsed === 'object') {
-      item = parsed;
-    }
-  } catch (e) {
-    // Se não for JSON estrito, tenta extrair o primeiro bloco JSON {...}
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
-          item = parsed.results[0];
-        } else if (parsed && typeof parsed === 'object') {
-          item = parsed;
-        }
-      } catch (err2) {}
-    }
-  }
-
-  if (!item) {
-    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Não foi possível reconhecer o JSON. Certifique-se de colar o bloco completo { ... }.</span>';
-    return;
-  }
-
+/**
+ * Preenche os inputs do modal e salva os dados no ativo a partir do item extraído do JSON
+ */
+function applyPastedItemToAsset(asset, item) {
   const cleanTicker = (asset.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
   const fin = item.financialData || {};
   const stats = item.defaultKeyStatistics || {};
@@ -1843,6 +1907,7 @@ function applyPastedApiJson() {
   };
 
   let filledCount = 0;
+  const filledItemsList = [];
 
   // 1. Tipo de Ativo
   const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || 
@@ -1881,6 +1946,23 @@ function applyPastedApiJson() {
 
   if (price > 0) {
     asset.precoAtual = price;
+    filledItemsList.push(`Cotação: R$ ${price.toFixed(2).replace('.', ',')}`);
+  }
+
+  asset.fundamentals = asset.fundamentals || {};
+
+  if (pe > 0) {
+    const el = document.getElementById('editHealthPe');
+    if (el) { el.value = pe.toFixed(2).replace('.', ','); filledCount++; }
+    asset.fundamentals.pe = parseFloat(pe.toFixed(2));
+    filledItemsList.push(`P/L: ${pe.toFixed(2).replace('.', ',')}`);
+  }
+
+  if (eps > 0) {
+    const el = document.getElementById('editHealthEps');
+    if (el) { el.value = eps.toFixed(2).replace('.', ','); filledCount++; }
+    asset.fundamentals.eps = parseFloat(eps.toFixed(2));
+    filledItemsList.push(`LPA: R$ ${eps.toFixed(2).replace('.', ',')}`);
   }
 
   // Total de Ações em Circulação
@@ -1891,6 +1973,8 @@ function applyPastedApiJson() {
   if (shares && shares > 0) {
     const el = document.getElementById('editHealthShares');
     if (el) { el.value = shares.toString(); filledCount++; }
+    asset.fundamentals.sharesOutstanding = shares;
+    filledItemsList.push(`Ações: ${shares.toLocaleString('pt-BR')}`);
   }
 
   // Lucro Líquido
@@ -1903,90 +1987,96 @@ function applyPastedApiJson() {
   if (netIncome) {
     const el = document.getElementById('editHealthNetIncome');
     if (el) { el.value = Math.round(netIncome).toString(); filledCount++; }
+    asset.fundamentals.netIncome = netIncome;
+    filledItemsList.push(`Lucro Líquido: R$ ${Math.round(netIncome).toLocaleString('pt-BR')}`);
   }
 
   // 4. Margens e Rentabilidade
-  let netMarginNum = null;
   if (fin.profitMargins !== undefined) {
-    netMarginNum = parsePctNum(fin.profitMargins);
+    const val = parsePctNum(fin.profitMargins);
     const el = document.getElementById('editHealthNetMargin');
     if (el) { el.value = formatPctVal(fin.profitMargins); filledCount++; }
+    asset.fundamentals.netMargin = val;
+    filledItemsList.push(`Margem Líq: ${el ? el.value : ''}%`);
   }
-  let ebitdaMarginNum = null;
   if (fin.ebitdaMargins !== undefined) {
-    ebitdaMarginNum = parsePctNum(fin.ebitdaMargins);
+    const val = parsePctNum(fin.ebitdaMargins);
     const el = document.getElementById('editHealthEbitdaMargin');
     if (el) { el.value = formatPctVal(fin.ebitdaMargins); filledCount++; }
+    asset.fundamentals.ebitdaMargin = val;
+    filledItemsList.push(`Margem EBITDA: ${el ? el.value : ''}%`);
   }
-  let roeNum = null;
   if (fin.returnOnEquity !== undefined) {
-    roeNum = parsePctNum(fin.returnOnEquity);
+    const val = parsePctNum(fin.returnOnEquity);
     const el = document.getElementById('editHealthRoe');
     if (el) { el.value = formatPctVal(fin.returnOnEquity); filledCount++; }
+    asset.fundamentals.roe = val;
+    filledItemsList.push(`ROE: ${el ? el.value : ''}%`);
   }
-  let roicNum = null;
   if (item.roic !== undefined || fin.returnOnAssets !== undefined) {
-    roicNum = parsePctNum(item.roic !== undefined ? item.roic : fin.returnOnAssets);
+    const rawVal = item.roic !== undefined ? item.roic : fin.returnOnAssets;
+    const val = parsePctNum(rawVal);
     const el = document.getElementById('editHealthRoic');
-    if (el) { el.value = formatPctVal(item.roic !== undefined ? item.roic : fin.returnOnAssets); filledCount++; }
+    if (el) { el.value = formatPctVal(rawVal); filledCount++; }
+    asset.fundamentals.roic = val;
+    filledItemsList.push(`ROIC: ${el ? el.value : ''}%`);
   }
 
   // 5. Crescimentos
-  let revGrowthNum = null;
   if (fin.revenueGrowth !== undefined) {
-    revGrowthNum = parsePctNum(fin.revenueGrowth);
+    const val = parsePctNum(fin.revenueGrowth);
     const el = document.getElementById('editHealthRevenueGrowth');
     if (el) { el.value = formatPctVal(fin.revenueGrowth); filledCount++; }
+    asset.fundamentals.revenueGrowth = val;
+    filledItemsList.push(`Cresc. Receita: ${el ? el.value : ''}%`);
   }
-  let netGrowthNum = null;
   if (fin.earningsGrowth !== undefined) {
-    netGrowthNum = parsePctNum(fin.earningsGrowth);
+    const val = parsePctNum(fin.earningsGrowth);
     const el = document.getElementById('editHealthNetIncomeGrowth');
     if (el) { el.value = formatPctVal(fin.earningsGrowth); filledCount++; }
+    asset.fundamentals.netIncomeGrowth = val;
+    filledItemsList.push(`Cresc. Lucro: ${el ? el.value : ''}%`);
   }
 
   // 6. Dividend Yield
   const dyVal = item.dividendYield !== undefined ? item.dividendYield : item.regularMarketDividendYield;
-  let dyNum = null;
   if (dyVal !== undefined && dyVal !== null) {
-    dyNum = parsePctNum(dyVal);
+    const val = parsePctNum(dyVal);
     const el = document.getElementById('editHealthDividendYield');
     if (el) { el.value = formatPctVal(dyVal); filledCount++; }
+    asset.fundamentals.dividendYield = val;
+    filledItemsList.push(`DY: ${el ? el.value : ''}%`);
   }
 
   // 7. Totais Financeiros
-  let revNum = null;
   if (fin.totalRevenue) {
-    revNum = parseIntNum(fin.totalRevenue);
     const el = document.getElementById('editHealthRevenue');
     if (el) { el.value = formatIntVal(fin.totalRevenue); filledCount++; }
+    asset.fundamentals.revenue = parseIntNum(fin.totalRevenue);
   }
-  let fcfNum = null;
   if (fin.freeCashflow) {
-    fcfNum = parseIntNum(fin.freeCashflow);
     const el = document.getElementById('editHealthFcf');
     if (el) { el.value = formatIntVal(fin.freeCashflow); filledCount++; }
+    asset.fundamentals.freeCashFlow = parseIntNum(fin.freeCashflow);
   }
 
   // 8. Dívida Líquida & Dívida Líq / EBITDA
-  let netDebtNum = null;
-  let netDebtEbitdaNum = null;
   if (fin.totalDebt !== undefined && fin.totalCash !== undefined) {
-    netDebtNum = Math.round(parseFloat(fin.totalDebt) - parseFloat(fin.totalCash));
+    const netDebtNum = Math.round(parseFloat(fin.totalDebt) - parseFloat(fin.totalCash));
     const el = document.getElementById('editHealthNetDebt');
     if (el) { el.value = formatIntVal(netDebtNum); filledCount++; }
-  }
+    asset.fundamentals.netDebt = netDebtNum;
 
-  if (netDebtNum !== null) {
     let ebitdaNum = parseFloat(fin.ebitda || 0);
     if (ebitdaNum <= 0 && fin.totalRevenue && fin.ebitdaMargins) {
       ebitdaNum = parseFloat(fin.totalRevenue) * parseFloat(fin.ebitdaMargins);
     }
     if (ebitdaNum > 0) {
-      netDebtEbitdaNum = parseFloat((netDebtNum / ebitdaNum).toFixed(2));
       const debtRatio = (netDebtNum / ebitdaNum).toFixed(1).replace('.', ',');
-      const el = document.getElementById('editHealthNetDebtEbitda');
-      if (el) { el.value = debtRatio; filledCount++; }
+      const elRatio = document.getElementById('editHealthNetDebtEbitda');
+      if (elRatio) { elRatio.value = debtRatio; filledCount++; }
+      asset.fundamentals.netDebtEbitda = parseFloat((netDebtNum / ebitdaNum).toFixed(2));
+      filledItemsList.push(`Dív. Líq / EBITDA: ${debtRatio}x`);
     }
   }
 
@@ -1994,22 +2084,6 @@ function applyPastedApiJson() {
   const todayIso = new Date().toISOString().split('T')[0];
   const dateEl = document.getElementById('editHealthUpdatedAt');
   if (dateEl) dateEl.value = todayIso;
-
-  // Atualizar asset.fundamentals
-  asset.fundamentals = asset.fundamentals || {};
-  if (roicNum !== null) asset.fundamentals.roic = roicNum;
-  if (roeNum !== null) asset.fundamentals.roe = roeNum;
-  if (revNum !== null) asset.fundamentals.revenue = revNum;
-  if (revGrowthNum !== null) asset.fundamentals.revenueGrowth = revGrowthNum;
-  if (netIncome !== null) asset.fundamentals.netIncome = netIncome;
-  if (netGrowthNum !== null) asset.fundamentals.netIncomeGrowth = netGrowthNum;
-  if (fcfNum !== null) asset.fundamentals.freeCashFlow = fcfNum;
-  if (ebitdaMarginNum !== null) asset.fundamentals.ebitdaMargin = ebitdaMarginNum;
-  if (netMarginNum !== null) asset.fundamentals.netMargin = netMarginNum;
-  if (netDebtNum !== null) asset.fundamentals.netDebt = netDebtNum;
-  if (netDebtEbitdaNum !== null) asset.fundamentals.netDebtEbitda = netDebtEbitdaNum;
-  if (shares !== null) asset.fundamentals.sharesOutstanding = shares;
-  if (dyNum !== null) asset.fundamentals.dividendYield = dyNum;
   asset.fundamentals.fundamentalsUpdatedAt = todayIso;
 
   // Salvar e atualizar interface
@@ -2025,28 +2099,220 @@ function applyPastedApiJson() {
 
   if (hasFullBalanceSheet) {
     if (statusTextEl) {
-      statusTextEl.innerHTML = `<span style="color: #34d399; font-weight: 600;">✅ ${cleanTicker}: JSON processado! Balanço completo e múltiplos preenchidos (${filledCount} campos salvos).</span>`;
+      statusTextEl.innerHTML = `<div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 14px; text-align: left; color: #34d399; font-weight: 600;">✅ ${cleanTicker}: JSON processado! Balanço completo e múltiplos preenchidos (${filledCount} campos salvos).</div>`;
     }
     showToast(`⚡ ${cleanTicker}: JSON processado com ${filledCount} indicadores salvos!`, 'success');
   } else {
     if (statusTextEl) {
       statusTextEl.innerHTML = `
-        <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 10px 14px; text-align: left;">
-          <div style="color: #facc15; font-weight: 700; font-size: 0.86rem; display: flex; align-items: center; gap: 6px;">
-            <span>ℹ️</span> Cotação, P/L, LPA, Ações e Lucro Líquido preenchidos pelo JSON!
+        <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 12px 14px; text-align: left;">
+          <div style="color: #facc15; font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+            <span>ℹ️</span> Preenchidos pelo JSON: ${filledItemsList.join(' • ')}
           </div>
-          <div style="color: #cbd5e1; font-size: 0.8rem; line-height: 1.45; margin-top: 4px;">
-            O JSON colado continha os dados de mercado e múltiplos. Para preencher os demais dados de balanço (ROIC, ROE, Margens, Dívida), consulte:
-            <span style="display: inline-flex; gap: 8px; margin-top: 4px; margin-left: 4px;">
-              <a href="${statusInvestUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700;">📊 StatusInvest ↗</a>
-              <a href="${fundamentusUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700;">📈 Fundamentus ↗</a>
-            </span>
+          <div style="color: #cbd5e1; font-size: 0.82rem; line-height: 1.5; margin-top: 6px;">
+            <strong>Por que ROIC, ROE, Margens e Dívida não vieram no JSON?</strong><br/>
+            O JSON da Brapi para <strong>${cleanTicker}</strong> contém apenas cotação e múltiplos básicos de mercado. Na API gratuita da Brapi, dados de balanço não são retornados para este ativo.<br/>
+            💡 <strong>Dica de Ouro:</strong> Você pode copiar os indicadores do StatusInvest ou Fundamentus e colar diretamente no botão <strong>📋 Colar JSON da API</strong> (ele aceita texto copiado também!):
+            <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+              <a href="${statusInvestUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary" style="color: #60a5fa; font-weight: 700; font-size: 0.78rem;">📊 Abrir ${cleanTicker} no StatusInvest ↗</a>
+              <a href="${fundamentusUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-secondary" style="color: #60a5fa; font-weight: 700; font-size: 0.78rem;">📈 Abrir no Fundamentus ↗</a>
+            </div>
           </div>
         </div>
       `;
     }
-    showToast(`ℹ️ ${cleanTicker}: Cotação, P/L, LPA, Ações e Lucro preenchidos pelo JSON!`, 'info');
+    showToast(`ℹ️ ${cleanTicker}: ${filledCount} campos preenchidos pelo JSON!`, 'info');
   }
+}
+
+/**
+ * Processa o JSON ou dados colados pelo usuário e preenche o modal atual
+ */
+function applyPastedApiJson(forceApply = false) {
+  const input = document.getElementById('pasteJsonInput');
+  const fb = document.getElementById('pasteJsonFeedback');
+  let raw = (input ? input.value : '').trim();
+
+  if (!raw) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">⚠️ Por favor, cole o JSON ou texto dos indicadores antes de continuar.</span>';
+    return;
+  }
+
+  const assetId = document.getElementById('editHealthAssetId')?.value;
+  const asset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => String(a.id) === String(assetId));
+  if (!asset) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Ação não encontrada para preenchimento.</span>';
+    return;
+  }
+
+  // Limpar formatação Markdown (ex: ```json ... ```)
+  if (raw.startsWith('```')) {
+    raw = raw.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
+  }
+
+  let item = null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
+      item = parsed.results[0];
+    } else if (Array.isArray(parsed) && parsed.length > 0) {
+      item = parsed[0];
+    } else if (parsed && typeof parsed === 'object') {
+      item = parsed;
+    }
+  } catch (e) {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
+          item = parsed.results[0];
+        } else if (parsed && typeof parsed === 'object') {
+          item = parsed;
+        }
+      } catch (err2) {}
+    }
+  }
+
+  const cleanTicker = (asset.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+
+  // Se não reconheceu JSON, tenta extrair métricas de texto puro (StatusInvest / Fundamentus)
+  if (!item) {
+    const textMetrics = parsePastedTextIndicators(raw);
+    const foundKeys = Object.keys(textMetrics).filter(k => textMetrics[k] !== null);
+
+    if (foundKeys.length > 0) {
+      let filledTextCount = 0;
+      const filledItems = [];
+      asset.fundamentals = asset.fundamentals || {};
+
+      if (textMetrics.pe !== null) {
+        const el = document.getElementById('editHealthPe');
+        if (el) el.value = textMetrics.pe.toFixed(2).replace('.', ',');
+        asset.fundamentals.pe = textMetrics.pe;
+        filledTextCount++;
+        filledItems.push(`P/L: ${textMetrics.pe}`);
+      }
+      if (textMetrics.eps !== null) {
+        const el = document.getElementById('editHealthEps');
+        if (el) el.value = textMetrics.eps.toFixed(2).replace('.', ',');
+        asset.fundamentals.eps = textMetrics.eps;
+        filledTextCount++;
+        filledItems.push(`LPA: R$ ${textMetrics.eps}`);
+      }
+      if (textMetrics.roic !== null) {
+        const el = document.getElementById('editHealthRoic');
+        if (el) el.value = textMetrics.roic.toFixed(1).replace('.', ',');
+        asset.fundamentals.roic = textMetrics.roic;
+        filledTextCount++;
+        filledItems.push(`ROIC: ${textMetrics.roic}%`);
+      }
+      if (textMetrics.roe !== null) {
+        const el = document.getElementById('editHealthRoe');
+        if (el) el.value = textMetrics.roe.toFixed(1).replace('.', ',');
+        asset.fundamentals.roe = textMetrics.roe;
+        filledTextCount++;
+        filledItems.push(`ROE: ${textMetrics.roe}%`);
+      }
+      if (textMetrics.netMargin !== null) {
+        const el = document.getElementById('editHealthNetMargin');
+        if (el) el.value = textMetrics.netMargin.toFixed(1).replace('.', ',');
+        asset.fundamentals.netMargin = textMetrics.netMargin;
+        filledTextCount++;
+        filledItems.push(`Margem Líq: ${textMetrics.netMargin}%`);
+      }
+      if (textMetrics.ebitdaMargin !== null) {
+        const el = document.getElementById('editHealthEbitdaMargin');
+        if (el) el.value = textMetrics.ebitdaMargin.toFixed(1).replace('.', ',');
+        asset.fundamentals.ebitdaMargin = textMetrics.ebitdaMargin;
+        filledTextCount++;
+        filledItems.push(`Margem EBITDA: ${textMetrics.ebitdaMargin}%`);
+      }
+      if (textMetrics.netDebtEbitda !== null) {
+        const el = document.getElementById('editHealthNetDebtEbitda');
+        if (el) el.value = textMetrics.netDebtEbitda.toFixed(2).replace('.', ',');
+        asset.fundamentals.netDebtEbitda = textMetrics.netDebtEbitda;
+        filledTextCount++;
+        filledItems.push(`Dív. Líq/EBITDA: ${textMetrics.netDebtEbitda}x`);
+      }
+      if (textMetrics.interestCoverage !== null) {
+        const el = document.getElementById('editHealthInterestCoverage');
+        if (el) el.value = textMetrics.interestCoverage.toFixed(1).replace('.', ',');
+        asset.fundamentals.interestCoverage = textMetrics.interestCoverage;
+        filledTextCount++;
+        filledItems.push(`Cobert. Juros: ${textMetrics.interestCoverage}x`);
+      }
+      if (textMetrics.revenueGrowth !== null) {
+        const el = document.getElementById('editHealthRevenueGrowth');
+        if (el) el.value = textMetrics.revenueGrowth.toFixed(1).replace('.', ',');
+        asset.fundamentals.revenueGrowth = textMetrics.revenueGrowth;
+        filledTextCount++;
+        filledItems.push(`Cresc. Receita: ${textMetrics.revenueGrowth}%`);
+      }
+      if (textMetrics.netIncomeGrowth !== null) {
+        const el = document.getElementById('editHealthNetIncomeGrowth');
+        if (el) el.value = textMetrics.netIncomeGrowth.toFixed(1).replace('.', ',');
+        asset.fundamentals.netIncomeGrowth = textMetrics.netIncomeGrowth;
+        filledTextCount++;
+        filledItems.push(`Cresc. Lucro: ${textMetrics.netIncomeGrowth}%`);
+      }
+      if (textMetrics.dividendYield !== null) {
+        const el = document.getElementById('editHealthDividendYield');
+        if (el) el.value = textMetrics.dividendYield.toFixed(1).replace('.', ',');
+        asset.fundamentals.dividendYield = textMetrics.dividendYield;
+        filledTextCount++;
+        filledItems.push(`DY: ${textMetrics.dividendYield}%`);
+      }
+
+      const todayIso = new Date().toISOString().split('T')[0];
+      const dateEl = document.getElementById('editHealthUpdatedAt');
+      if (dateEl) dateEl.value = todayIso;
+      asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+
+      saveLocalState(true, true);
+      updateModalFundamentalBadges();
+      closePasteJsonModal();
+
+      const statusTextEl = document.getElementById('onlineFundamentalsStatusText');
+      if (statusTextEl) {
+        statusTextEl.innerHTML = `<div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 10px 14px; text-align: left; color: #34d399; font-weight: 600;">✅ ${cleanTicker}: Texto lido com sucesso! ${filledTextCount} indicadores identificados e preenchidos: ${filledItems.join(' • ')}</div>`;
+      }
+      showToast(`⚡ ${cleanTicker}: ${filledTextCount} indicadores extraídos do texto!`, 'success');
+      return;
+    }
+
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Não foi possível reconhecer o JSON nem os indicadores em texto. Cole o bloco { ... } da Brapi ou a tabela do StatusInvest.</span>';
+    return;
+  }
+
+  // Validação de divergência de ticker
+  const itemSymbol = (item.symbol || '').trim().toUpperCase().replace(/\.SA$/i, '');
+  if (itemSymbol && cleanTicker && itemSymbol !== cleanTicker && !forceApply) {
+    window._pendingPastedItem = item;
+    if (fb) {
+      fb.innerHTML = `
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 12px; text-align: left; margin-top: 8px;">
+          <div style="color: #f87171; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+            <span>⚠️</span> Ticker Divergente: ${cleanTicker} vs ${itemSymbol}
+          </div>
+          <div style="color: #e2e8f0; font-size: 0.84rem; margin-top: 6px; line-height: 1.45;">
+            Você está editando o ativo <strong>${cleanTicker}</strong>, mas os dados colados pertencem a <strong>${itemSymbol}</strong> (${item.longName || item.shortName || ''}).
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="addAssetFromPastedJson()">
+              ➕ Adicionar ${itemSymbol} à Minha Carteira
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="applyPastedApiJson(true)">
+              Aplicar a ${cleanTicker} mesmo assim
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  applyPastedItemToAsset(asset, item);
 }
 
 /**

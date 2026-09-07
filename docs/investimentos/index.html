@@ -1072,6 +1072,20 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
               <div>
                 <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>P/L (Preço / Lucro)</span>
+                  <span id="statusBadgePe" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthPe" class="form-control form-control-sm" placeholder="ex: 16.5" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>LPA (R$)</span>
+                  <span id="statusBadgeEps" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthEps" class="form-control form-control-sm" placeholder="ex: 8.75" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                   <span>ROIC (%)</span>
                   <span id="statusBadgeRoic" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
                 </label>
@@ -1309,25 +1323,31 @@
     </div>
   </div>
 
-  <!-- MODAL COLAR JSON DA BRAPI / API -->
+  <!-- MODAL IMPORTAR DADOS (BRAPI JSON OU STATUSINVEST / FUNDAMENTUS) -->
   <div class="modal-backdrop" id="modalPasteJsonBackdrop" style="display: none; z-index: 999999;" onclick="closePasteJsonModal()">
-    <div class="modal-card" style="max-width: 580px;" onclick="event.stopPropagation()">
+    <div class="modal-card" style="max-width: 600px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          <span>📋</span> Colar JSON da API (Brapi / Externa)
+          <span>📋</span> Importar Indicadores (Brapi JSON ou StatusInvest)
         </h3>
         <button type="button" class="modal-close" onclick="closePasteJsonModal()" aria-label="Fechar Modal">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 10px;">
-          Cole abaixo a resposta JSON copiada da <strong>Brapi (brapi.dev)</strong> ou outra fonte. O Winvest vai ler e preencher automaticamente a cotação, múltiplos, ações, lucro e indicadores de balanço:
+        <p style="font-size: 0.86rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 8px;">
+          Cole abaixo o <strong>JSON da Brapi</strong> OU o <strong>texto copiado do StatusInvest / Fundamentus</strong>. O leitor inteligente extrai Cotação, P/L, LPA, ROIC, ROE, Margens, Dívida, Ações e Lucro:
         </p>
+
+        <div id="pasteModalQuickLinksContainer" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">🔗 Abrir página do ativo para copiar indicadores:</span>
+          <div id="pasteModalQuickLinks" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+        </div>
+
         <div class="form-group mb-2">
-          <textarea id="pasteJsonInput" class="form-control" rows="9" placeholder='Cole aqui o JSON da API (ex: { "results": [ { "symbol": "GOGL34", ... } ] })' style="font-family: monospace; font-size: 0.8rem; line-height: 1.4; resize: vertical;"></textarea>
+          <textarea id="pasteJsonInput" class="form-control" rows="8" placeholder='Cole aqui o JSON da API (ex: { "results": [...] }) ou copie a tabela de indicadores do StatusInvest/Fundamentus e cole aqui...' style="font-family: monospace; font-size: 0.8rem; line-height: 1.4; resize: vertical;"></textarea>
         </div>
         <div id="pasteJsonFeedback" style="font-size: 0.82rem; margin-top: 6px;"></div>
         <div class="text-muted text-small mt-2" style="font-size: 0.75rem; line-height: 1.4;">
-          💡 Suporta respostas com <code>results: [...]</code>, múltiplos básicos e módulos de balanço completos.
+          💡 <strong>Dica:</strong> Se a API gratuita da Brapi retornar apenas cotação e múltiplos (P/L e LPA), basta abrir o StatusInvest pelo link acima, selecionar os indicadores e colar aqui!
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -1338,13 +1358,13 @@
   </div>
 
   <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
-  <script src="invest-config.js?v=2.8.6"></script>
-  <script src="invest-quality.js?v=2.8.6"></script>
-  <script src="invest-valuation.js?v=2.8.6"></script>
-  <script src="invest-thesis.js?v=2.8.6"></script>
-  <script src="invest-decision.js?v=2.8.6"></script>
-  <script src="invest-ui.js?v=2.8.6"></script>
-  <script src="drive-sync.js?v=2.8.6"></script>
-  <script src="app.js?v=2.8.6"></script>
+  <script src="invest-config.js?v=2.8.7"></script>
+  <script src="invest-quality.js?v=2.8.7"></script>
+  <script src="invest-valuation.js?v=2.8.7"></script>
+  <script src="invest-thesis.js?v=2.8.7"></script>
+  <script src="invest-decision.js?v=2.8.7"></script>
+  <script src="invest-ui.js?v=2.8.7"></script>
+  <script src="drive-sync.js?v=2.8.7"></script>
+  <script src="app.js?v=2.8.7"></script>
 </body>
 </html>
