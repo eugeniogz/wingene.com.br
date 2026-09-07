@@ -1741,6 +1741,315 @@ async function executeFetchFundamentalsForModal(asset, token) {
 }
 
 /**
+ * Abre o modal para colar JSON da Brapi ou dados externos
+ */
+function openPasteJsonModal() {
+  const modal = document.getElementById('modalPasteJsonBackdrop');
+  const input = document.getElementById('pasteJsonInput');
+  const fb = document.getElementById('pasteJsonFeedback');
+  if (input) input.value = '';
+  if (fb) fb.innerHTML = '';
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (input) input.focus(); }, 60);
+}
+
+function closePasteJsonModal() {
+  const modal = document.getElementById('modalPasteJsonBackdrop');
+  if (modal) modal.style.display = 'none';
+}
+
+/**
+ * Processa o JSON ou dados colados pelo usuário e preenche o modal atual
+ */
+function applyPastedApiJson() {
+  const input = document.getElementById('pasteJsonInput');
+  const fb = document.getElementById('pasteJsonFeedback');
+  let raw = (input ? input.value : '').trim();
+
+  if (!raw) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">⚠️ Por favor, cole o JSON antes de continuar.</span>';
+    return;
+  }
+
+  const assetId = document.getElementById('editHealthAssetId')?.value;
+  const asset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => String(a.id) === String(assetId));
+  if (!asset) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Ação não encontrada para preenchimento.</span>';
+    return;
+  }
+
+  // Limpar formatação Markdown (ex: ```json ... ```)
+  if (raw.startsWith('```')) {
+    raw = raw.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
+  }
+
+  let item = null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
+      item = parsed.results[0];
+    } else if (Array.isArray(parsed) && parsed.length > 0) {
+      item = parsed[0];
+    } else if (parsed && typeof parsed === 'object') {
+      item = parsed;
+    }
+  } catch (e) {
+    // Se não for JSON estrito, tenta extrair o primeiro bloco JSON {...}
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed && Array.isArray(parsed.results) && parsed.results.length > 0) {
+          item = parsed.results[0];
+        } else if (parsed && typeof parsed === 'object') {
+          item = parsed;
+        }
+      } catch (err2) {}
+    }
+  }
+
+  if (!item) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Não foi possível reconhecer o JSON. Certifique-se de colar o bloco completo { ... }.</span>';
+    return;
+  }
+
+  const cleanTicker = (asset.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+  const fin = item.financialData || {};
+  const stats = item.defaultKeyStatistics || {};
+  const prof = item.summaryProfile || {};
+
+  const formatPctVal = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    const n = parseFloat(val);
+    const pct = (Math.abs(n) > 0 && Math.abs(n) < 1.0) ? (n * 100) : n;
+    return pct.toFixed(1).replace('.', ',');
+  };
+
+  const parsePctNum = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    const n = parseFloat(val);
+    const pct = (Math.abs(n) > 0 && Math.abs(n) < 1.0) ? (n * 100) : n;
+    return parseFloat(pct.toFixed(2));
+  };
+
+  const formatIntVal = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    return Math.round(parseFloat(val)).toString();
+  };
+
+  const parseIntNum = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    return Math.round(parseFloat(val));
+  };
+
+  let filledCount = 0;
+
+  // 1. Tipo de Ativo
+  const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || 
+                (item.longName && item.longName.toLowerCase().includes('depository receipt'));
+  const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
+
+  const tipoEl = document.getElementById('editHealthTipo');
+  if (tipoEl) {
+    if (isBdr) tipoEl.value = 'BDR';
+    else if (isFii) tipoEl.value = 'FII';
+    else tipoEl.value = 'STOCK';
+  }
+  if (isBdr) asset.tipo = 'BDR';
+  else if (isFii) asset.tipo = 'FII';
+
+  // 2. Setor
+  const sectorEl = document.getElementById('editHealthSetor');
+  if (sectorEl) {
+    const parts = [prof.sector, prof.industry].filter(Boolean);
+    if (parts.length > 0) {
+      sectorEl.value = parts.join(' / ');
+      asset.setor = sectorEl.value;
+      filledCount++;
+    } else if (isBdr && !sectorEl.value) {
+      sectorEl.value = 'BDR Internacional (EUA)';
+      asset.setor = sectorEl.value;
+      filledCount++;
+    }
+  }
+
+  // 3. Cotação, P/L, LPA
+  const price = parseFloat(item.regularMarketPrice || 0);
+  const mCap = parseFloat(item.marketCap || 0);
+  const pe = parseFloat(item.priceEarnings || 0);
+  const eps = parseFloat(item.earningsPerShare || 0);
+
+  if (price > 0) {
+    asset.precoAtual = price;
+  }
+
+  // Total de Ações em Circulação
+  let shares = stats.sharesOutstanding ? parseFloat(stats.sharesOutstanding) : null;
+  if (!shares && mCap > 0 && price > 0) {
+    shares = Math.round(mCap / price);
+  }
+  if (shares && shares > 0) {
+    const el = document.getElementById('editHealthShares');
+    if (el) { el.value = shares.toString(); filledCount++; }
+  }
+
+  // Lucro Líquido
+  let netIncome = stats.netIncomeToCommon ? parseFloat(stats.netIncomeToCommon) : null;
+  if (!netIncome && eps > 0 && shares > 0) {
+    netIncome = Math.round(eps * shares);
+  } else if (!netIncome && mCap > 0 && pe > 0) {
+    netIncome = Math.round(mCap / pe);
+  }
+  if (netIncome) {
+    const el = document.getElementById('editHealthNetIncome');
+    if (el) { el.value = Math.round(netIncome).toString(); filledCount++; }
+  }
+
+  // 4. Margens e Rentabilidade
+  let netMarginNum = null;
+  if (fin.profitMargins !== undefined) {
+    netMarginNum = parsePctNum(fin.profitMargins);
+    const el = document.getElementById('editHealthNetMargin');
+    if (el) { el.value = formatPctVal(fin.profitMargins); filledCount++; }
+  }
+  let ebitdaMarginNum = null;
+  if (fin.ebitdaMargins !== undefined) {
+    ebitdaMarginNum = parsePctNum(fin.ebitdaMargins);
+    const el = document.getElementById('editHealthEbitdaMargin');
+    if (el) { el.value = formatPctVal(fin.ebitdaMargins); filledCount++; }
+  }
+  let roeNum = null;
+  if (fin.returnOnEquity !== undefined) {
+    roeNum = parsePctNum(fin.returnOnEquity);
+    const el = document.getElementById('editHealthRoe');
+    if (el) { el.value = formatPctVal(fin.returnOnEquity); filledCount++; }
+  }
+  let roicNum = null;
+  if (item.roic !== undefined || fin.returnOnAssets !== undefined) {
+    roicNum = parsePctNum(item.roic !== undefined ? item.roic : fin.returnOnAssets);
+    const el = document.getElementById('editHealthRoic');
+    if (el) { el.value = formatPctVal(item.roic !== undefined ? item.roic : fin.returnOnAssets); filledCount++; }
+  }
+
+  // 5. Crescimentos
+  let revGrowthNum = null;
+  if (fin.revenueGrowth !== undefined) {
+    revGrowthNum = parsePctNum(fin.revenueGrowth);
+    const el = document.getElementById('editHealthRevenueGrowth');
+    if (el) { el.value = formatPctVal(fin.revenueGrowth); filledCount++; }
+  }
+  let netGrowthNum = null;
+  if (fin.earningsGrowth !== undefined) {
+    netGrowthNum = parsePctNum(fin.earningsGrowth);
+    const el = document.getElementById('editHealthNetIncomeGrowth');
+    if (el) { el.value = formatPctVal(fin.earningsGrowth); filledCount++; }
+  }
+
+  // 6. Dividend Yield
+  const dyVal = item.dividendYield !== undefined ? item.dividendYield : item.regularMarketDividendYield;
+  let dyNum = null;
+  if (dyVal !== undefined && dyVal !== null) {
+    dyNum = parsePctNum(dyVal);
+    const el = document.getElementById('editHealthDividendYield');
+    if (el) { el.value = formatPctVal(dyVal); filledCount++; }
+  }
+
+  // 7. Totais Financeiros
+  let revNum = null;
+  if (fin.totalRevenue) {
+    revNum = parseIntNum(fin.totalRevenue);
+    const el = document.getElementById('editHealthRevenue');
+    if (el) { el.value = formatIntVal(fin.totalRevenue); filledCount++; }
+  }
+  let fcfNum = null;
+  if (fin.freeCashflow) {
+    fcfNum = parseIntNum(fin.freeCashflow);
+    const el = document.getElementById('editHealthFcf');
+    if (el) { el.value = formatIntVal(fin.freeCashflow); filledCount++; }
+  }
+
+  // 8. Dívida Líquida & Dívida Líq / EBITDA
+  let netDebtNum = null;
+  let netDebtEbitdaNum = null;
+  if (fin.totalDebt !== undefined && fin.totalCash !== undefined) {
+    netDebtNum = Math.round(parseFloat(fin.totalDebt) - parseFloat(fin.totalCash));
+    const el = document.getElementById('editHealthNetDebt');
+    if (el) { el.value = formatIntVal(netDebtNum); filledCount++; }
+  }
+
+  if (netDebtNum !== null) {
+    let ebitdaNum = parseFloat(fin.ebitda || 0);
+    if (ebitdaNum <= 0 && fin.totalRevenue && fin.ebitdaMargins) {
+      ebitdaNum = parseFloat(fin.totalRevenue) * parseFloat(fin.ebitdaMargins);
+    }
+    if (ebitdaNum > 0) {
+      netDebtEbitdaNum = parseFloat((netDebtNum / ebitdaNum).toFixed(2));
+      const debtRatio = (netDebtNum / ebitdaNum).toFixed(1).replace('.', ',');
+      const el = document.getElementById('editHealthNetDebtEbitda');
+      if (el) { el.value = debtRatio; filledCount++; }
+    }
+  }
+
+  // Data de referência: hoje
+  const todayIso = new Date().toISOString().split('T')[0];
+  const dateEl = document.getElementById('editHealthUpdatedAt');
+  if (dateEl) dateEl.value = todayIso;
+
+  // Atualizar asset.fundamentals
+  asset.fundamentals = asset.fundamentals || {};
+  if (roicNum !== null) asset.fundamentals.roic = roicNum;
+  if (roeNum !== null) asset.fundamentals.roe = roeNum;
+  if (revNum !== null) asset.fundamentals.revenue = revNum;
+  if (revGrowthNum !== null) asset.fundamentals.revenueGrowth = revGrowthNum;
+  if (netIncome !== null) asset.fundamentals.netIncome = netIncome;
+  if (netGrowthNum !== null) asset.fundamentals.netIncomeGrowth = netGrowthNum;
+  if (fcfNum !== null) asset.fundamentals.freeCashFlow = fcfNum;
+  if (ebitdaMarginNum !== null) asset.fundamentals.ebitdaMargin = ebitdaMarginNum;
+  if (netMarginNum !== null) asset.fundamentals.netMargin = netMarginNum;
+  if (netDebtNum !== null) asset.fundamentals.netDebt = netDebtNum;
+  if (netDebtEbitdaNum !== null) asset.fundamentals.netDebtEbitda = netDebtEbitdaNum;
+  if (shares !== null) asset.fundamentals.sharesOutstanding = shares;
+  if (dyNum !== null) asset.fundamentals.dividendYield = dyNum;
+  asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+
+  // Salvar e atualizar interface
+  saveLocalState(true, true);
+  updateModalFundamentalBadges();
+  closePasteJsonModal();
+
+  const hasFullBalanceSheet = !!(fin.totalRevenue || fin.profitMargins !== undefined || fin.returnOnEquity !== undefined || fin.freeCashflow);
+  const statusInvestSection = isBdr ? 'bdrs' : (cleanTicker.endsWith('11') ? 'fundos-imobiliarios' : 'acoes');
+  const statusInvestUrl = `https://statusinvest.com.br/${statusInvestSection}/${cleanTicker.toLowerCase()}`;
+  const fundamentusUrl = `https://www.fundamentus.com.br/detalhes.php?papel=${cleanTicker}`;
+  const statusTextEl = document.getElementById('onlineFundamentalsStatusText');
+
+  if (hasFullBalanceSheet) {
+    if (statusTextEl) {
+      statusTextEl.innerHTML = `<span style="color: #34d399; font-weight: 600;">✅ ${cleanTicker}: JSON processado! Balanço completo e múltiplos preenchidos (${filledCount} campos salvos).</span>`;
+    }
+    showToast(`⚡ ${cleanTicker}: JSON processado com ${filledCount} indicadores salvos!`, 'success');
+  } else {
+    if (statusTextEl) {
+      statusTextEl.innerHTML = `
+        <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 10px 14px; text-align: left;">
+          <div style="color: #facc15; font-weight: 700; font-size: 0.86rem; display: flex; align-items: center; gap: 6px;">
+            <span>ℹ️</span> Cotação, P/L, LPA, Ações e Lucro Líquido preenchidos pelo JSON!
+          </div>
+          <div style="color: #cbd5e1; font-size: 0.8rem; line-height: 1.45; margin-top: 4px;">
+            O JSON colado continha os dados de mercado e múltiplos. Para preencher os demais dados de balanço (ROIC, ROE, Margens, Dívida), consulte:
+            <span style="display: inline-flex; gap: 8px; margin-top: 4px; margin-left: 4px;">
+              <a href="${statusInvestUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700;">📊 StatusInvest ↗</a>
+              <a href="${fundamentusUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700;">📈 Fundamentus ↗</a>
+            </span>
+          </div>
+        </div>
+      `;
+    }
+    showToast(`ℹ️ ${cleanTicker}: Cotação, P/L, LPA, Ações e Lucro preenchidos pelo JSON!`, 'info');
+  }
+}
+
+/**
  * Atualiza os fundamentos e indicadores de TODOS os ativos da carteira em 1 clique (Sincronização em Lote)
  */
 function syncAllAssetsFundamentals() {
