@@ -822,13 +822,23 @@ function openEditAssetHealthModal(assetId) {
   // Renderizar hipóteses editáveis
   renderModalThesisChecksEditor(t.checks || []);
 
+  // Limpar status anterior de busca online
+  const statusTextEl = document.getElementById('onlineFundamentalsStatusText');
+  if (statusTextEl) statusTextEl.innerHTML = '';
+
   // Preencher links de consulta rápida externa
   const extContainer = document.getElementById('externalCheckLinks');
   if (extContainer) {
     const cleanTicker = (asset.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+    const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || (asset.tipo === 'BDR');
+    const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
+    const statusInvestSection = isBdr ? 'bdrs' : (isFii ? 'fundos-imobiliarios' : 'acoes');
+    const investidor10Section = isBdr ? 'bdrs' : (isFii ? 'fiis' : 'acoes');
+
     extContainer.innerHTML = `
-      <a href="https://statusinvest.com.br/acoes/${cleanTicker}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding: 3px 8px; color: #60a5fa;" title="Ver no Status Invest">StatusInvest ↗</a>
-      <a href="https://www.fundamentus.com.br/detalhes.php?papel=${cleanTicker}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding: 3px 8px; color: #60a5fa;" title="Ver no Fundamentus">Fundamentus ↗</a>
+      <a href="https://statusinvest.com.br/${statusInvestSection}/${cleanTicker.toLowerCase()}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 4px 10px; color: #60a5fa; font-weight: 600;" title="Ver no Status Invest">📊 StatusInvest ↗</a>
+      <a href="https://www.fundamentus.com.br/detalhes.php?papel=${cleanTicker}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 4px 10px; color: #60a5fa; font-weight: 600;" title="Ver no Fundamentus">📈 Fundamentus ↗</a>
+      <a href="https://investidor10.com.br/${investidor10Section}/${cleanTicker.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding: 4px 10px; color: #60a5fa; font-weight: 600;" title="Ver no Investidor10">🌐 Investidor10 ↗</a>
     `;
   }
 
@@ -1680,18 +1690,40 @@ async function executeFetchFundamentalsForModal(asset, token) {
     saveLocalState(true, true);
     updateModalFundamentalBadges();
 
-    let detailMsg = `Dados de ${cleanTicker} atualizados!`;
-    if (pe > 0 || eps > 0) {
-      detailMsg += ` (P/L: ${pe > 0 ? pe.toFixed(1) : '-'}, LPA: R$ ${eps > 0 ? eps.toFixed(2) : '-'}, Cotação: R$ ${price.toFixed(2)})`;
-    }
-    if (isBdr) {
-      detailMsg += ` [BDR: balanço da matriz consulte em StatusInvest ↗]`;
-    }
+    const hasFullBalanceSheet = !!(fin.totalRevenue || fin.profitMargins !== undefined || fin.returnOnEquity !== undefined || fin.freeCashflow);
+    const statusInvestSection = isBdr ? 'bdrs' : (cleanTicker.endsWith('11') ? 'fundos-imobiliarios' : 'acoes');
+    const statusInvestUrl = `https://statusinvest.com.br/${statusInvestSection}/${cleanTicker.toLowerCase()}`;
+    const fundamentusUrl = `https://www.fundamentus.com.br/detalhes.php?papel=${cleanTicker}`;
 
-    if (statusTextEl) {
-      statusTextEl.innerHTML = `<span style="color: #34d399; font-weight: 600;">✅ ${cleanTicker}: ${filledCount} indicadores preenchidos e salvos!</span>`;
+    if (hasFullBalanceSheet) {
+      if (statusTextEl) {
+        statusTextEl.innerHTML = `<span style="color: #34d399; font-weight: 600;">✅ ${cleanTicker}: Balanço completo e múltiplos da Brapi preenchidos e salvos (${filledCount} campos)!</span>`;
+      }
+      let detailMsg = `Balanço completo e múltiplos de ${cleanTicker} atualizados!`;
+      if (pe > 0 || eps > 0) {
+        detailMsg += ` (P/L: ${pe > 0 ? pe.toFixed(1) : '-'}, LPA: R$ ${eps > 0 ? eps.toFixed(2) : '-'}, Cotação: R$ ${price.toFixed(2)})`;
+      }
+      showToast(detailMsg, 'success');
+    } else {
+      if (statusTextEl) {
+        statusTextEl.innerHTML = `
+          <div style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 10px 14px; text-align: left;">
+            <div style="color: #facc15; font-weight: 700; font-size: 0.86rem; display: flex; align-items: center; gap: 6px;">
+              <span>ℹ️</span> Cotação, P/L, LPA, Ações e Lucro Líquido preenchidos via Brapi!
+            </div>
+            <div style="color: #cbd5e1; font-size: 0.8rem; line-height: 1.45; margin-top: 4px;">
+              A API gratuita da Brapi restringe o balanço detalhado (ROIC, ROE, Margens, Dívida) para este ativo (o plano gratuito só libera balanço completo no sandbox: PETR4, VALE3, ITUB4).
+              <div style="margin-top: 5px;">
+                Você pode copiar os demais indicadores em 10 segundos consultando:
+                <a href="${statusInvestUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700; margin-left: 4px;">📊 StatusInvest ↗</a> ou 
+                <a href="${fundamentusUrl}" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline; font-weight: 700; margin-left: 4px;">📈 Fundamentus ↗</a>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      showToast(`ℹ️ ${cleanTicker}: Cotação, P/L, LPA, Ações e Lucro preenchidos (Balanço restrito na Brapi gratuita).`, 'info');
     }
-    showToast(detailMsg, 'success');
   } catch (err) {
     console.error('Erro ao buscar indicadores online:', err);
     if (statusTextEl) {
@@ -1760,6 +1792,8 @@ async function executeSyncAllAssetsFundamentals(token) {
 
   const total = appState.acoes.length;
   let successCount = 0;
+  let fullBalanceCount = 0;
+  let basicQuoteCount = 0;
   let authErrorCount = 0;
   let lastAuthError = '';
   const todayIso = new Date().toISOString().split('T')[0];
@@ -1910,6 +1944,13 @@ async function executeSyncAllAssetsFundamentals(token) {
         if (dividendYield !== null) asset.fundamentals.dividendYield = dividendYield;
         asset.fundamentals.fundamentalsUpdatedAt = todayIso;
 
+        const hasFullBalanceSheet = !!(fin.totalRevenue || fin.profitMargins !== undefined || fin.returnOnEquity !== undefined || fin.freeCashflow);
+        if (hasFullBalanceSheet) {
+          fullBalanceCount++;
+        } else {
+          basicQuoteCount++;
+        }
+
         successCount++;
       } else {
         if (tickerError) {
@@ -1949,12 +1990,18 @@ async function executeSyncAllAssetsFundamentals(token) {
   }
 
   if (successCount === total && total > 0) {
-    const okHtml = `<span style="color: #34d399; font-weight: 600;">✅ Todos os ${total} ativos atualizados com sucesso! (${new Date().toLocaleTimeString('pt-BR')})</span>`;
-    updateStatusDisplay(okHtml, true);
-    showToast(`⚡ Fundamentos de todos os ${total} ativos atualizados com sucesso!`, 'success');
+    if (fullBalanceCount === total) {
+      const okHtml = `<span style="color: #34d399; font-weight: 600;">✅ Todos os ${total} ativos atualizados com balanço completo! (${new Date().toLocaleTimeString('pt-BR')})</span>`;
+      updateStatusDisplay(okHtml, true);
+      showToast(`⚡ Todos os ${total} ativos atualizados com balanço completo!`, 'success');
+    } else {
+      const okHtml = `<span style="color: #34d399; font-weight: 600;">✅ ${total} ativos atualizados (${fullBalanceCount} balanços completos e ${basicQuoteCount} com cotação/múltiplos via Brapi gratuita). (${new Date().toLocaleTimeString('pt-BR')})</span>`;
+      updateStatusDisplay(okHtml, true);
+      showToast(`⚡ ${total} ativos atualizados (${fullBalanceCount} balanço completo, ${basicQuoteCount} múltiplos básicos).`, 'info');
+    }
   } else if (successCount > 0) {
     const errorDetail = lastAuthError ? ` (Resposta da Brapi: "${lastAuthError}")` : '';
-    const partialHtml = `<span style="color: #fbbf24; font-weight: 600;">⚠️ ${successCount} de ${total} atualizados com sucesso${errorDetail}. <a href="#" onclick="openBrapiTokenPromptModal((t) => executeSyncAllAssetsFundamentals(t));return false;" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Atualizar Token Brapi ↗</a></span>`;
+    const partialHtml = `<span style="color: #fbbf24; font-weight: 600;">⚠️ ${successCount} de ${total} atualizados com sucesso (${fullBalanceCount} completos)${errorDetail}. <a href="#" onclick="openBrapiTokenPromptModal((t) => executeSyncAllAssetsFundamentals(t));return false;" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Atualizar Token Brapi ↗</a></span>`;
     updateStatusDisplay(partialHtml, true);
     showToast(`⚠️ ${successCount} de ${total} ativos atualizados. ${lastAuthError || 'Verifique seu token para os demais'}.`, 'warning');
   } else {

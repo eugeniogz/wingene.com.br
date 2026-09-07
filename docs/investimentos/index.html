@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=2.8.4" />
+  <link rel="stylesheet" href="style.css?v=2.8.5" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1034,21 +1034,24 @@
           </div>
 
           <!-- BARRA DE PREENCHIMENTO ONLINE DE FUNDAMENTOS -->
-          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-              <div style="font-weight: 700; color: #93c5fd; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                <span>⚡</span> Preenchimento Automático via Internet (Brapi.dev)
+          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <div style="font-weight: 700; color: #93c5fd; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                  <span>⚡</span> Preenchimento Automático via Internet (Brapi.dev)
+                </div>
+                <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">
+                  Busca cotação, múltiplos, balanço, margens, ROE, dívida líquida e LPA online.
+                </div>
               </div>
-              <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;" id="onlineFundamentalsStatusText">
-                Busca balanço mais recente, margens, ROE, dívida líquida e múltiplos online.
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnFetchFundamentalsOnline" onclick="fetchFundamentalsForCurrentModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
+                  ⚡ Buscar Indicadores da Internet
+                </button>
+                <div id="externalCheckLinks" style="display: flex; gap: 6px; align-items: center;"></div>
               </div>
             </div>
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <button type="button" class="btn btn-primary btn-sm" id="btnFetchFundamentalsOnline" onclick="fetchFundamentalsForCurrentModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
-                ⚡ Buscar Indicadores da Internet
-              </button>
-              <div id="externalCheckLinks" style="display: flex; gap: 6px; align-items: center;"></div>
-            </div>
+            <div id="onlineFundamentalsStatusText" style="margin-top: 6px;"></div>
           </div>
 
           <!-- SEÇÃO 1: INDICADORES FUNDAMENTALISTAS -->
@@ -1304,13 +1307,13 @@
   </div>
 
   <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
-  <script src="invest-config.js?v=2.8.4"></script>
-  <script src="invest-quality.js?v=2.8.4"></script>
-  <script src="invest-valuation.js?v=2.8.4"></script>
-  <script src="invest-thesis.js?v=2.8.4"></script>
-  <script src="invest-decision.js?v=2.8.4"></script>
-  <script src="invest-ui.js?v=2.8.4"></script>
-  <script src="drive-sync.js?v=2.8.4"></script>
-  <script src="app.js?v=2.8.4"></script>
+  <script src="invest-config.js?v=2.8.5"></script>
+  <script src="invest-quality.js?v=2.8.5"></script>
+  <script src="invest-valuation.js?v=2.8.5"></script>
+  <script src="invest-thesis.js?v=2.8.5"></script>
+  <script src="invest-decision.js?v=2.8.5"></script>
+  <script src="invest-ui.js?v=2.8.5"></script>
+  <script src="drive-sync.js?v=2.8.5"></script>
+  <script src="app.js?v=2.8.5"></script>
 </body>
 </html>
