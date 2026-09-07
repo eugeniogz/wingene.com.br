@@ -676,9 +676,14 @@ function renderSmartRebalancingDecision(fin) {
       <div style="font-weight: 700; color: #cbd5e1; font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
         <span>🎯</span> Alocação Recomendada (Prioridade de Aporte)
       </div>
-      <button type="button" class="btn btn-primary btn-sm" id="btnSyncAllFundamentalsRebal" onclick="syncAllAssetsFundamentals()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-        ⚡ Atualizar Fundamentos de Toda a Carteira
-      </button>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnBatchAiFundamentalsRebal" onclick="openBatchAiFundamentalsModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #818cf8; color: #c7d2fe;" title="Atualizar todos os ativos em 1 clique via IA">
+          🤖 Atualizar em Lote via IA
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnSyncAllFundamentalsRebal" onclick="syncAllAssetsFundamentals()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          ⚡ Atualizar Fundamentos de Toda a Carteira
+        </button>
+      </div>
     </div>
     <div class="table-responsive">
       <table class="data-table">
@@ -2586,4 +2591,320 @@ async function executeSyncAllAssetsFundamentals(token) {
     showToast(`❌ Não foi possível atualizar ativos: ${errText}.`, 'error');
   }
 }
+
+/**
+ * Gera um prompt dinâmico pronto para IA (ChatGPT / Gemini / Claude) com todos os tickers da carteira
+ */
+function generateBatchAiPrompt() {
+  const acoes = (appState && Array.isArray(appState.acoes)) ? appState.acoes : [];
+  const tickers = acoes.map(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
+  const tickersStr = tickers.length > 0 ? tickers.join(', ') : 'PETR4, VALE3, ITUB4, WEGE3';
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  return `Atue como um analista de investimentos fundamentalista e especialista no mercado financeiro (B3 e BDRs).
+Data de referência: ${todayIso}.
+
+Para cada uma das seguintes ações/BDRs da minha carteira:
+[${tickersStr}]
+
+Pesquise e forneça os indicadores fundamentalistas e múltiplos mais recentes disponíveis (LTM / últimos 12 meses divulgados), no formato JSON abaixo.
+Se algum indicador não for aplicável ao setor (ex: bancos não têm Dívida Líq/EBITDA nem Margem EBITDA), use null.
+
+Responda ESTRITAMENTE com o bloco JSON válido abaixo, sem texto antes ou depois:
+
+[
+  {
+    "ticker": "WEGE3",
+    "precoAtual": 52.10,
+    "pl": 34.72,
+    "lpa": 1.49,
+    "roic": 25.73,
+    "roe": 33.16,
+    "margemLiquida": 15.58,
+    "margemEbitda": 22.15,
+    "dividaLiquidaEbitda": -0.42,
+    "crescimentoReceita5a": 18.49,
+    "crescimentoLucro5a": 21.72,
+    "dividendYield": 2.28
+  }
+]`;
+}
+
+/**
+ * Abre o modal de atualização em lote via IA
+ */
+function openBatchAiFundamentalsModal() {
+  const modal = document.getElementById('modalBatchAiFundamentalsBackdrop');
+  const promptEl = document.getElementById('batchAiPromptTextarea');
+  const inputEl = document.getElementById('batchAiResponseInput');
+  const fbEl = document.getElementById('batchAiFeedback');
+
+  if (promptEl) promptEl.value = generateBatchAiPrompt();
+  if (inputEl) inputEl.value = '';
+  if (fbEl) fbEl.innerHTML = '';
+  if (modal) modal.style.display = 'flex';
+}
+
+/**
+ * Fecha o modal de lote IA
+ */
+function closeBatchAiFundamentalsModal() {
+  const modal = document.getElementById('modalBatchAiFundamentalsBackdrop');
+  if (modal) modal.style.display = 'none';
+}
+
+/**
+ * Copia o prompt para a área de transferência
+ */
+function copyBatchAiPrompt() {
+  const promptEl = document.getElementById('batchAiPromptTextarea');
+  const btn = document.getElementById('btnCopyAiPrompt');
+  if (!promptEl) return;
+
+  const text = promptEl.value;
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✅ Copiado!';
+      setTimeout(() => { btn.innerHTML = orig; }, 2500);
+    }
+    showToast('📋 Prompt copiado com sucesso! Cole no ChatGPT ou Gemini.', 'success');
+  }).catch(() => {
+    promptEl.select();
+    document.execCommand('copy');
+    showToast('📋 Prompt copiado!', 'info');
+  });
+}
+
+/**
+ * Processa a resposta retornada pela IA (JSON ou texto estruturado) e atualiza toda a carteira
+ */
+function processBatchAiResponse() {
+  const input = document.getElementById('batchAiResponseInput');
+  const fb = document.getElementById('batchAiFeedback');
+  let raw = (input ? input.value : '').trim();
+
+  if (!raw) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">⚠️ Por favor, cole a resposta da IA antes de processar.</span>';
+    return;
+  }
+
+  const acoes = (appState && Array.isArray(appState.acoes)) ? appState.acoes : [];
+  if (acoes.length === 0) {
+    if (fb) fb.innerHTML = '<span style="color: #f87171; font-weight: 600;">❌ Nenhuma ação cadastrada na carteira.</span>';
+    return;
+  }
+
+  // 1. Tentar extrair lista de objetos (JSON)
+  let itemsList = null;
+  let cleaned = raw;
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '').trim();
+  }
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) itemsList = parsed;
+    else if (parsed && Array.isArray(parsed.results)) itemsList = parsed.results;
+    else if (parsed && typeof parsed === 'object') {
+      itemsList = [];
+      for (const k of Object.keys(parsed)) {
+        if (typeof parsed[k] === 'object' && parsed[k] !== null) {
+          itemsList.push({ ticker: parsed[k].ticker || k, ...parsed[k] });
+        }
+      }
+    }
+  } catch (e) {
+    const jsonMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) itemsList = parsed;
+      } catch (err2) {}
+    }
+  }
+
+  // Normalizador de chaves numéricas
+  const getNum = (obj, ...keys) => {
+    for (const k of keys) {
+      if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+        const n = parseFloat(String(obj[k]).replace(/\./g, '').replace(',', '.'));
+        if (!isNaN(n)) return n;
+      }
+    }
+    return null;
+  };
+
+  const todayIso = new Date().toISOString().split('T')[0];
+  const updatedAssets = [];
+  const notFoundTickers = [];
+
+  // Cenário 1: Extraído via JSON estruturado
+  if (itemsList && itemsList.length > 0) {
+    itemsList.forEach(item => {
+      const itemTicker = (item.ticker || item.symbol || item.papel || '').trim().toUpperCase().replace(/\.SA$/i, '');
+      if (!itemTicker) return;
+
+      const asset = acoes.find(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '') === itemTicker);
+      if (!asset) {
+        notFoundTickers.push(itemTicker);
+        return;
+      }
+
+      asset.fundamentals = asset.fundamentals || {};
+
+      const price = getNum(item, 'precoAtual', 'preco', 'cotacao', 'regularMarketPrice');
+      if (price && price > 0) asset.precoAtual = price;
+
+      const pe = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
+      if (pe !== null) asset.fundamentals.pe = pe;
+
+      const eps = getNum(item, 'lpa', 'eps', 'earningsPerShare');
+      if (eps !== null) asset.fundamentals.eps = eps;
+
+      const roic = getNum(item, 'roic', 'ROIC');
+      if (roic !== null) asset.fundamentals.roic = roic;
+
+      const roe = getNum(item, 'roe', 'ROE');
+      if (roe !== null) asset.fundamentals.roe = roe;
+
+      const netMargin = getNum(item, 'margemLiquida', 'margem_liquida', 'netMargin', 'net_margin');
+      if (netMargin !== null) asset.fundamentals.netMargin = netMargin;
+
+      const ebitdaMargin = getNum(item, 'margemEbitda', 'margem_ebitda', 'ebitdaMargin', 'ebitda_margin');
+      if (ebitdaMargin !== null) asset.fundamentals.ebitdaMargin = ebitdaMargin;
+
+      const netDebtEbitda = getNum(item, 'dividaLiquidaEbitda', 'divida_liquida_ebitda', 'netDebtEbitda', 'net_debt_ebitda');
+      if (netDebtEbitda !== null) asset.fundamentals.netDebtEbitda = netDebtEbitda;
+
+      const interestCoverage = getNum(item, 'coberturaJuros', 'cobertura_juros', 'interestCoverage');
+      if (interestCoverage !== null) asset.fundamentals.interestCoverage = interestCoverage;
+
+      const revGrowth = getNum(item, 'crescimentoReceita5a', 'crescimento_receita_5a', 'crescimentoReceita', 'revenueGrowth');
+      if (revGrowth !== null) asset.fundamentals.revenueGrowth = revGrowth;
+
+      const netGrowth = getNum(item, 'crescimentoLucro5a', 'crescimento_lucro_5a', 'crescimentoLucro', 'netIncomeGrowth');
+      if (netGrowth !== null) asset.fundamentals.netIncomeGrowth = netGrowth;
+
+      const dy = getNum(item, 'dividendYield', 'dividend_yield', 'dy', 'DY');
+      if (dy !== null) asset.fundamentals.dividendYield = dy;
+
+      asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+      updatedAssets.push({ asset, fieldsCount: Object.keys(item).length });
+    });
+  } else {
+    // Cenário 2: Texto livre com separação por Ticker
+    const allKnownTickers = acoes.map(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
+
+    allKnownTickers.forEach(t => {
+      const regex = new RegExp('(?:^|\\b)' + t + '\\b([\\s\\S]*?)(?=(?:\\b(?:' + allKnownTickers.filter(x => x !== t).join('|') + ')\\b|$))', 'i');
+      const match = raw.match(regex);
+      if (match && match[1]) {
+        const blockText = match[1];
+        const metrics = parsePastedTextIndicators(blockText);
+        const hasAny = Object.keys(metrics).some(k => metrics[k] !== null);
+
+        if (hasAny) {
+          const asset = acoes.find(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '') === t);
+          if (asset) {
+            asset.fundamentals = asset.fundamentals || {};
+            if (metrics.pe !== null) asset.fundamentals.pe = metrics.pe;
+            if (metrics.eps !== null) asset.fundamentals.eps = metrics.eps;
+            if (metrics.roic !== null) asset.fundamentals.roic = metrics.roic;
+            if (metrics.roe !== null) asset.fundamentals.roe = metrics.roe;
+            if (metrics.netMargin !== null) asset.fundamentals.netMargin = metrics.netMargin;
+            if (metrics.ebitdaMargin !== null) asset.fundamentals.ebitdaMargin = metrics.ebitdaMargin;
+            if (metrics.netDebtEbitda !== null) asset.fundamentals.netDebtEbitda = metrics.netDebtEbitda;
+            if (metrics.interestCoverage !== null) asset.fundamentals.interestCoverage = metrics.interestCoverage;
+            if (metrics.revenueGrowth !== null) asset.fundamentals.revenueGrowth = metrics.revenueGrowth;
+            if (metrics.netIncomeGrowth !== null) asset.fundamentals.netIncomeGrowth = metrics.netIncomeGrowth;
+            if (metrics.dividendYield !== null) asset.fundamentals.dividendYield = metrics.dividendYield;
+
+            // Extrair cotação se presente no bloco
+            const priceMatch = blockText.match(/(?:Cotação|Preço|Cotacao|Preco)\s*[:=\s]+R?\$?\s*([+-]?\d+(?:[.,]\d+)?)/i);
+            if (priceMatch && priceMatch[1]) {
+              const p = parseFloat(priceMatch[1].replace(',', '.'));
+              if (!isNaN(p) && p > 0) asset.precoAtual = p;
+            }
+
+            asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+            updatedAssets.push({ asset, fieldsCount: Object.values(metrics).filter(v => v !== null).length });
+          }
+        }
+      }
+    });
+  }
+
+  if (updatedAssets.length === 0) {
+    if (fb) {
+      fb.innerHTML = `
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 12px; color: #f87171; font-weight: 600;">
+          ❌ Não foi possível identificar os ativos na resposta. Certifique-se de que a IA respondeu com o JSON gerado pelo prompt ou mencionou os tickers da carteira.
+        </div>
+      `;
+    }
+    return;
+  }
+
+  // Salvar estado e atualizar telas
+  saveLocalState(true, true);
+  if (typeof renderTabelaCarteira === 'function') renderTabelaCarteira();
+  if (typeof renderRebalanceamentoTable === 'function') renderRebalanceamentoTable();
+  if (typeof renderQualityDashboard === 'function') renderQualityDashboard();
+
+  // Exibir resumo do lote
+  const rowsHtml = updatedAssets.map(({ asset }) => {
+    const f = asset.fundamentals || {};
+    const cleanT = (asset.ticker || '').toUpperCase();
+    return `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.8rem;">
+        <td style="font-weight: 700; color: #38bdf8; padding: 6px 8px;">${cleanT}</td>
+        <td style="padding: 6px 8px; text-align: right;">${asset.precoAtual ? 'R$ ' + asset.precoAtual.toFixed(2).replace('.', ',') : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right;">${f.pe ? f.pe.toFixed(1) : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right;">${f.lpa ? 'R$ ' + f.lpa.toFixed(2).replace('.', ',') : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right; color: ${f.roic >= 15 ? '#34d399' : '#cbd5e1'}; font-weight: ${f.roic >= 15 ? '700' : 'normal'};">${f.roic !== undefined && f.roic !== null ? f.roic + '%' : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right; color: ${f.roe >= 15 ? '#34d399' : '#cbd5e1'}; font-weight: ${f.roe >= 15 ? '700' : 'normal'};">${f.roe !== undefined && f.roe !== null ? f.roe + '%' : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right;">${f.netMargin !== undefined && f.netMargin !== null ? f.netMargin + '%' : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right; color: ${f.netDebtEbitda !== undefined && f.netDebtEbitda <= 1.5 ? '#34d399' : '#cbd5e1'};">${f.netDebtEbitda !== undefined && f.netDebtEbitda !== null ? f.netDebtEbitda + 'x' : '-'}</td>
+        <td style="padding: 6px 8px; text-align: right;">${f.dividendYield !== undefined && f.dividendYield !== null ? f.dividendYield + '%' : '-'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  if (fb) {
+    fb.innerHTML = `
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 12px; margin-top: 10px;">
+        <div style="color: #34d399; font-weight: 700; font-size: 0.92rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <span>✅</span> ${updatedAssets.length} ativos atualizados com sucesso via IA!
+        </div>
+        <div style="max-height: 240px; overflow-y: auto;">
+          <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.15); color: #94a3b8; font-size: 0.73rem; text-transform: uppercase;">
+                <th style="padding: 4px 8px;">Ticker</th>
+                <th style="padding: 4px 8px; text-align: right;">Preço</th>
+                <th style="padding: 4px 8px; text-align: right;">P/L</th>
+                <th style="padding: 4px 8px; text-align: right;">LPA</th>
+                <th style="padding: 4px 8px; text-align: right;">ROIC</th>
+                <th style="padding: 4px 8px; text-align: right;">ROE</th>
+                <th style="padding: 4px 8px; text-align: right;">Marg. Líq</th>
+                <th style="padding: 4px 8px; text-align: right;">Dív. Líq</th>
+                <th style="padding: 4px 8px; text-align: right;">DY</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 8px; font-size: 0.78rem; color: #94a3b8;">
+          💡 Todos os múltiplos, pontuações de qualidade e prioridades de aporte foram recalculados e salvos.
+        </div>
+      </div>
+    `;
+  }
+
+  showToast(`⚡ ${updatedAssets.length} ativos atualizados com sucesso via IA!`, 'success');
+}
+
 

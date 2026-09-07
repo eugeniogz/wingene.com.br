@@ -413,10 +413,9 @@
             <button type="button" class="btn btn-secondary btn-sm" id="btnSyncB3QuotesAcoes" onclick="triggerB3Sync(true)">
               🔄 Atualizar Cotações
             </button>
-            <button type="button" class="btn btn-primary btn-sm" id="btnSyncAllFundamentalsAcoes" onclick="syncAllAssetsFundamentals()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-              ⚡ Atualizar Fundamentos de Toda a Carteira
+            <button type="button" class="btn btn-secondary btn-sm" id="btnBatchAiFundamentalsAcoes" onclick="openBatchAiFundamentalsModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #818cf8; color: #c7d2fe;" title="Copiar prompt da IA para todas as ações e atualizar tudo de uma vez">
+              🤖 Atualizar em Lote via IA
             </button>
-            <div id="syncAllFundamentalsStatusAcoes" style="font-size: 0.78rem; width: 100%; text-align: right; margin-top: 4px; font-weight: 600;"></div>
           </div>
         </div>
 
@@ -565,23 +564,6 @@
           <button id="btnImportJsonTrigger" class="btn btn-secondary">⬆️ Importar Backup JSON</button>
           <input type="file" id="fileImportJson" accept=".json" style="display: none;" />
         </div>
-      <div class="card">
-        <h2 class="card-title mb-2">⚡ API de Indicadores Fundamentalistas (Brapi.dev)</h2>
-        <p class="text-muted text-small mb-3">Permite que o botão <strong>"Buscar Indicadores da Internet"</strong> preencha automaticamente o balanço, múltiplos e margens das ações via API.</p>
-
-        <div class="form-group mb-2">
-          <label class="form-label">Token de Acesso da API Brapi</label>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="cfgBrapiToken" class="form-control" style="flex: 1; min-width: 240px;" placeholder="Cole seu token aqui (ex: a1b2c3d4e5f6...)" onchange="saveBrapiTokenSetting()" />
-            <button type="button" class="btn btn-primary" onclick="saveBrapiTokenSetting()" style="white-space: nowrap;">💾 Salvar Token</button>
-            <button type="button" class="btn btn-secondary" onclick="testBrapiTokenConnection()" style="white-space: nowrap;">🧪 Testar Conexão</button>
-          </div>
-          <div class="text-muted text-small mt-2" style="font-size: 0.76rem; line-height: 1.4;">
-            💡 O token gratuito pode ser criado em 1 minuto no site <a href="https://brapi.dev" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">brapi.dev</a> (permite até 15.000 consultas gratuitas/mês).
-          </div>
-        </div>
-      </div>
-
       <!-- CARD: PESOS E CONFIGURAÇÕES DE APOIO À DECISÃO -->
       <div class="card">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;" class="mb-2">
@@ -1033,30 +1015,6 @@
             </div>
           </div>
 
-          <!-- BARRA DE PREENCHIMENTO ONLINE DE FUNDAMENTOS -->
-          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <div style="font-weight: 700; color: #93c5fd; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
-                  <span>⚡</span> Preenchimento Automático via Internet (Brapi.dev)
-                </div>
-                <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">
-                  Busca cotação, múltiplos, balanço, margens, ROE, dívida líquida e LPA online.
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <button type="button" class="btn btn-primary btn-sm" id="btnFetchFundamentalsOnline" onclick="fetchFundamentalsForCurrentModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
-                  ⚡ Buscar Indicadores da Internet
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" id="btnOpenPasteJsonModal" onclick="openPasteJsonModal()" style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;" title="Colar JSON da API Brapi ou texto com indicadores">
-                  📋 Colar JSON da API
-                </button>
-                <div id="externalCheckLinks" style="display: flex; gap: 6px; align-items: center;"></div>
-              </div>
-            </div>
-            <div id="onlineFundamentalsStatusText" style="margin-top: 6px;"></div>
-          </div>
-
           <!-- SEÇÃO 1: INDICADORES FUNDAMENTALISTAS -->
           <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
             <div style="font-weight: 700; color: #10b981; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
@@ -1292,79 +1250,69 @@
     </div>
   </div>
 
-  <!-- MODAL SOLICITAR TOKEN BRAPI (SEM DEPENDER DO PROMPT DO NAVEGADOR) -->
-  <div class="modal-backdrop" id="modalBrapiTokenBackdrop" style="display: none; z-index: 999999;" onclick="closeBrapiTokenPromptModal()">
-    <div class="modal-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+
+  <!-- MODAL ATUALIZAÇÃO EM LOTE VIA IA (PROMPT + RESPOSTA) -->
+  <div class="modal-backdrop" id="modalBatchAiFundamentalsBackdrop" style="display: none; z-index: 999999;" onclick="closeBatchAiFundamentalsModal()">
+    <div class="modal-card" style="max-width: 740px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          <span>🔑</span> Token da API Brapi (Gratuito)
+          <span>🤖</span> Atualizar Indicadores de Toda a Carteira via IA
         </h3>
-        <button type="button" class="modal-close" onclick="closeBrapiTokenPromptModal()" aria-label="Fechar Modal">✕</button>
+        <button type="button" class="modal-close" onclick="closeBatchAiFundamentalsModal()" aria-label="Fechar Modal">✕</button>
       </div>
-      <div class="modal-body">
-        <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 12px;">
-          Para consultar os balanços, múltiplos e indicadores das suas ações na internet, insira seu <strong>Token gratuito da Brapi</strong>:
-        </p>
-        <div class="form-group mb-2">
-          <input type="text" id="promptBrapiTokenInput" class="form-control" placeholder="Cole seu token aqui (ex: a1b2c3d4...)" onkeydown="if(event.key==='Enter'){event.preventDefault();submitBrapiTokenPromptModal();}" />
-        </div>
-        <div id="promptBrapiTokenFeedback" style="font-size: 0.8rem; margin-top: 6px;"></div>
-        <div class="text-muted text-small mt-3" style="font-size: 0.75rem; line-height: 1.4;">
-          💡 Crie gratuitamente sua conta em menos de 1 minuto no site <a href="https://brapi.dev" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">brapi.dev</a> para obter sua chave de acesso (permite até 15.000 consultas/mês).
-        </div>
-      </div>
-      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="skipBrapiTokenPromptModal()" title="Tentar buscar dados de ações públicas ou sandbox sem token">Tentar sem token</button>
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closeBrapiTokenPromptModal()">Cancelar</button>
-          <button type="button" class="btn btn-primary btn-sm" onclick="submitBrapiTokenPromptModal()">💾 Salvar e Continuar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL IMPORTAR DADOS (BRAPI JSON OU STATUSINVEST / FUNDAMENTUS) -->
-  <div class="modal-backdrop" id="modalPasteJsonBackdrop" style="display: none; z-index: 999999;" onclick="closePasteJsonModal()">
-    <div class="modal-card" style="max-width: 600px;" onclick="event.stopPropagation()">
-      <div class="modal-header">
-        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          <span>📋</span> Importar Indicadores (Brapi JSON ou StatusInvest)
-        </h3>
-        <button type="button" class="modal-close" onclick="closePasteJsonModal()" aria-label="Fechar Modal">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.86rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 8px;">
-          Cole abaixo o <strong>JSON da Brapi</strong> OU o <strong>texto copiado do StatusInvest / Fundamentus</strong>. O leitor inteligente extrai Cotação, P/L, LPA, ROIC, ROE, Margens, Dívida, Ações e Lucro:
-        </p>
-
-        <div id="pasteModalQuickLinksContainer" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-light); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-          <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">🔗 Abrir página do ativo para copiar indicadores:</span>
-          <div id="pasteModalQuickLinks" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+      <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+        <!-- Passo 1: O Prompt -->
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+            <div style="font-weight: 700; color: #a5b4fc; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+              <span>1️⃣</span> Copie o Prompt abaixo e envie para a IA:
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" id="btnCopyAiPrompt" onclick="copyBatchAiPrompt()" style="font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              📋 Copiar Prompt
+            </button>
+          </div>
+          <p style="font-size: 0.8rem; color: #cbd5e1; margin-bottom: 8px; line-height: 1.4;">
+            O prompt já contém <strong>todos os tickers da sua carteira</strong> formatados para o ChatGPT, Claude ou Gemini retornarem os indicadores completos:
+          </p>
+          <div class="form-group mb-2">
+            <textarea id="batchAiPromptTextarea" class="form-control" rows="6" readonly style="font-family: monospace; font-size: 0.76rem; line-height: 1.4; background: rgba(15, 23, 42, 0.6); color: #e2e8f0; resize: vertical;"></textarea>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px;">
+            <span style="font-size: 0.76rem; color: #94a3b8;">Abrir IA em nova aba:</span>
+            <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px; color: #60a5fa;">🌐 Google Gemini ↗</a>
+            <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px; color: #34d399;">🌐 ChatGPT ↗</a>
+            <a href="https://claude.ai" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px; color: #f59e0b;">🌐 Claude ↗</a>
+          </div>
         </div>
 
-        <div class="form-group mb-2">
-          <textarea id="pasteJsonInput" class="form-control" rows="8" placeholder='Cole aqui o JSON da API (ex: { "results": [...] }) ou copie a tabela de indicadores do StatusInvest/Fundamentus e cole aqui...' style="font-family: monospace; font-size: 0.8rem; line-height: 1.4; resize: vertical;"></textarea>
-        </div>
-        <div id="pasteJsonFeedback" style="font-size: 0.82rem; margin-top: 6px;"></div>
-        <div class="text-muted text-small mt-2" style="font-size: 0.75rem; line-height: 1.4;">
-          💡 <strong>Dica:</strong> Se a API gratuita da Brapi retornar apenas cotação e múltiplos (P/L e LPA), basta abrir o StatusInvest pelo link acima, selecionar os indicadores e colar aqui!
+        <!-- Passo 2: A Resposta da IA -->
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+          <div style="font-weight: 700; color: #34d399; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <span>2️⃣</span> Cole a resposta recebida da IA aqui:
+          </div>
+          <div class="form-group mb-2">
+            <textarea id="batchAiResponseInput" class="form-control" rows="8" placeholder="Cole aqui a resposta da IA (pode ser o bloco JSON, tabela Markdown ou texto formatado com os tickers)..." style="font-family: monospace; font-size: 0.8rem; line-height: 1.4; resize: vertical;"></textarea>
+          </div>
+          <div id="batchAiFeedback" style="font-size: 0.82rem; margin-top: 8px;"></div>
         </div>
       </div>
-      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
-        <button type="button" class="btn btn-secondary" onclick="closePasteJsonModal()">Cancelar</button>
-        <button type="button" class="btn btn-primary" onclick="applyPastedApiJson()">⚡ Processar e Preencher Indicadores</button>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <button type="button" class="btn btn-secondary" onclick="closeBatchAiFundamentalsModal()">Fechar</button>
+        <button type="button" class="btn btn-primary" onclick="processBatchAiResponse()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+          ⚡ Processar e Atualizar Todos os Ativos
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
-  <script src="invest-config.js?v=2.8.7"></script>
-  <script src="invest-quality.js?v=2.8.7"></script>
-  <script src="invest-valuation.js?v=2.8.7"></script>
-  <script src="invest-thesis.js?v=2.8.7"></script>
-  <script src="invest-decision.js?v=2.8.7"></script>
-  <script src="invest-ui.js?v=2.8.7"></script>
-  <script src="drive-sync.js?v=2.8.7"></script>
-  <script src="app.js?v=2.8.7"></script>
+  <script src="invest-config.js?v=2.8.9"></script>
+  <script src="invest-quality.js?v=2.8.9"></script>
+  <script src="invest-valuation.js?v=2.8.9"></script>
+  <script src="invest-thesis.js?v=2.8.9"></script>
+  <script src="invest-decision.js?v=2.8.9"></script>
+  <script src="invest-ui.js?v=2.8.9"></script>
+  <script src="drive-sync.js?v=2.8.9"></script>
+  <script src="app.js?v=2.8.9"></script>
 </body>
 </html>
