@@ -1815,14 +1815,14 @@ function parsePastedTextIndicators(raw) {
     eps: parseNum(getMatch(/(?:LPA|EPS|Lucro\s*por\s*Ação)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
     roic: parseNum(getMatch(/(?:ROIC)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
     roe: parseNum(getMatch(/(?:ROE)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
-    netMargin: parseNum(getMatch(/(?:MARGEM\s*LÍQUIDA|MARGEM\s*LIQUIDA|Marg\.?\s*Líquida|Marg\.?\s*Liquida)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
-    ebitdaMargin: parseNum(getMatch(/(?:MARGEM\s*EBITDA|Marg\.?\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
-    netDebtEbitda: parseNum(getMatch(/(?:DÍVIDA\s*LÍQUIDA\s*\/\s*EBITDA|DIVIDA\s*LIQUIDA\s*\/\s*EBITDA|Dív\.?\s*Líq\.?\s*\/\s*EBITDA|Div\.?\s*Liq\.?\s*\/\s*EBITDA|DL\s*\/\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
+    netMargin: parseNum(getMatch(/(?:MARGEM\s*LÍQUIDA|MARGEM\s*LIQUIDA|Marg\.?\s*Líquida|Marg\.?\s*Liquida|M\.?\s*LÍQUIDA|M\.?\s*LIQUIDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    ebitdaMargin: parseNum(getMatch(/(?:MARGEM\s*EBITDA|Marg\.?\s*EBITDA|M\.?\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    netDebtEbitda: parseNum(getMatch(/(?:DÍVIDA\s*LÍQUIDA\s*\/\s*EBITDA|DIVIDA\s*LIQUIDA\s*\/\s*EBITDA|DÍV\.?\s*LÍQ\.?(?:UIDA)?\s*\/\s*EBITDA|Div\.?\s*Liq\.?\s*\/\s*EBITDA|DL\s*\/\s*EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
     interestCoverage: parseNum(getMatch(/(?:Cobert\.?\s*Juros|Cobertura\s*de\s*Juros)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
-    revenueGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Receita|Crescimento\s*Receita|CAGR\s*Receita)\s*(?:\(?[0-9a-zA-Z\s]*\)?)?[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
-    netIncomeGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Lucro|Crescimento\s*Lucro|CAGR\s*Lucro)\s*(?:\(?[0-9a-zA-Z\s]*\)?)?[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    revenueGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Receita|Crescimento\s*Receita|CAGR\s*RECEITAS?(?:\s*5\s*ANOS)?)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
+    netIncomeGrowth: parseNum(getMatch(/(?:Cresc\.?\s*Lucro|Crescimento\s*Lucro|CAGR\s*LUCROS?(?:\s*5\s*ANOS)?)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
     fcfGrowth: parseNum(getMatch(/(?:Cresc\.?\s*FCF|Crescimento\s*FCF|Cresc\.?\s*Fluxo)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
-    dividendYield: parseNum(getMatch(/(?:DY|Dividend\s*Yield|Div\.?\s*Yield)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i))
+    dividendYield: parseNum(getMatch(/(?:D\.?Y\.?|Dividend\s*Yield|Div\.?\s*Yield)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i))
   };
 }
 
