@@ -1221,9 +1221,13 @@ function saveBrapiTokenSetting() {
   const val = input.value.trim();
   if (val) {
     localStorage.setItem('wingene_brapi_token', val);
+    if (appState) appState.brapiToken = val;
+    saveLocalState(false, true);
     showToast('Token da API Brapi salvo com sucesso!', 'success');
   } else {
     localStorage.removeItem('wingene_brapi_token');
+    if (appState) delete appState.brapiToken;
+    saveLocalState(false, true);
     showToast('Token da Brapi removido.', 'info');
   }
 }
@@ -1248,7 +1252,7 @@ async function fetchFundamentalsForCurrentModal() {
   }
 
   // Verificar existência de token da Brapi
-  let token = localStorage.getItem('wingene_brapi_token');
+  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
   if (!token || token.trim() === '') {
     const entered = prompt(
       `Para buscar os indicadores de ${cleanTicker} via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).`,
@@ -1257,6 +1261,8 @@ async function fetchFundamentalsForCurrentModal() {
     if (entered && entered.trim()) {
       token = entered.trim();
       localStorage.setItem('wingene_brapi_token', token);
+      if (appState) appState.brapiToken = token;
+      saveLocalState(false, true);
       const cfgInput = document.getElementById('cfgBrapiToken');
       if (cfgInput) cfgInput.value = token;
     } else {
@@ -1487,7 +1493,7 @@ async function syncAllAssetsFundamentals() {
   }
 
   // Verificar existência de token da Brapi
-  let token = localStorage.getItem('wingene_brapi_token');
+  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
   if (!token || token.trim() === '') {
     const entered = prompt(
       'Para atualizar os fundamentos de toda a carteira via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em 1 minuto).',
@@ -1496,6 +1502,8 @@ async function syncAllAssetsFundamentals() {
     if (entered && entered.trim()) {
       token = entered.trim();
       localStorage.setItem('wingene_brapi_token', token);
+      if (appState) appState.brapiToken = token;
+      saveLocalState(false, true);
       const cfgInput = document.getElementById('cfgBrapiToken');
       if (cfgInput) cfgInput.value = token;
     } else {

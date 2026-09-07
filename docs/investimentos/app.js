@@ -1071,7 +1071,11 @@ function renderApp() {
   // Preencher token da Brapi nas configurações se presente
   const brapiTokenField = document.getElementById('cfgBrapiToken');
   if (brapiTokenField && document.activeElement !== brapiTokenField) {
-    brapiTokenField.value = localStorage.getItem('wingene_brapi_token') || '';
+    const curBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
+    brapiTokenField.value = curBrapiToken;
+    if (curBrapiToken && !localStorage.getItem('wingene_brapi_token')) {
+      localStorage.setItem('wingene_brapi_token', curBrapiToken);
+    }
   }
 
   // Gráficos de Visão Geral (Donut Charts SVG)
@@ -3051,10 +3055,17 @@ async function fetchQuoteSingleTicker(ticker) {
   const yahooSymbol = isIndex ? '^BVSP' : `${cleanSymbol}.SA`;
   const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
 
+  const brapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
+  const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
+
   const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
   const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [
+    {
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
+      type: 'brapi'
+    },
     {
       url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d`,
       type: 'brapi'
@@ -3084,7 +3095,7 @@ async function fetchQuoteSingleTicker(ticker) {
   for (const ep of endpoints) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       const res = await fetch(ep.url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -3120,6 +3131,8 @@ async function fetchQuoteSingleTicker(ticker) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
+          } else if (currentPrice > 0) {
+            return { symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] };
           }
         }
       } else {
@@ -3147,6 +3160,8 @@ async function fetchQuoteSingleTicker(ticker) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
+          } else if (currentPrice > 0) {
+            return { symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] };
           }
         }
       }
@@ -3265,6 +3280,23 @@ async function triggerB3Sync(force = false) {
     return;
   }
 
+  // Verificar existência de token da Brapi para cotações completas de toda a carteira
+  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
+  if (!token || token.trim() === '') {
+    const entered = prompt(
+      'Para sincronizar cotações de todas as suas ações via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).',
+      ''
+    );
+    if (entered && entered.trim()) {
+      token = entered.trim();
+      localStorage.setItem('wingene_brapi_token', token);
+      if (appState) appState.brapiToken = token;
+      saveLocalState(false, true);
+      const cfgInput = document.getElementById('cfgBrapiToken');
+      if (cfgInput) cfgInput.value = token;
+    }
+  }
+
   isB3SyncInProgress = true;
   setButtonsDisabled(true);
   updateStatusText('🔄 Atualizando cotações B3...');
@@ -3290,7 +3322,7 @@ async function triggerB3Sync(force = false) {
     let updatedCount = 0;
     Object.keys(newQuotes).forEach(symbol => {
       const newQuoteData = newQuotes[symbol];
-      if (newQuoteData && Array.isArray(newQuoteData.history) && newQuoteData.history.length > 0) {
+      if (newQuoteData && newQuoteData.currentPrice > 0) {
         if (!cache) {
           cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
         }
@@ -3301,7 +3333,9 @@ async function triggerB3Sync(force = false) {
         if (existingQuote && Array.isArray(existingQuote.history) && existingQuote.history.length > 0) {
           const mapByDate = {};
           existingQuote.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
-          newQuoteData.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
+          if (Array.isArray(newQuoteData.history)) {
+            newQuoteData.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
+          }
           
           const mergedHistory = Object.keys(mapByDate).sort().map(d => ({ date: d, close: mapByDate[d] }));
           cache.quotes[symbol] = {
