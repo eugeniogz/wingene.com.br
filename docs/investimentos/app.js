@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
   checkDesktopLockState();
   renderApp();
   setupPwaInstallation();
+  if (typeof initInvestDecisionUI === 'function') {
+    initInvestDecisionUI();
+  }
 
   // Registrar retorno do Google Drive com proteção contra sobreposição de dados de demonstração
   window.onDriveDataLoaded = (remoteData) => {
@@ -140,7 +143,121 @@ function sanitizeAppState() {
 
   appState.acoes.forEach((ac, idx) => {
     if (!ac.id) ac.id = 'ac-' + (Date.now() + idx);
+
+    // Tipo do Ativo (STOCK, BDR, FII)
+    if (!ac.tipo) {
+      const ticker = (ac.ticker || '').trim().toUpperCase();
+      if (ticker.endsWith('11') && !ticker.endsWith('34') && ((ac.nome && ac.nome.toLowerCase().includes('fii')) || ticker.startsWith('HGLG') || ticker.startsWith('KNRI') || ticker.startsWith('XPML') || ticker.startsWith('MXRF') || ticker.startsWith('VISC'))) {
+        ac.tipo = 'FII';
+      } else if (ticker.endsWith('34') || ticker.endsWith('35') || ticker.endsWith('39')) {
+        ac.tipo = 'BDR';
+      } else {
+        ac.tipo = 'STOCK';
+      }
+    }
+
+    if (ac.setor === undefined) ac.setor = '';
+    if (ac.valorInvestido === undefined) {
+      const q = parseFloat(ac.quantidade) || 0;
+      const p = parseFloat(ac.precoAtual !== undefined ? ac.precoAtual : ac.preco) || 0;
+      ac.valorInvestido = q * p;
+    }
+
+    // 1. FUNDAMENTOS
+    if (!ac.fundamentals || typeof ac.fundamentals !== 'object') {
+      ac.fundamentals = {
+        revenue: null,
+        revenueGrowth: null,
+        netIncome: null,
+        netIncomeGrowth: null,
+        freeCashFlow: null,
+        freeCashFlowGrowth: null,
+        ebit: null,
+        ebitda: null,
+        ebitdaMargin: null,
+        netMargin: null,
+        roe: null,
+        roic: null,
+        debt: null,
+        netDebt: null,
+        netDebtEbitda: null,
+        interestCoverage: null,
+        sharesOutstanding: null,
+        dividendPerShare: null,
+        dividendYield: null,
+        fundamentalsUpdatedAt: null
+      };
+    }
+
+    // 2. AVALIAÇÃO QUALITATIVA (0 a 10)
+    if (!ac.qualitative || typeof ac.qualitative !== 'object') {
+      ac.qualitative = {
+        competitiveAdvantageScore: null,
+        governanceScore: null,
+        notes: ''
+      };
+    }
+
+    // 3. VALUATION & DCF
+    if (!ac.valuation || typeof ac.valuation !== 'object') {
+      ac.valuation = {
+        multiples: {
+          pe: null,
+          peReference: null,
+          peHistoricalAvg: null,
+          evEbitda: null,
+          evEbitdaReference: null,
+          evEbitdaHistoricalAvg: null,
+          pFcf: null,
+          pFcfReference: null,
+          dividendYield: null,
+          dividendYieldReference: null,
+          pvp: null,
+          pvpReference: null
+        },
+        dcf: {
+          fcfCurrent: null,
+          projectionYears: 5,
+          netDebt: null,
+          sharesOutstanding: null,
+          scenarios: {
+            conservative: { growthRate: 6.0, discountRate: 12.5, terminalGrowth: 3.5, intrinsicValue: null },
+            base:         { growthRate: 10.0, discountRate: 11.5, terminalGrowth: 4.0, intrinsicValue: null },
+            optimistic:   { growthRate: 14.0, discountRate: 10.5, terminalGrowth: 4.5, intrinsicValue: null }
+          },
+          marginOfSafety: null
+        }
+      };
+    }
+
+    // 4. TESE DE INVESTIMENTO & HIPÓTESES
+    if (!ac.thesis || typeof ac.thesis !== 'object') {
+      ac.thesis = {
+        summary: '',
+        reasons: [],
+        competitiveAdvantages: [],
+        expectations: [],
+        risks: [],
+        invalidationFactors: [],
+        horizonYears: 5,
+        lastReview: null,
+        thesisScore: null,
+        checks: []
+      };
+    }
+
+    // 5. SNAPSHOTS HISTÓRICOS DE INDICADORES E SCORES
+    if (!Array.isArray(ac.analysisSnapshots)) {
+      ac.analysisSnapshots = [];
+    }
   });
+
+  // Configuração central de análise
+  if (!appState.analysisConfig) {
+    if (typeof DEFAULT_ANALYSIS_CONFIG !== 'undefined') {
+      appState.analysisConfig = JSON.parse(JSON.stringify(DEFAULT_ANALYSIS_CONFIG));
+    }
+  }
 }
 
 // --- GERENCIAMENTO DE ESTADO LOCAL ---
@@ -162,10 +279,94 @@ function loadLocalState() {
         { id: 'rf-2', tipo: 'RDB', emissor: 'Nubank / Nu Financeira', nome: 'RDB Resgate Imediato', valor: 8500, rendimento12m: 750, taxa: '100% CDI', data: new Date().toLocaleDateString('pt-BR') }
       ],
       acoes: [
-        { id: 'ac-1', ticker: 'PETR4', nome: 'Petrobras PN', quantidade: 200, preco: 38.50, precoMesAnterior: 36.80, precoAnoAnterior: 32.10, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-2', ticker: 'VALE3', nome: 'Vale S.A.', quantidade: 100, preco: 62.10, precoMesAnterior: 64.00, precoAnoAnterior: 58.50, meta: 30, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-3', ticker: 'ITUB4', nome: 'Itaú Unibanco PN', quantidade: 250, preco: 33.20, precoMesAnterior: 32.50, precoAnoAnterior: 27.80, meta: 20, data: new Date().toLocaleDateString('pt-BR') },
-        { id: 'ac-4', ticker: 'WEGE3', nome: 'Weg S.A.', quantidade: 120, preco: 42.00, precoMesAnterior: 40.50, precoAnoAnterior: 34.20, meta: 20, data: new Date().toLocaleDateString('pt-BR') }
+        {
+          id: 'ac-1',
+          ticker: 'PETR4',
+          nome: 'Petrobras PN',
+          tipo: 'STOCK',
+          setor: 'Petróleo, Gás e Biocombustíveis',
+          quantidade: 200,
+          preco: 38.50,
+          precoMesAnterior: 36.80,
+          precoAnoAnterior: 32.10,
+          meta: 30,
+          valorInvestido: 7700,
+          data: new Date().toLocaleDateString('pt-BR'),
+          fundamentals: {
+            revenue: 511000000000, revenueGrowth: 2.1, netIncome: 124000000000, netIncomeGrowth: -3.2,
+            freeCashFlow: 95000000000, freeCashFlowGrowth: 1.5, ebit: 170000000000, ebitda: 210000000000,
+            ebitdaMargin: 41.1, netMargin: 24.3, roe: 26.8, roic: 21.2, debt: 320000000000,
+            netDebt: 240000000000, netDebtEbitda: 1.14, interestCoverage: 9.5, sharesOutstanding: 13044000000,
+            dividendPerShare: 6.10, dividendYield: 15.8, fundamentalsUpdatedAt: '2026-06-30'
+          },
+          qualitative: { competitiveAdvantageScore: 8, governanceScore: 6, notes: 'Ativos de pré-sal de alta produtividade e baixo lifting cost.' }
+        },
+        {
+          id: 'ac-2',
+          ticker: 'VALE3',
+          nome: 'Vale S.A.',
+          tipo: 'STOCK',
+          setor: 'Materiais Básicos / Mineração',
+          quantidade: 100,
+          preco: 62.10,
+          precoMesAnterior: 64.00,
+          precoAnoAnterior: 58.50,
+          meta: 30,
+          valorInvestido: 6210,
+          data: new Date().toLocaleDateString('pt-BR'),
+          fundamentals: {
+            revenue: 210000000000, revenueGrowth: 4.2, netIncome: 45000000000, netIncomeGrowth: 6.5,
+            freeCashFlow: 38000000000, freeCashFlowGrowth: 5.0, ebit: 65000000000, ebitda: 75000000000,
+            ebitdaMargin: 35.7, netMargin: 21.4, roe: 22.0, roic: 18.5, debt: 70000000000,
+            netDebt: 52000000000, netDebtEbitda: 0.69, interestCoverage: 8.2, sharesOutstanding: 4400000000,
+            dividendPerShare: 5.50, dividendYield: 8.85, fundamentalsUpdatedAt: '2026-06-30'
+          },
+          qualitative: { competitiveAdvantageScore: 8, governanceScore: 7, notes: 'Líder global em minério de ferro de alto teor.' }
+        },
+        {
+          id: 'ac-3',
+          ticker: 'ITUB4',
+          nome: 'Itaú Unibanco PN',
+          tipo: 'STOCK',
+          setor: 'Financeiro / Bancos',
+          quantidade: 250,
+          preco: 33.20,
+          precoMesAnterior: 32.50,
+          precoAnoAnterior: 27.80,
+          meta: 20,
+          valorInvestido: 8300,
+          data: new Date().toLocaleDateString('pt-BR'),
+          fundamentals: {
+            revenue: 160000000000, revenueGrowth: 9.8, netIncome: 35000000000, netIncomeGrowth: 12.4,
+            freeCashFlow: 28000000000, freeCashFlowGrowth: 10.0, ebit: 48000000000, ebitda: 52000000000,
+            ebitdaMargin: 32.5, netMargin: 21.8, roe: 21.5, roic: 16.0, debt: 0,
+            netDebt: 0, netDebtEbitda: 0, interestCoverage: 12.0, sharesOutstanding: 9800000000,
+            dividendPerShare: 2.40, dividendYield: 7.23, fundamentalsUpdatedAt: '2026-06-30'
+          },
+          qualitative: { competitiveAdvantageScore: 9, governanceScore: 9, notes: 'Maior banco privado da América Latina, rentabilidade consistente.' }
+        },
+        {
+          id: 'ac-4',
+          ticker: 'WEGE3',
+          nome: 'Weg S.A.',
+          tipo: 'STOCK',
+          setor: 'Bens Industriais / Motores e Equipamentos',
+          quantidade: 120,
+          preco: 42.00,
+          precoMesAnterior: 40.50,
+          precoAnoAnterior: 34.20,
+          meta: 20,
+          valorInvestido: 5040,
+          data: new Date().toLocaleDateString('pt-BR'),
+          fundamentals: {
+            revenue: 32500000000, revenueGrowth: 14.5, netIncome: 5600000000, netIncomeGrowth: 18.2,
+            freeCashFlow: 4200000000, freeCashFlowGrowth: 12.0, ebit: 6800000000, ebitda: 7400000000,
+            ebitdaMargin: 22.8, netMargin: 17.2, roe: 28.5, roic: 24.2, debt: 4500000000,
+            netDebt: -1200000000, netDebtEbitda: -0.16, interestCoverage: 18.5, sharesOutstanding: 4197000000,
+            dividendPerShare: 0.85, dividendYield: 2.02, fundamentalsUpdatedAt: '2026-06-30'
+          },
+          qualitative: { competitiveAdvantageScore: 9, governanceScore: 9, notes: 'Cultura de inovação, alta rentabilidade sobre capital reinvestido e liderança global.' }
+        }
       ],
       lastUpdated: 0
     };
@@ -262,7 +463,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Ordem das telas/abas da PWA
-const TAB_ORDER = ['overview', 'evolucao', 'rendafixa', 'acoes', 'rebalanceamento', 'config'];
+const TAB_ORDER = ['overview', 'evolucao', 'rendafixa', 'acoes', 'rebalanceamento', 'asset-detail', 'config'];
 
 function switchTab(targetTab) {
   const tabIdx = TAB_ORDER.indexOf(targetTab);
@@ -279,8 +480,12 @@ function switchTab(targetTab) {
 
   const activeDrawerBtn = document.querySelector(`.nav-drawer-item.tab-btn[data-tab="${targetTab}"]`);
   const screenTitleEl = document.getElementById('currentScreenSubtitle');
-  if (screenTitleEl && activeDrawerBtn) {
-    screenTitleEl.textContent = activeDrawerBtn.textContent.trim();
+  if (screenTitleEl) {
+    if (targetTab === 'asset-detail') {
+      screenTitleEl.textContent = 'Saúde do Ativo';
+    } else if (activeDrawerBtn) {
+      screenTitleEl.textContent = activeDrawerBtn.textContent.trim();
+    }
   }
 
   // Exibir ou ocultar o Floating Action Button (+) dependendo da tela
@@ -296,6 +501,11 @@ function switchTab(targetTab) {
   // Atualizar visualização do status do cache (sem disparar requisições de rede)
   if (typeof updateB3SyncStatusDisplay === 'function') {
     updateB3SyncStatusDisplay();
+  }
+
+  // Preencher formulário de configurações caso tenha aberto a aba config
+  if (targetTab === 'config' && typeof populateAnalysisConfigForm === 'function') {
+    populateAnalysisConfigForm();
   }
 
   closeNavDrawer();
@@ -858,6 +1068,12 @@ function renderApp() {
     pwdField.value = appState.desktopPassword || '';
   }
 
+  // Preencher token da Brapi nas configurações se presente
+  const brapiTokenField = document.getElementById('cfgBrapiToken');
+  if (brapiTokenField && document.activeElement !== brapiTokenField) {
+    brapiTokenField.value = localStorage.getItem('wingene_brapi_token') || '';
+  }
+
   // Gráficos de Visão Geral (Donut Charts SVG)
   renderDonutChart('chartAssetAllocation', [
     { label: 'Renda Fixa', value: fin.totalRendaFixa, color: '#10b981' },
@@ -888,6 +1104,17 @@ function renderApp() {
   // 7. Atualizar texto indicador de cache
   if (typeof updateB3SyncStatusDisplay === 'function') {
     updateB3SyncStatusDisplay();
+  }
+
+  // 8. Atualizar Menu de Ativos e Dashboard de Saúde se aberto
+  if (typeof renderAssetNavDrawerSubmenu === 'function') {
+    renderAssetNavDrawerSubmenu();
+  }
+  if (typeof currentAssetHealthId !== 'undefined' && currentAssetHealthId && typeof renderAssetHealthDashboard === 'function') {
+    const activeAsset = appState.acoes.find(a => String(a.id) === String(currentAssetHealthId));
+    if (activeAsset) {
+      renderAssetHealthDashboard(activeAsset);
+    }
   }
 }
 
@@ -1584,83 +1811,94 @@ function renderAcoesTable(fin) {
     return;
   }
 
-  tbody.innerHTML = fin.acoes.map((item, idx) => `
-    <!-- DESKTOP ROW -->
-    <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar">
-      <td>
-        <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
-          <strong>${item.ticker}</strong>
-        </div>
-      </td>
-      <td>
-        <div style="font-weight: 500;">${escapeHtml(item.nome)}</div>
-        ${item.comentario ? `<div class="asset-comment" style="font-size:0.75rem; margin-top:2px; color:#94a3b8; font-style:italic; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.comentario)}">💬 ${escapeHtml(item.comentario)}</div>` : ''}
-      </td>
-      <td class="text-right">${item.quantidade}</td>
-      <td class="text-right text-muted">${formatCurrency(item.precoMesAnt)}</td>
-      <td class="text-right text-muted">${formatCurrency(item.precoAnoAnt)}</td>
-      <td class="text-right">${formatCurrency(item.precoAtual)}</td>
-      <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
-      <td class="text-right">
-        <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
-      </td>
-      <td class="text-right">
-        <span class="meta-pill">${item.meta.toFixed(1)}%</span>
-      </td>
-      <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
-      <td class="text-center" onclick="event.stopPropagation()">
-        <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Alterações">📜</button>
-        <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
-        <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
-      </td>
-    </tr>
+  tbody.innerHTML = fin.acoes.map((item, idx) => {
+    const qScoreVal = (typeof calculateQualityScore === 'function') ? calculateQualityScore(item) : null;
+    const qBadge = (qScoreVal && qScoreVal.score !== null)
+      ? `<span class="badge" style="background: rgba(16, 185, 129, 0.18); color: #34d399; font-size: 0.68rem; margin-left: 6px; padding: 2px 6px;" title="Quality Score: ${qScoreVal.score}/100">Qualidade ${qScoreVal.score}</span>`
+      : '';
 
-    <!-- MOBILE ROW (CARD COMPLETO DE AÇÕES) -->
-    <tr class="col-mobile-row">
-      <td colspan="11" style="padding: 0 0 10px 0 !important; border: none;">
-        <div class="mobile-asset-card clickable-row" onclick="openEditAcaoModal('${item.id}')">
-          <div class="mobile-card-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 3px 8px; font-size: 0.85rem;">
-                <strong>${item.ticker}</strong>
+    return `
+      <!-- DESKTOP ROW -->
+      <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar dados de ${item.ticker}">
+        <td>
+          <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; display: inline-flex; align-items: center;">
+            <strong>${item.ticker}</strong>
+            ${qBadge}
+          </div>
+        </td>
+        <td>
+          <div style="font-weight: 500;">${escapeHtml(item.nome)}</div>
+          ${item.comentario ? `<div class="asset-comment" style="font-size:0.75rem; margin-top:2px; color:#94a3b8; font-style:italic; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(item.comentario)}">💬 ${escapeHtml(item.comentario)}</div>` : ''}
+        </td>
+        <td class="text-right">${item.quantidade}</td>
+        <td class="text-right text-muted">${formatCurrency(item.precoMesAnt)}</td>
+        <td class="text-right text-muted">${formatCurrency(item.precoAnoAnt)}</td>
+        <td class="text-right">${formatCurrency(item.precoAtual)}</td>
+        <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
+        <td class="text-right">
+          <span class="pct-pill">${item.percentualAtual.toFixed(1)}%</span>
+        </td>
+        <td class="text-right">
+          <span class="meta-pill">${item.meta.toFixed(1)}%</span>
+        </td>
+        <td class="text-right"><span class="text-muted text-small">${item.data || '-'}</span></td>
+        <td class="text-center" onclick="event.stopPropagation()">
+          <button class="btn-icon" onclick="openAssetHealthDashboard('${item.id}')" title="Ver Saúde & Análise do Ativo">🩺</button>
+          <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Ver Histórico de Cotações">📜</button>
+          <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar Ação">✏️</button>
+          <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+        </td>
+      </tr>
+
+      <!-- MOBILE ROW (CARD COMPLETO DE AÇÕES) -->
+      <tr class="col-mobile-row">
+        <td colspan="11" style="padding: 0 0 10px 0 !important; border: none;">
+          <div class="mobile-asset-card clickable-row" onclick="openEditAcaoModal('${item.id}')">
+            <div class="mobile-card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}; padding: 3px 8px; font-size: 0.85rem; display: inline-flex; align-items: center;">
+                  <strong>${item.ticker}</strong>
+                  ${qBadge}
+                </div>
+                <span class="text-muted text-small" style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${escapeHtml(item.nome)}</span>
               </div>
-              <span class="text-muted text-small" style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${escapeHtml(item.nome)}</span>
+              <div class="mobile-action-buttons" onclick="event.stopPropagation()">
+                <button class="btn-icon" onclick="openAssetHealthDashboard('${item.id}')" title="Saúde">🩺</button>
+                <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Histórico">📜</button>
+                <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar">✏️</button>
+                <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
+              </div>
             </div>
-            <div class="mobile-action-buttons" onclick="event.stopPropagation()">
-              <button class="btn-icon" onclick="showAssetHistoryModal('${item.id}', 'acao')" title="Histórico">📜</button>
-              <button class="btn-icon" onclick="openEditAcaoModal('${item.id}')" title="Editar">✏️</button>
-              <button class="btn-icon danger" onclick="deleteAcao('${item.id}')" title="Excluir">🗑️</button>
-            </div>
-          </div>
 
-          <div class="mobile-financial-grid">
-            <div class="mobile-stat-box highlight">
-              <span class="mobile-stat-label">Valor Total (R$)</span>
-              <strong class="mobile-stat-val text-success" style="font-size:1.1rem;">${formatCurrency(item.valorTotal)}</strong>
+            <div class="mobile-financial-grid">
+              <div class="mobile-stat-box highlight">
+                <span class="mobile-stat-label">Valor Total (R$)</span>
+                <strong class="mobile-stat-val text-success" style="font-size:1.1rem;">${formatCurrency(item.valorTotal)}</strong>
+              </div>
+              <div class="mobile-stat-box">
+                <span class="mobile-stat-label">Preço / Qtd</span>
+                <span class="mobile-stat-val text-main" style="font-size:0.82rem;">${formatCurrency(item.precoAtual)} <small class="text-muted">(${item.quantidade} un)</small></span>
+              </div>
+              <div class="mobile-stat-box">
+                <span class="mobile-stat-label">Alocação Atual</span>
+                <div><span class="pct-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.percentualAtual.toFixed(1)}%</span></div>
+              </div>
+              <div class="mobile-stat-box">
+                <span class="mobile-stat-label">Meta Desejada</span>
+                <div><span class="meta-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.meta.toFixed(1)}%</span></div>
+              </div>
             </div>
-            <div class="mobile-stat-box">
-              <span class="mobile-stat-label">Preço / Qtd</span>
-              <span class="mobile-stat-val text-main" style="font-size:0.82rem;">${formatCurrency(item.precoAtual)} <small class="text-muted">(${item.quantidade} un)</small></span>
-            </div>
-            <div class="mobile-stat-box">
-              <span class="mobile-stat-label">Alocação Atual</span>
-              <div><span class="pct-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.percentualAtual.toFixed(1)}%</span></div>
-            </div>
-            <div class="mobile-stat-box">
-              <span class="mobile-stat-label">Meta Desejada</span>
-              <div><span class="meta-pill" style="font-size: 0.78rem; display: inline-block; margin-top:2px;">${item.meta.toFixed(1)}%</span></div>
-            </div>
-          </div>
 
-          ${item.comentario ? `
-            <div class="mobile-comment-box" style="margin-top: 8px; font-size: 0.78rem; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border-left: 3px solid #3b82f6; border-radius: 4px; color: #93c5fd;">
-              <strong>💬 Nota:</strong> ${escapeHtml(item.comentario)}
-            </div>
-          ` : ''}
-        </div>
-      </td>
-    </tr>
-  `).join('');
+            ${item.comentario ? `
+              <div class="mobile-comment-box" style="margin-top: 8px; font-size: 0.78rem; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border-left: 3px solid #3b82f6; border-radius: 4px; color: #93c5fd;">
+                <strong>💬 Nota:</strong> ${escapeHtml(item.comentario)}
+              </div>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   document.getElementById('totalAcoesFooter').textContent = formatCurrency(fin.totalAcoes);
 }
@@ -1701,7 +1939,123 @@ function openEditAcaoModal(id) {
   if (document.getElementById('editModalAcaoComentario')) {
     document.getElementById('editModalAcaoComentario').value = item.comentario || '';
   }
+
+  // Preencher resumo de saúde e indicadores no modal de edição
+  const healthContainer = document.getElementById('editModalAcaoHealthSummary');
+  if (healthContainer) {
+    const qRes = typeof calculateQualityScore === 'function' ? calculateQualityScore(item) : null;
+    const vRes = typeof calculateValuationScore === 'function' ? calculateValuationScore(item, currentP) : null;
+    const tRes = typeof evaluateAssetThesis === 'function' ? evaluateAssetThesis(item) : null;
+    const invRes = (typeof calculateInvestmentScore === 'function' && qRes && vRes && tRes)
+      ? calculateInvestmentScore(qRes.score, vRes.score, tRes.thesisScore)
+      : null;
+
+    // Dimensão Qualidade (Verde >= 75, Amarelo >= 50, Vermelho < 50)
+    let qState = { icon: '⚪', label: 'Sem Dados', badge: 'badge-secondary', val: 'N/D' };
+    if (qRes && qRes.score !== null) {
+      if (qRes.score >= 75) qState = { icon: '🟢', label: 'Alta Qualidade', badge: 'badge-success', val: `${qRes.score} pts` };
+      else if (qRes.score >= 50) qState = { icon: '🟡', label: 'Média Qualidade', badge: 'badge-warning', val: `${qRes.score} pts` };
+      else qState = { icon: '🔴', label: 'Baixa Qualidade', badge: 'badge-danger', val: `${qRes.score} pts` };
+    }
+
+    // Dimensão Valuation (Verde >= 70, Amarelo >= 40, Vermelho < 40)
+    let vState = { icon: '⚪', label: 'Sem Dados', badge: 'badge-secondary', val: 'N/D' };
+    if (vRes && vRes.score !== null) {
+      if (vRes.score >= 70) vState = { icon: '🟢', label: 'Atrativo / Desconto', badge: 'badge-success', val: `${vRes.score} pts` };
+      else if (vRes.score >= 40) vState = { icon: '🟡', label: 'Preço Justo', badge: 'badge-warning', val: `${vRes.score} pts` };
+      else vState = { icon: '🔴', label: 'Caro / Esticado', badge: 'badge-danger', val: `${vRes.score} pts` };
+    }
+
+    // Dimensão Tese (Verde = confirmada sem ameaças, Amarelo = atenção, Vermelho = ameaçada)
+    let tState = { icon: '⚪', label: 'Sem Hipóteses', badge: 'badge-secondary', val: 'N/D' };
+    if (tRes && tRes.counts) {
+      if (tRes.counts.threatened > 0) tState = { icon: '🔴', label: 'Tese Ameaçada', badge: 'badge-danger', val: `${tRes.counts.threatened} ameaçada(s)` };
+      else if (tRes.counts.warning > 0) tState = { icon: '🟡', label: 'Em Atenção', badge: 'badge-warning', val: `${tRes.counts.warning} atenção` };
+      else if (tRes.counts.confirmed > 0) tState = { icon: '🟢', label: 'Tese Confirmada', badge: 'badge-success', val: `${tRes.counts.confirmed} ok` };
+    }
+
+    // Dimensão Decisão / Investment Score
+    let invState = { icon: '⚪', label: 'Sem Score', badge: 'badge-secondary', val: 'N/D' };
+    if (invRes && invRes.score !== null) {
+      if (invRes.score >= 65) invState = { icon: '🟢', label: invRes.classification, badge: 'badge-success', val: `${invRes.score} pts` };
+      else if (invRes.score >= 50) invState = { icon: '🟡', label: invRes.classification, badge: 'badge-warning', val: `${invRes.score} pts` };
+      else invState = { icon: '🔴', label: invRes.classification, badge: 'badge-danger', val: `${invRes.score} pts` };
+    }
+
+    let statusPillsHtml = '';
+    if (tRes && tRes.counts) {
+      statusPillsHtml = `
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 0.78rem; flex-wrap: wrap;">
+          <span style="color: #cbd5e1; font-weight: 600;">Hipóteses da Tese:</span>
+          <span class="badge badge-success" style="padding: 2px 8px;">🟢 ${tRes.counts.confirmed} Confirmada(s)</span>
+          <span class="badge badge-warning" style="padding: 2px 8px;">🟡 ${tRes.counts.warning} Atenção</span>
+          <span class="badge badge-danger" style="padding: 2px 8px;">🔴 ${tRes.counts.threatened} Ameaçada(s)</span>
+        </div>
+      `;
+    }
+
+    healthContainer.innerHTML = `
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 6px; flex-wrap: wrap; gap: 4px;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 6px;">
+            🚦 Semáforo de Decisão do Ativo
+          </span>
+          <span style="font-size: 0.72rem; color: #94a3b8;">Verde 🟢 | Amarelo 🟡 | Vermelho 🔴</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">💎 Qualidade</div>
+              <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">${qState.icon} ${qState.label}</div>
+            </div>
+            <span class="badge ${qState.badge}" style="font-size: 0.72rem;">${qState.val}</span>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">⚖️ Valuation</div>
+              <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">${vState.icon} ${vState.label}</div>
+            </div>
+            <span class="badge ${vState.badge}" style="font-size: 0.72rem;">${vState.val}</span>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">📜 Tese</div>
+              <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">${tState.icon} ${tState.label}</div>
+            </div>
+            <span class="badge ${tState.badge}" style="font-size: 0.72rem;">${tState.val}</span>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">🎯 Decisão Final</div>
+              <div style="font-size: 0.78rem; font-weight: 700; color: #ffffff;">${invState.icon} ${invState.label}</div>
+            </div>
+            <span class="badge ${invState.badge}" style="font-size: 0.72rem;">${invState.val}</span>
+          </div>
+        </div>
+
+        ${statusPillsHtml}
+
+        <button type="button" class="btn btn-sm" onclick="openHealthFromEditModal()" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.82rem; padding: 8px 12px; font-weight: 700; width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 6px;">
+          🩺 Ver Indicadores Detalhados & Análise de Saúde Completa →
+        </button>
+      </div>
+    `;
+  }
+
   document.getElementById('modalEditAcaoBackdrop').style.display = 'flex';
+}
+
+function openHealthFromEditModal() {
+  const assetId = document.getElementById('editModalAcaoId').value;
+  if (!assetId) return;
+  closeEditAcaoModal();
+  if (typeof openAssetHealthDashboard === 'function') {
+    openAssetHealthDashboard(assetId);
+  }
 }
 
 function closeEditAcaoModal() {
@@ -2153,6 +2507,11 @@ function renderRebalanceamentoSection(fin) {
       </div>
     `;
   }).join('');
+
+  // Renderizar o Painel de Apoio à Decisão & Prioridade de Aporte
+  if (typeof renderSmartRebalancingDecision === 'function') {
+    renderSmartRebalancingDecision(fin);
+  }
 }
 
 // --- HELPERS DE FORMATAÇÃO DE EVOLUÇÃO ---

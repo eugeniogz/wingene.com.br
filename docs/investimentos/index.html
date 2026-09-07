@@ -107,6 +107,12 @@
         <span class="nav-item-text">Metas & Rebalanceamento</span>
       </button>
 
+      <div class="nav-drawer-section-label mt-3" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Saúde dos Ativos</span>
+        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.65rem;">Apoio à Decisão</span>
+      </div>
+      <div id="navDrawerAssetsContainer" style="display: flex; flex-direction: column; gap: 2px;"></div>
+
       <div class="nav-drawer-section-label mt-3">Configurações & Sincronização</div>
       <button class="nav-drawer-item tab-btn" data-tab="config">
         <span class="nav-item-icon">
@@ -496,6 +502,25 @@
 
         <div id="rebalanceamentoContainer"></div>
       </div>
+
+      <!-- 3. PAINEL DE APOIO À DECISÃO & PRIORIDADE DE APORTE -->
+      <div class="card mt-4" style="border-top: 4px solid var(--primary-gold);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;" class="mb-3">
+          <div>
+            <h2 class="card-title mb-1" style="display: flex; align-items: center; gap: 8px;">
+              <span>🎯</span> Painel de Apoio à Decisão & Prioridade de Aporte
+            </h2>
+            <p class="text-muted text-small mb-0">Combina Investment Score, distância da meta e valuation para ordenar os ativos prioritários para novos aportes.</p>
+          </div>
+        </div>
+
+        <div id="rebalanceamentoDecisionContainer"></div>
+      </div>
+    </section>
+
+    <!-- ABA 6: SAÚDE DO ATIVO (DETALHAMENTO COMPLETO FUNDAMENTALISTA) -->
+    <section id="tab-asset-detail" class="tab-pane">
+      <div id="assetDetailContent"></div>
     </section>
 
     <!-- ABA 6: GOOGLE DRIVE & CONFIGURAÇÕES -->
@@ -542,6 +567,113 @@
           <button id="btnImportJsonTrigger" class="btn btn-secondary">⬆️ Importar Backup JSON</button>
           <input type="file" id="fileImportJson" accept=".json" style="display: none;" />
         </div>
+      <div class="card">
+        <h2 class="card-title mb-2">⚡ API de Indicadores Fundamentalistas (Brapi.dev)</h2>
+        <p class="text-muted text-small mb-3">Permite que o botão <strong>"Buscar Indicadores da Internet"</strong> preencha automaticamente o balanço, múltiplos e margens das ações via API.</p>
+
+        <div class="form-group mb-2">
+          <label class="form-label">Token de Acesso da API Brapi</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="cfgBrapiToken" class="form-control" placeholder="Cole seu token aqui (ex: a1b2c3d4e5f6...)" />
+            <button type="button" class="btn btn-primary" onclick="saveBrapiTokenSetting()" style="white-space: nowrap;">💾 Salvar Token</button>
+          </div>
+          <div class="text-muted text-small mt-2" style="font-size: 0.76rem; line-height: 1.4;">
+            💡 O token gratuito pode ser criado em 1 minuto no site <a href="https://brapi.dev" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">brapi.dev</a> (permite até 15.000 consultas gratuitas/mês).
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD: PESOS E CONFIGURAÇÕES DE APOIO À DECISÃO -->
+      <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;" class="mb-2">
+          <h2 class="card-title mb-0">⚖️ Pesos & Parâmetros de Apoio à Decisão</h2>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="resetAnalysisConfigDefaults()">
+            🔄 Restaurar Padrões
+          </button>
+        </div>
+        <p class="text-muted text-small mb-4">Personalize a ponderação dos fatores de Qualidade, Valuation e Tese conforme sua filosofia de investimentos.</p>
+
+        <form id="formAnalysisConfig" onsubmit="handleSaveAnalysisConfigSubmit(event)">
+          <!-- 1. Pesos de Qualidade -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #10b981; font-size: 0.88rem; margin-bottom: 10px;">
+              💎 Pesos do Quality Score (Soma ideal: 100%)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Rentab. (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightRentab" class="form-control form-control-sm" placeholder="20" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Cresc. (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightCresc" class="form-control form-control-sm" placeholder="15" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Caixa (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightCaixa" class="form-control form-control-sm" placeholder="20" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Endivid. (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightDivida" class="form-control form-control-sm" placeholder="15" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Margens (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightMargens" class="form-control form-control-sm" placeholder="10" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Moat (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightMoat" class="form-control form-control-sm" placeholder="10" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.72rem;">Gov. (%)</label>
+                <input type="text" inputmode="decimal" id="cfgWeightGov" class="form-control form-control-sm" placeholder="10" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Pesos de Valuation & Investment Score -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px;">
+              <div style="font-weight: 700; color: #60a5fa; font-size: 0.88rem; margin-bottom: 10px;">
+                ⚖️ Pesos de Valuation
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label class="form-label" style="font-size: 0.72rem;">DCF (%)</label>
+                  <input type="text" inputmode="decimal" id="cfgWeightDcf" class="form-control form-control-sm" placeholder="60" />
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.72rem;">Múltiplos (%)</label>
+                  <input type="text" inputmode="decimal" id="cfgWeightMultiplos" class="form-control form-control-sm" placeholder="40" />
+                </div>
+              </div>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px;">
+              <div style="font-weight: 700; color: #a855f7; font-size: 0.88rem; margin-bottom: 10px;">
+                🎯 Pesos do Investment Score
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                <div>
+                  <label class="form-label" style="font-size: 0.72rem;">Qualidade (%)</label>
+                  <input type="text" inputmode="decimal" id="cfgWeightInvQuality" class="form-control form-control-sm" placeholder="40" />
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.72rem;">Valuation (%)</label>
+                  <input type="text" inputmode="decimal" id="cfgWeightInvValuation" class="form-control form-control-sm" placeholder="40" />
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.72rem;">Tese (%)</label>
+                  <input type="text" inputmode="decimal" id="cfgWeightInvThesis" class="form-control form-control-sm" placeholder="20" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            💾 Salvar Parâmetros de Análise
+          </button>
+        </form>
       </div>
     </section>
   </main>
@@ -782,7 +914,7 @@
 
   <!-- MODAL EDITAR AÇÃO -->
   <div class="modal-backdrop" id="modalEditAcaoBackdrop" style="display: none;" onclick="handleEditAcaoModalSubmit(event)">
-    <div class="modal-card" style="max-width: 500px;" onclick="event.stopPropagation()">
+    <div class="modal-card" style="max-width: 560px;" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
           <span>✏️</span> Editar Ação
@@ -792,6 +924,9 @@
       <form id="formEditAcaoModal" onsubmit="handleEditAcaoModalSubmit(event)">
         <input type="hidden" id="editModalAcaoId" />
         <div class="modal-body">
+          <!-- RESUMO RÁPIDO DE SAÚDE & APOIO À DECISÃO -->
+          <div id="editModalAcaoHealthSummary" class="mb-3"></div>
+
           <div class="form-group mb-3">
             <label class="form-label">Código / Ticker *</label>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -828,8 +963,13 @@
             <textarea id="editModalAcaoComentario" class="form-control" rows="2" placeholder="Notas sobre a ação, preço-teto ou planejamento de aportes..."></textarea>
           </div>
         </div>
-        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-          <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);" onclick="deleteCurrentAcaoFromModal()">Excluir</button>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4);" onclick="deleteCurrentAcaoFromModal()">Excluir</button>
+            <button type="button" class="btn btn-secondary" onclick="openHealthFromEditModal()" style="color: #34d399; border-color: rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+              🩺 Ver Indicadores & Saúde
+            </button>
+          </div>
           <div style="display: flex; gap: 8px;">
             <button type="button" class="btn btn-secondary" onclick="closeEditAcaoModal()">Cancelar</button>
             <button type="button" class="btn btn-primary" onclick="handleEditAcaoModalSubmit(event)">Salvar</button>
@@ -860,7 +1000,286 @@
     </div>
   </div>
 
-  <!-- Scripts da Aplicação -->
+  <!-- MODAL EDITAR SAÚDE DO ATIVO, FUNDAMENTOS & TESE -->
+  <div class="modal-backdrop" id="modalEditAssetHealthBackdrop" style="display: none;" onclick="closeEditAssetHealthModal()">
+    <div class="modal-card" style="max-width: 720px;" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title" id="editHealthModalTitle" style="display: flex; align-items: center; gap: 8px;">
+          <span>🩺</span> Editar Análise Fundamentalista & Tese
+        </h3>
+        <button type="button" class="modal-close" onclick="closeEditAssetHealthModal()" aria-label="Fechar Modal">✕</button>
+      </div>
+
+      <form id="formEditAssetHealth" onsubmit="handleSaveAssetHealthSubmit(event)">
+        <input type="hidden" id="editHealthAssetId" />
+
+        <div class="modal-body" style="max-height: 75vh; overflow-y: auto;">
+          <!-- Informações Básicas do Ativo -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label class="form-label">Tipo do Ativo</label>
+              <select id="editHealthTipo" class="form-control form-control-sm">
+                <option value="STOCK">Ação (STOCK)</option>
+                <option value="BDR">BDR</option>
+                <option value="FII">Fundo Imobiliário (FII)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Setor / Indústria</label>
+              <input type="text" id="editHealthSetor" class="form-control form-control-sm" placeholder="ex: Bens Industriais / Motores" />
+            </div>
+            <div>
+              <label class="form-label">Data de Referência dos Dados *</label>
+              <input type="date" id="editHealthUpdatedAt" class="form-control form-control-sm" />
+            </div>
+          </div>
+
+          <!-- BARRA DE PREENCHIMENTO ONLINE DE FUNDAMENTOS -->
+          <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div style="font-weight: 700; color: #93c5fd; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+                <span>⚡</span> Preenchimento Automático via Internet (Brapi.dev)
+              </div>
+              <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">
+                Busca balanço mais recente, margens, ROE, dívida líquida e múltiplos online.
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="btnFetchFundamentalsOnline" onclick="fetchFundamentalsForCurrentModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;">
+                ⚡ Buscar Indicadores da Internet
+              </button>
+              <div id="externalCheckLinks" style="display: flex; gap: 6px; align-items: center;"></div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO 1: INDICADORES FUNDAMENTALISTAS -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #10b981; font-size: 0.9rem; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span>💎</span> Indicadores Fundamentalistas (Rentabilidade, Margens, Endividamento)</span>
+            </div>
+            <div style="font-size: 0.73rem; color: #94a3b8; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <span>Semáforo:</span>
+              <span style="color: #34d399; font-weight: 600;">🟢 Bom / Saudável</span>
+              <span style="color: #fbbf24; font-weight: 600;">🟡 Regular / Atenção</span>
+              <span style="color: #f87171; font-weight: 600;">🔴 Fraco / Crítico</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>ROIC (%)</span>
+                  <span id="statusBadgeRoic" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthRoic" class="form-control form-control-sm" placeholder="ex: 24.2" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>ROE (%)</span>
+                  <span id="statusBadgeRoe" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthRoe" class="form-control form-control-sm" placeholder="ex: 28.5" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Margem Líquida (%)</span>
+                  <span id="statusBadgeNetMargin" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthNetMargin" class="form-control form-control-sm" placeholder="ex: 17.2" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Margem EBITDA (%)</span>
+                  <span id="statusBadgeEbitdaMargin" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthEbitdaMargin" class="form-control form-control-sm" placeholder="ex: 22.8" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Dív. Líq / EBITDA (x)</span>
+                  <span id="statusBadgeNetDebtEbitda" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthNetDebtEbitda" class="form-control form-control-sm" placeholder="ex: 0.8 ou -0.2" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Cobert. Juros (x)</span>
+                  <span id="statusBadgeInterestCoverage" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthInterestCoverage" class="form-control form-control-sm" placeholder="ex: 12.0" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Cresc. Receita (% a.a.)</span>
+                  <span id="statusBadgeRevenueGrowth" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthRevenueGrowth" class="form-control form-control-sm" placeholder="ex: 14.5" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Cresc. Lucro (% a.a.)</span>
+                  <span id="statusBadgeNetIncomeGrowth" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthNetIncomeGrowth" class="form-control form-control-sm" placeholder="ex: 18.0" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Cresc. FCF (% a.a.)</span>
+                  <span id="statusBadgeFcfGrowth" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthFcfGrowth" class="form-control form-control-sm" placeholder="ex: 12.0" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span>Dividend Yield (%)</span>
+                  <span id="statusBadgeDividendYield" class="badge badge-secondary" style="font-size: 0.65rem; padding: 1px 5px;">-</span>
+                </label>
+                <input type="text" inputmode="decimal" id="editHealthDividendYield" class="form-control form-control-sm" placeholder="ex: 2.5" />
+              </div>
+            </div>
+
+            <!-- Valores Absolutos (R$) para DCF e Múltiplos -->
+            <div style="font-size: 0.78rem; font-weight: 600; color: #94a3b8; margin: 12px 0 6px 0;">Valores Financeiros Totais (R$ em reais brutos ou milhões):</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Fluxo de Caixa Livre - FCF (R$)</label>
+                <input type="text" inputmode="decimal" id="editHealthFcf" class="form-control form-control-sm" placeholder="ex: 4200000000" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Dívida Líquida (R$)</label>
+                <input type="text" inputmode="decimal" id="editHealthNetDebt" class="form-control form-control-sm" placeholder="ex: -1200000000 (se caixa)" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Total de Ações em Circulação</label>
+                <input type="text" inputmode="decimal" id="editHealthShares" class="form-control form-control-sm" placeholder="ex: 4197000000" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Receita Líquida (R$)</label>
+                <input type="text" inputmode="decimal" id="editHealthRevenue" class="form-control form-control-sm" placeholder="ex: 32500000000" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Lucro Líquido (R$)</label>
+                <input type="text" inputmode="decimal" id="editHealthNetIncome" class="form-control form-control-sm" placeholder="ex: 5600000000" />
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO 2: VALUATION DCF CENÁRIOS -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #60a5fa; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+              <span>⚖️</span> Premissas de Valuation (DCF em 3 Cenários)
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px;">
+                <strong style="color: #93c5fd; font-size: 0.8rem;">🛡️ Conservador</strong>
+                <div class="mt-2">
+                  <label class="form-label" style="font-size: 0.72rem;">Crescimento (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfConsGrowth" class="form-control form-control-sm" placeholder="6" />
+                </div>
+                <div class="mt-1">
+                  <label class="form-label" style="font-size: 0.72rem;">Taxa Desconto (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfConsDiscount" class="form-control form-control-sm" placeholder="12.5" />
+                </div>
+              </div>
+
+              <div style="background: rgba(59,130,246,0.05); padding: 10px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2);">
+                <strong style="color: #60a5fa; font-size: 0.8rem;">🎯 Base (Principal)</strong>
+                <div class="mt-2">
+                  <label class="form-label" style="font-size: 0.72rem;">Crescimento (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfBaseGrowth" class="form-control form-control-sm" placeholder="10" />
+                </div>
+                <div class="mt-1">
+                  <label class="form-label" style="font-size: 0.72rem;">Taxa Desconto (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfBaseDiscount" class="form-control form-control-sm" placeholder="11.5" />
+                </div>
+                <div class="mt-1">
+                  <label class="form-label" style="font-size: 0.72rem;">Cresc. Perpétuo (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfBaseTerminal" class="form-control form-control-sm" placeholder="4.0" />
+                </div>
+              </div>
+
+              <div style="background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px;">
+                <strong style="color: #34d399; font-size: 0.8rem;">🚀 Otimista</strong>
+                <div class="mt-2">
+                  <label class="form-label" style="font-size: 0.72rem;">Crescimento (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfOptGrowth" class="form-control form-control-sm" placeholder="14" />
+                </div>
+                <div class="mt-1">
+                  <label class="form-label" style="font-size: 0.72rem;">Taxa Desconto (%)</label>
+                  <input type="text" inputmode="decimal" id="editHealthDcfOptDiscount" class="form-control form-control-sm" placeholder="10.5" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO 3: TESE & QUALITATIVO -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #f59e0b; font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+              <span>📜</span> Tese de Investimento & Avaliações Qualitativas
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Vantagem Competitiva (0 a 10)</label>
+                <input type="text" inputmode="decimal" id="editHealthMoatScore" class="form-control form-control-sm" placeholder="ex: 9" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Governança (0 a 10)</label>
+                <input type="text" inputmode="decimal" id="editHealthGovernanceScore" class="form-control form-control-sm" placeholder="ex: 9" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Thesis Score Manual (0 a 100)</label>
+                <input type="text" inputmode="decimal" id="editHealthThesisScore" class="form-control form-control-sm" placeholder="ex: 90" />
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Data da Revisão da Tese</label>
+                <input type="date" id="editHealthThesisLastReview" class="form-control form-control-sm" />
+              </div>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label" style="font-size: 0.78rem;">Resumo da Tese de Investimento</label>
+              <textarea id="editHealthThesisSummary" class="form-control form-control-sm" rows="2" placeholder="Por que você investe ou pretende investir nesta empresa?"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Principais Riscos (um por linha)</label>
+                <textarea id="editHealthThesisRisks" class="form-control form-control-sm" rows="3" placeholder="Risco cambial&#10;Queda de margens&#10;Concorrência chinesa"></textarea>
+              </div>
+              <div>
+                <label class="form-label" style="font-size: 0.75rem;">Fatores de Invalidação da Tese (um por linha)</label>
+                <textarea id="editHealthThesisInvalidation" class="form-control form-control-sm" rows="3" placeholder="ROIC cair abaixo de 15% por 2 anos&#10;Perda de liderança"></textarea>
+              </div>
+            </div>
+
+            <!-- Editor de Hipóteses -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-weight: 700; color: #cbd5e1; font-size: 0.85rem;">Hipóteses Verificáveis da Tese:</span>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addModalThesisCheckRow()">
+                ➕ Nova Hipótese
+              </button>
+            </div>
+            <div id="modalThesisChecksSummary" style="margin-bottom: 10px;"></div>
+            <div id="modalThesisChecksList"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditAssetHealthModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">💾 Salvar Análise do Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
+  <script src="invest-config.js?v=1.0.0"></script>
+  <script src="invest-quality.js?v=1.0.0"></script>
+  <script src="invest-valuation.js?v=1.0.0"></script>
+  <script src="invest-thesis.js?v=1.0.0"></script>
+  <script src="invest-decision.js?v=1.0.0"></script>
+  <script src="invest-ui.js?v=1.0.0"></script>
   <script src="drive-sync.js?v=2.7.7"></script>
   <script src="app.js?v=2.7.7"></script>
 </body>
