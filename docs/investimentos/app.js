@@ -3055,8 +3055,10 @@ async function fetchQuoteSingleTicker(ticker) {
   const yahooSymbol = isIndex ? '^BVSP' : `${cleanSymbol}.SA`;
   const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
 
-  const brapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
+  const rawBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
+  const brapiToken = typeof cleanBrapiToken === 'function' ? cleanBrapiToken(rawBrapiToken) : rawBrapiToken.trim().replace(/^["']+|["']+$/g, '');
   const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
+  const brapiHeaders = brapiToken ? { 'Authorization': `Bearer ${brapiToken}` } : {};
 
   const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
   const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
@@ -3097,7 +3099,8 @@ async function fetchQuoteSingleTicker(ticker) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const res = await fetch(ep.url, { signal: controller.signal });
+      const headers = (ep.type === 'brapi' && brapiToken) ? brapiHeaders : {};
+      const res = await fetch(ep.url, { signal: controller.signal, headers });
       clearTimeout(timeoutId);
 
       if (!res.ok) continue;

@@ -570,9 +570,10 @@
 
         <div class="form-group mb-2">
           <label class="form-label">Token de Acesso da API Brapi</label>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <input type="text" id="cfgBrapiToken" class="form-control" placeholder="Cole seu token aqui (ex: a1b2c3d4e5f6...)" />
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="cfgBrapiToken" class="form-control" style="flex: 1; min-width: 240px;" placeholder="Cole seu token aqui (ex: a1b2c3d4e5f6...)" onchange="saveBrapiTokenSetting()" />
             <button type="button" class="btn btn-primary" onclick="saveBrapiTokenSetting()" style="white-space: nowrap;">💾 Salvar Token</button>
+            <button type="button" class="btn btn-secondary" onclick="testBrapiTokenConnection()" style="white-space: nowrap;">🧪 Testar Conexão</button>
           </div>
           <div class="text-muted text-small mt-2" style="font-size: 0.76rem; line-height: 1.4;">
             💡 O token gratuito pode ser criado em 1 minuto no site <a href="https://brapi.dev" target="_blank" rel="noopener noreferrer" style="color: #60a5fa; text-decoration: underline;">brapi.dev</a> (permite até 15.000 consultas gratuitas/mês).
@@ -1271,13 +1272,13 @@
   </div>
 
   <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
-  <script src="invest-config.js?v=2.8.1"></script>
-  <script src="invest-quality.js?v=2.8.1"></script>
-  <script src="invest-valuation.js?v=2.8.1"></script>
-  <script src="invest-thesis.js?v=2.8.1"></script>
-  <script src="invest-decision.js?v=2.8.1"></script>
-  <script src="invest-ui.js?v=2.8.1"></script>
-  <script src="drive-sync.js?v=2.8.1"></script>
-  <script src="app.js?v=2.8.1"></script>
+  <script src="invest-config.js?v=2.8.2"></script>
+  <script src="invest-quality.js?v=2.8.2"></script>
+  <script src="invest-valuation.js?v=2.8.2"></script>
+  <script src="invest-thesis.js?v=2.8.2"></script>
+  <script src="invest-decision.js?v=2.8.2"></script>
+  <script src="invest-ui.js?v=2.8.2"></script>
+  <script src="drive-sync.js?v=2.8.2"></script>
+  <script src="app.js?v=2.8.2"></script>
 </body>
 </html>

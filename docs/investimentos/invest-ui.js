@@ -1213,12 +1213,26 @@ function handleSaveAssetHealthSubmit(e) {
 }
 
 /**
+ * Normaliza e limpa o token da Brapi (remove espaços, aspas ou prefixo "Bearer ")
+ */
+function cleanBrapiToken(rawToken) {
+  if (!rawToken) return '';
+  let t = String(rawToken).trim();
+  t = t.replace(/^["']+|["']+$/g, '').trim();
+  if (t.toLowerCase().startsWith('bearer ')) {
+    t = t.substring(7).trim();
+  }
+  return t;
+}
+
+/**
  * Salva o Token da Brapi configurado na tela de configurações
  */
 function saveBrapiTokenSetting() {
   const input = document.getElementById('cfgBrapiToken');
   if (!input) return;
-  const val = input.value.trim();
+  const val = cleanBrapiToken(input.value);
+  input.value = val;
   if (val) {
     localStorage.setItem('wingene_brapi_token', val);
     if (appState) appState.brapiToken = val;
@@ -1229,6 +1243,52 @@ function saveBrapiTokenSetting() {
     if (appState) delete appState.brapiToken;
     saveLocalState(false, true);
     showToast('Token da Brapi removido.', 'info');
+  }
+}
+
+/**
+ * Testa a conexão com a API Brapi usando o token cadastrado
+ */
+async function testBrapiTokenConnection() {
+  const input = document.getElementById('cfgBrapiToken');
+  let token = input ? input.value : '';
+  token = cleanBrapiToken(token || (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token'));
+
+  if (!token) {
+    showToast('Informe ou cole seu token da Brapi antes de testar.', 'warning');
+    if (input) input.focus();
+    return;
+  }
+
+  showToast('🧪 Testando conexão com a Brapi (com BBAS3)...', 'info');
+
+  try {
+    // Usamos BBAS3 pois na Brapi ele exige token ativo (diferente de ITUB4 que é sandbox público)
+    const testTicker = 'BBAS3';
+    const testUrl = `https://brapi.dev/api/quote/${testTicker}?token=${encodeURIComponent(token)}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(testUrl, {
+      signal: controller.signal,
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    clearTimeout(timeoutId);
+
+    const json = await res.json().catch(() => null);
+
+    if (res.ok && json && Array.isArray(json.results) && json.results.length > 0) {
+      // Salvar imediatamente no appState e localStorage
+      localStorage.setItem('wingene_brapi_token', token);
+      if (appState) appState.brapiToken = token;
+      saveLocalState(false, true);
+      if (input) input.value = token;
+      showToast(`✅ Token VÁLIDO! Conexão com Brapi funcionando perfeitamente (testado com ${testTicker}).`, 'success');
+    } else {
+      const errMsg = (json && json.message) ? json.message : `HTTP ${res.status} (${res.statusText})`;
+      showToast(`❌ Falha na autenticação Brapi: "${errMsg}". Verifique sua chave no dashboard em https://brapi.dev/dashboard.`, 'error');
+    }
+  } catch (err) {
+    showToast(`❌ Erro ao conectar à Brapi: ${err.message}`, 'error');
   }
 }
 
@@ -1252,14 +1312,14 @@ async function fetchFundamentalsForCurrentModal() {
   }
 
   // Verificar existência de token da Brapi
-  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
-  if (!token || token.trim() === '') {
+  let token = cleanBrapiToken((appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token'));
+  if (!token) {
     const entered = prompt(
       `Para buscar os indicadores de ${cleanTicker} via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).`,
       ''
     );
     if (entered && entered.trim()) {
-      token = entered.trim();
+      token = cleanBrapiToken(entered);
       localStorage.setItem('wingene_brapi_token', token);
       if (appState) appState.brapiToken = token;
       saveLocalState(false, true);
@@ -1279,7 +1339,7 @@ async function fetchFundamentalsForCurrentModal() {
   }
 
   try {
-    // Tentativa em múltiplos endpoints (tenta módulos avançados e depois a rota padrão compatível com conta gratuita)
+    // Tentativa em múltiplos endpoints (módulos avançados, rota padrão com token, rota pública)
     const endpointsToTry = [
       `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`,
       `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?token=${encodeURIComponent(token)}`,
@@ -1288,20 +1348,27 @@ async function fetchFundamentalsForCurrentModal() {
 
     let data = null;
     let usedEndpoint = '';
+    let lastErrorMsg = '';
 
     for (const testUrl of endpointsToTry) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(testUrl, { signal: controller.signal });
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await fetch(testUrl, { signal: controller.signal, headers });
         clearTimeout(timeoutId);
 
-        if (!res.ok) continue;
-        const json = await res.json();
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          if (json && json.message) lastErrorMsg = json.message;
+          continue;
+        }
         if (json && Array.isArray(json.results) && json.results.length > 0) {
           data = json;
           usedEndpoint = testUrl;
           break;
+        } else if (json && json.message) {
+          lastErrorMsg = json.message;
         }
       } catch (e) {
         // Fallback silencioso para o próximo endpoint
@@ -1309,7 +1376,8 @@ async function fetchFundamentalsForCurrentModal() {
     }
 
     if (!data || !Array.isArray(data.results) || data.results.length === 0) {
-      throw new Error(`Não foi possível obter dados para ${cleanTicker}. Verifique seu token nas Configurações.`);
+      const detailErr = lastErrorMsg ? `Brapi: ${lastErrorMsg}` : `Não foi possível obter dados para ${cleanTicker}. Verifique seu token na aba Configurações.`;
+      throw new Error(detailErr);
     }
 
     const item = data.results[0];
@@ -1493,14 +1561,14 @@ async function syncAllAssetsFundamentals() {
   }
 
   // Verificar existência de token da Brapi
-  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
-  if (!token || token.trim() === '') {
+  let token = cleanBrapiToken((appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token'));
+  if (!token) {
     const entered = prompt(
       'Para atualizar os fundamentos de toda a carteira via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em 1 minuto).',
       ''
     );
     if (entered && entered.trim()) {
-      token = entered.trim();
+      token = cleanBrapiToken(entered);
       localStorage.setItem('wingene_brapi_token', token);
       if (appState) appState.brapiToken = token;
       saveLocalState(false, true);
@@ -1532,6 +1600,8 @@ async function syncAllAssetsFundamentals() {
 
   const total = appState.acoes.length;
   let successCount = 0;
+  let authErrorCount = 0;
+  let lastAuthError = '';
   const todayIso = new Date().toISOString().split('T')[0];
 
   const parseApiPct = (val) => {
@@ -1563,18 +1633,26 @@ async function syncAllAssetsFundamentals() {
       ];
 
       let data = null;
+      let tickerError = '';
+
       for (const testUrl of endpointsToTry) {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 8000);
-          const res = await fetch(testUrl, { signal: controller.signal });
+          const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+          const res = await fetch(testUrl, { signal: controller.signal, headers });
           clearTimeout(timeoutId);
 
-          if (!res.ok) continue;
-          const json = await res.json();
+          const json = await res.json().catch(() => null);
+          if (!res.ok) {
+            if (json && json.message) tickerError = json.message;
+            continue;
+          }
           if (json && Array.isArray(json.results) && json.results.length > 0) {
             data = json;
             break;
+          } else if (json && json.message) {
+            tickerError = json.message;
           }
         } catch (e) {
           // Ignora e tenta o próximo endpoint
@@ -1669,6 +1747,11 @@ async function syncAllAssetsFundamentals() {
         asset.fundamentals.fundamentalsUpdatedAt = todayIso;
 
         successCount++;
+      } else {
+        if (tickerError) {
+          authErrorCount++;
+          lastAuthError = tickerError;
+        }
       }
     } catch (err) {
       console.warn(`Erro ao sincronizar ${cleanTicker}:`, err);
@@ -1701,6 +1784,10 @@ async function syncAllAssetsFundamentals() {
     btnRebal.innerHTML = origRebalHtml;
   }
 
-  showToast(`⚡ Fundamentos de ${successCount} de ${total} ativos atualizados com sucesso!`, 'success');
+  if (authErrorCount > 0 && successCount < total) {
+    showToast(`⚠️ Atualizados ${successCount} de ${total}. Erro da Brapi: "${lastAuthError}". Teste seu token em Configurações.`, 'warning');
+  } else {
+    showToast(`⚡ Fundamentos de ${successCount} de ${total} ativos atualizados com sucesso!`, 'success');
+  }
 }
 
