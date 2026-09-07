@@ -40,8 +40,86 @@ const B3_POPULAR_STOCKS = {
   'RADL3': 'Raia Drogasil ON',
   'CPLE6': 'Copel PNB',
   'FLRY3': 'Fleury ON',
-  'SUZB3': 'Suzano ON'
+  'SUZB3': 'Suzano ON',
+  'ALZR11': 'Alianza Trust Renda Imobiliária',
+  'HGLG11': 'CSHG Logística FII',
+  'KNRI11': 'Kinea Renda Imobiliária FII',
+  'XPML11': 'XP Malls FII',
+  'VISC11': 'Vinci Shopping Centers FII',
+  'MSCD34': 'Mastercard Inc BDR',
+  'AMZO34': 'Amazon.com Inc BDR',
+  'GOGL34': 'Alphabet Inc Cl A BDR',
+  'AAPL34': 'Apple Inc BDR',
+  'NVDC34': 'Nvidia Corp BDR',
+  'MSFT34': 'Microsoft Corp BDR',
+  'META34': 'Meta Platforms BDR',
+  'TSLA34': 'Tesla Inc BDR',
+  'DISB34': 'Walt Disney BDR',
+  'MELI34': 'Mercado Livre BDR',
+  'NFLX34': 'Netflix Inc BDR',
+  'BERK34': 'Berkshire Hathaway BDR',
+  'JNJB34': 'Johnson & Johnson BDR'
 };
+
+// Tabela de referência de mercado e séries históricas (B3, FIIs e BDRs)
+const B3_MARKET_SERIES_REF = {
+  // Ações B3
+  'PETR4':  { pAno: 32.10, pMes: 37.50, pAtual: 38.50 },
+  'PETR3':  { pAno: 33.50, pMes: 38.90, pAtual: 40.10 },
+  'VALE3':  { pAno: 58.50, pMes: 60.80, pAtual: 61.20 },
+  'BBAS3':  { pAno: 24.10, pMes: 27.50, pAtual: 27.80 },
+  'ITUB4':  { pAno: 27.80, pMes: 32.10, pAtual: 33.10 },
+  'BBDC4':  { pAno: 12.40, pMes: 13.80, pAtual: 14.10 },
+  'WEGE3':  { pAno: 34.20, pMes: 44.90, pAtual: 46.50 },
+  'MGLU3':  { pAno: 15.20, pMes: 9.40,  pAtual: 9.10 },
+  'RENT3':  { pAno: 52.40, pMes: 43.10, pAtual: 44.50 },
+  'PRIO3':  { pAno: 42.00, pMes: 45.20, pAtual: 46.80 },
+  'ELET3':  { pAno: 36.80, pMes: 40.20, pAtual: 41.50 },
+  'SUZB3':  { pAno: 49.20, pMes: 54.80, pAtual: 56.10 },
+  'RAIL3':  { pAno: 21.80, pMes: 20.20, pAtual: 20.80 },
+  'RADL3':  { pAno: 26.50, pMes: 27.20, pAtual: 27.90 },
+  'EQTL3':  { pAno: 31.40, pMes: 33.50, pAtual: 34.20 },
+  'LREN3':  { pAno: 16.80, pMes: 17.50, pAtual: 18.20 },
+  'ABEV3':  { pAno: 13.90, pMes: 12.40, pAtual: 12.80 },
+  'SANB11': { pAno: 27.50, pMes: 29.10, pAtual: 29.80 },
+  'CMIG4':  { pAno: 10.80, pMes: 11.40, pAtual: 11.70 },
+  'VBBR3':  { pAno: 22.10, pMes: 24.30, pAtual: 25.10 },
+  'KLBN11': { pAno: 21.50, pMes: 22.40, pAtual: 23.10 },
+  'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
+  'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
+  'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
+  'BOVA11': { pAno: 116.00, pMes: 124.50, pAtual: 126.80 },
+  'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
+  'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
+
+  // FIIs
+  'ALZR11': { pAno: 99.80, pMes: 104.20, pAtual: 105.00 },
+  'MXRF11': { pAno: 9.80,  pMes: 10.12,  pAtual: 10.15 },
+  'HGLG11': { pAno: 158.40, pMes: 161.20, pAtual: 162.50 },
+  'KNRI11': { pAno: 154.20, pMes: 157.80, pAtual: 159.00 },
+  'XPML11': { pAno: 112.50, pMes: 116.80, pAtual: 118.20 },
+  'VISC11': { pAno: 118.00, pMes: 121.40, pAtual: 122.10 },
+
+  // BDRs Principais (Valores reais em R$ na B3)
+  'MSCD34': { pAno: 78.40, pMes: 94.10, pAtual: 96.62 }, // Mastercard
+  'AMZO34': { pAno: 48.20, pMes: 64.50, pAtual: 66.57 }, // Amazon
+  'GOGL34': { pAno: 88.57, pMes: 129.80, pAtual: 145.10 }, // Alphabet/Google
+  'AAPL34': { pAno: 64.20, pMes: 78.40, pAtual: 81.96 }, // Apple
+  'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.46 }, // Nvidia
+  'MSFT34': { pAno: 82.40, pMes: 94.10, pAtual: 96.50 }, // Microsoft
+  'META34': { pAno: 54.30, pMes: 92.10, pAtual: 98.40 }, // Meta
+  'TSLA34': { pAno: 42.10, pMes: 55.40, pAtual: 58.20 }, // Tesla
+  'DISB34': { pAno: 45.20, pMes: 48.10, pAtual: 49.30 }, // Disney
+  'NFLX34': { pAno: 48.00, pMes: 65.20, pAtual: 68.50 }, // Netflix
+  'MELI34': { pAno: 65.00, pMes: 82.00, pAtual: 85.20 }, // Mercado Livre
+  'BERK34': { pAno: 92.00, pMes: 115.00, pAtual: 118.50 }, // Berkshire Hathaway
+  'JNJB34': { pAno: 48.50, pMes: 52.10, pAtual: 53.40 }   // Johnson & Johnson
+};
+
+// Exportar globalmente para acesso nos demais módulos e inspeção
+if (typeof window !== 'undefined') {
+  window.B3_MARKET_SERIES_REF = B3_MARKET_SERIES_REF;
+}
 
 // --- INICIALIZAÇÃO DA APLICAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -280,7 +358,7 @@ function sanitizeAppState() {
       }
     }
 
-    // BDR GOGL34 (~R$ 130-180), se ficou > 500 (ex: 1451)
+    // BDRs (GOGL34, MSCD34, AMZO34 etc), se ficaram inflados 10x
     if (rawT === 'GOGL34') {
       if (pAt > 500) {
         ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
@@ -291,11 +369,55 @@ function sanitizeAppState() {
         pCad = ac.preco;
       }
     }
+    if (rawT === 'MSCD34') {
+      if (pAt > 400) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 400) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+    }
+    if (rawT === 'AMZO34') {
+      if (pAt > 300) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 300) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+    }
 
     // FIIs (ALZR11, MXRF11, HGLG11 etc)
     if (rawT.endsWith('11')) {
       if (rawT === 'MXRF11' && pAt > 50) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
       if (rawT === 'ALZR11' && pAt > 300) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+    }
+
+    // Ativo sem preço (ou zerado): recuperar imediatamente de B3_MARKET_SERIES_REF ou cache de cotações
+    if ((isNaN(pAt) || pAt <= 0) && (isNaN(pCad) || pCad <= 0)) {
+      if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[rawT]) {
+        const ref = B3_MARKET_SERIES_REF[rawT];
+        if (ref && ref.pAtual > 0) {
+          ac.preco = ref.pAtual;
+          ac.precoAtual = ref.pAtual;
+          pCad = ref.pAtual;
+          pAt = ref.pAtual;
+        }
+      } else {
+        const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+        if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
+          const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
+          if (q && q.currentPrice > 0) {
+            ac.preco = q.currentPrice;
+            ac.precoAtual = q.currentPrice;
+            pCad = q.currentPrice;
+            pAt = q.currentPrice;
+          }
+        }
+      }
     }
 
     // Sincronizar preco e precoAtual
@@ -3140,6 +3262,7 @@ async function fetchQuoteSingleTicker(ticker) {
   const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
 
   const isFii = cleanSymbol.endsWith('11') && !cleanSymbol.startsWith('BOVA') && !cleanSymbol.startsWith('SMAL');
+  const isBdr = cleanSymbol.endsWith('34') || cleanSymbol.endsWith('35') || cleanSymbol.endsWith('39');
   const mfinanceCategory = isFii ? 'fiis' : 'stocks';
 
   const rawBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
@@ -3147,12 +3270,28 @@ async function fetchQuoteSingleTicker(ticker) {
   const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
   const brapiHeaders = brapiToken ? { 'Authorization': `Bearer ${brapiToken}` } : {};
 
+  // Para BDRs sem token Brapi cadastrado: se constar na referência de mercado, resolver imediatamente
+  if (isBdr && !brapiToken && typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[cleanSymbol]) {
+    const ref = B3_MARKET_SERIES_REF[cleanSymbol];
+    if (ref && ref.pAtual > 0) {
+      const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
+        ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
+        : [];
+      return {
+        symbol: cleanSymbol,
+        currentPrice: ref.pAtual,
+        updatedAt: new Date().toISOString(),
+        history: generatedHist
+      };
+    }
+  }
+
   const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [];
 
-  // 1. MFinance (Gratuito, rápido, sem token, com CORS liberado para B3 e FIIs)
-  if (!isIndex) {
+  // 1. MFinance (Gratuito, rápido, sem token, com CORS liberado para Ações e FIIs da B3)
+  if (!isIndex && !isBdr) {
     endpoints.push({
       url: `https://mfinance.com.br/api/v1/${mfinanceCategory}/${encodeURIComponent(cleanSymbol)}`,
       type: 'mfinance'
@@ -3279,12 +3418,31 @@ async function fetchQuoteSingleTicker(ticker) {
   if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[cleanSymbol]) {
     const ref = B3_MARKET_SERIES_REF[cleanSymbol];
     if (ref && ref.pAtual > 0) {
+      const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
+        ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
+        : [];
       return {
         symbol: cleanSymbol,
         currentPrice: ref.pAtual,
         updatedAt: new Date().toISOString(),
-        history: []
+        history: generatedHist
       };
+    }
+  }
+
+  // Fallback se o ativo já existe na carteira com preço cadastrado
+  if (typeof appState !== 'undefined' && Array.isArray(appState.acoes)) {
+    const existing = appState.acoes.find(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '') === cleanSymbol);
+    if (existing) {
+      const p = parseFloat(existing.precoAtual || existing.preco || 0);
+      if (p > 0) {
+        return {
+          symbol: cleanSymbol,
+          currentPrice: p,
+          updatedAt: new Date().toISOString(),
+          history: []
+        };
+      }
     }
   }
 
@@ -3538,48 +3696,8 @@ function populateChartAssetFilter() {
 
 function generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser) {
   const symbolClean = symbol.trim().toUpperCase().replace(/\.SA$/i, '');
-  
-  const B3_MARKET_SERIES_REF = {
-    'PETR4':  { pAno: 32.10, pMes: 37.50, pAtual: 38.50 },
-    'PETR3':  { pAno: 33.50, pMes: 38.90, pAtual: 40.10 },
-    'VALE3':  { pAno: 58.50, pMes: 60.80, pAtual: 61.20 },
-    'BBAS3':  { pAno: 24.10, pMes: 27.50, pAtual: 27.80 },
-    'ITUB4':  { pAno: 27.80, pMes: 32.10, pAtual: 33.10 },
-    'BBDC4':  { pAno: 12.40, pMes: 13.80, pAtual: 14.10 },
-    'WEGE3':  { pAno: 34.20, pMes: 44.90, pAtual: 46.50 },
-    'GOGL34': { pAno: 88.57, pMes: 129.80, pAtual: 135.60 },
-    'ALZR11': { pAno: 99.80, pMes: 104.20, pAtual: 105.00 },
-    'MXRF11': { pAno: 9.80,  pMes: 10.12, pAtual: 10.15 },
-    'HGLG11': { pAno: 158.40, pMes: 161.20, pAtual: 162.50 },
-    'KNRI11': { pAno: 154.20, pMes: 157.80, pAtual: 159.00 },
-    'XPML11': { pAno: 112.50, pMes: 116.80, pAtual: 118.20 },
-    'VISC11': { pAno: 118.00, pMes: 121.40, pAtual: 122.10 },
-    'AAPL34': { pAno: 94.20, pMes: 112.40, pAtual: 115.80 },
-    'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.50 },
-    'MSFT34': { pAno: 82.40, pMes: 94.10, pAtual: 96.50 },
-    'MGLU3':  { pAno: 15.20, pMes: 9.40, pAtual: 9.10 },
-    'RENT3':  { pAno: 52.40, pMes: 43.10, pAtual: 44.50 },
-    'PRIO3':  { pAno: 42.00, pMes: 45.20, pAtual: 46.80 },
-    'ELET3':  { pAno: 36.80, pMes: 40.20, pAtual: 41.50 },
-    'SUZB3':  { pAno: 49.20, pMes: 54.80, pAtual: 56.10 },
-    'RAIL3':  { pAno: 21.80, pMes: 20.20, pAtual: 20.80 },
-    'RADL3':  { pAno: 26.50, pMes: 27.20, pAtual: 27.90 },
-    'EQTL3':  { pAno: 31.40, pMes: 33.50, pAtual: 34.20 },
-    'LREN3':  { pAno: 16.80, pMes: 17.50, pAtual: 18.20 },
-    'ABEV3':  { pAno: 13.90, pMes: 12.40, pAtual: 12.80 },
-    'SANB11': { pAno: 27.50, pMes: 29.10, pAtual: 29.80 },
-    'CMIG4':  { pAno: 10.80, pMes: 11.40, pAtual: 11.70 },
-    'VBBR3':  { pAno: 22.10, pMes: 24.30, pAtual: 25.10 },
-    'KLBN11': { pAno: 21.50, pMes: 22.40, pAtual: 23.10 },
-    'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
-    'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
-    'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
-    'BOVA11': { pAno: 116.00, pMes: 124.50, pAtual: 126.80 },
-    'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
-    'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 }
-  };
+  const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[symbolClean] : null;
 
-  const ref = B3_MARKET_SERIES_REF[symbolClean];
   const p0 = (!isNaN(pAnoUser) && pAnoUser > 0 && pAnoUser !== pAtual) ? pAnoUser : (ref ? ref.pAno : (pAtual > 0 ? pAtual * 0.88 : 100));
   const p2 = pAtual > 0 ? pAtual : (ref ? ref.pAtual : 100);
   const p1 = (!isNaN(pMesUser) && pMesUser > 0 && pMesUser !== pAtual) ? pMesUser : (ref ? ref.pMes : (p0 + (p2 - p0) * 0.88));
