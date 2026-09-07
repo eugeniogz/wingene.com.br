@@ -1070,11 +1070,16 @@ function renderApp() {
 
   // Preencher token da Brapi nas configurações se presente
   const brapiTokenField = document.getElementById('cfgBrapiToken');
+  const curBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
   if (brapiTokenField && document.activeElement !== brapiTokenField) {
-    const curBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
     brapiTokenField.value = curBrapiToken;
-    if (curBrapiToken && !localStorage.getItem('wingene_brapi_token')) {
+  }
+  if (curBrapiToken) {
+    if (!localStorage.getItem('wingene_brapi_token')) {
       localStorage.setItem('wingene_brapi_token', curBrapiToken);
+    }
+    if (appState && !appState.brapiToken) {
+      appState.brapiToken = curBrapiToken;
     }
   }
 
@@ -2686,15 +2691,18 @@ function escapeHtml(str) {
 }
 
 function showToast(msg, type = 'info') {
+  console.log(`[Toast ${type.toUpperCase()}] ${msg}`);
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.textContent = msg;
   document.body.appendChild(toast);
-  setTimeout(() => toast.classList.add('visible'), 10);
   setTimeout(() => {
-    toast.classList.remove('visible');
+    toast.classList.add('show', 'visible');
+  }, 10);
+  setTimeout(() => {
+    toast.classList.remove('show', 'visible');
     setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  }, 4500);
 }
 
 // --- GERADOR DE PROMPT PARA IA (AGNÓSTICO) ---

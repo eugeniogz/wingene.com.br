@@ -12,9 +12,19 @@
 
 let currentAssetHealthId = null;
 
-/**
- * Inicializa a navegação e eventos de Apoio à Decisão
- */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+if (typeof window !== 'undefined' && typeof window.escapeHtml !== 'function') {
+  window.escapeHtml = escapeHtml;
+}
+
 /**
  * Inicializa a navegação e eventos de Apoio à Decisão
  */
@@ -1292,18 +1302,119 @@ async function testBrapiTokenConnection() {
   }
 }
 
+let pendingBrapiTokenCallback = null;
+
+/**
+ * Abre modal próprio para solicitar o token da Brapi se ainda não configurado
+ */
+function openBrapiTokenPromptModal(onSuccess) {
+  pendingBrapiTokenCallback = onSuccess;
+  const input = document.getElementById('promptBrapiTokenInput');
+  const cur = cleanBrapiToken(
+    (appState && appState.brapiToken) ||
+    localStorage.getItem('wingene_brapi_token') ||
+    (document.getElementById('cfgBrapiToken') ? document.getElementById('cfgBrapiToken').value : '')
+  );
+  if (input) input.value = cur;
+  const fb = document.getElementById('promptBrapiTokenFeedback');
+  if (fb) fb.innerHTML = '';
+  const modal = document.getElementById('modalBrapiTokenBackdrop');
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => { if (input) input.focus(); }, 60);
+}
+
+function closeBrapiTokenPromptModal() {
+  const modal = document.getElementById('modalBrapiTokenBackdrop');
+  if (modal) modal.style.display = 'none';
+  if (pendingBrapiTokenCallback) {
+    const statusTextEl = document.getElementById('onlineFundamentalsStatusText');
+    if (statusTextEl) {
+      statusTextEl.innerHTML = `<span style="color: #94a3b8; font-size: 0.82rem;">ℹ️ Operação cancelada. Insira o token da Brapi para buscar todos os dados.</span>`;
+    }
+    const statusAcoesEl = document.getElementById('syncAllFundamentalsStatusAcoes');
+    if (statusAcoesEl) {
+      statusAcoesEl.innerHTML = `<span style="color: #94a3b8; font-size: 0.82rem;">ℹ️ Sincronização cancelada. Insira o token da Brapi em Configurações.</span>`;
+    }
+  }
+  pendingBrapiTokenCallback = null;
+}
+
+function skipBrapiTokenPromptModal() {
+  const modal = document.getElementById('modalBrapiTokenBackdrop');
+  if (modal) modal.style.display = 'none';
+  if (typeof pendingBrapiTokenCallback === 'function') {
+    const cb = pendingBrapiTokenCallback;
+    pendingBrapiTokenCallback = null;
+    cb('');
+  }
+}
+
+function submitBrapiTokenPromptModal() {
+  const input = document.getElementById('promptBrapiTokenInput');
+  const raw = input ? input.value : '';
+  const token = cleanBrapiToken(raw);
+  if (!token) {
+    const fb = document.getElementById('promptBrapiTokenFeedback');
+    if (fb) fb.innerHTML = '<span style="color: #ef4444; font-weight: 600;">⚠️ Por favor, cole seu token da Brapi antes de continuar.</span>';
+    if (input) input.focus();
+    return;
+  }
+
+  localStorage.setItem('wingene_brapi_token', token);
+  if (appState) appState.brapiToken = token;
+  saveLocalState(false, true);
+
+  const cfgInput = document.getElementById('cfgBrapiToken');
+  if (cfgInput) cfgInput.value = token;
+
+  const modal = document.getElementById('modalBrapiTokenBackdrop');
+  if (modal) modal.style.display = 'none';
+  showToast('Token da Brapi salvo com sucesso!', 'success');
+
+  if (typeof pendingBrapiTokenCallback === 'function') {
+    const cb = pendingBrapiTokenCallback;
+    pendingBrapiTokenCallback = null;
+    cb(token);
+  }
+}
+
+/**
+ * Garante que o usuário possua um token da Brapi antes de executar a ação
+ */
+function ensureBrapiToken(callback) {
+  const cfgVal = document.getElementById('cfgBrapiToken') ? document.getElementById('cfgBrapiToken').value : '';
+  const token = cleanBrapiToken(
+    (appState && appState.brapiToken) ||
+    localStorage.getItem('wingene_brapi_token') ||
+    cfgVal
+  );
+  if (token) {
+    callback(token);
+  } else {
+    openBrapiTokenPromptModal(callback);
+  }
+}
+
 /**
  * Busca os indicadores fundamentalistas mais recentes de um ativo na internet via Brapi (brapi.dev)
- * com fallback resiliente para plano gratuito/padrão, cálculo inteligente de métricas e sem apagar o token.
  */
-async function fetchFundamentalsForCurrentModal() {
+function fetchFundamentalsForCurrentModal() {
   const assetId = document.getElementById('editHealthAssetId')?.value;
-  const asset = appState.acoes.find(a => String(a.id) === String(assetId));
+  const asset = appState && Array.isArray(appState.acoes) && appState.acoes.find(a => String(a.id) === String(assetId));
   if (!asset) {
     showToast('Ação não encontrada para consulta.', 'error');
     return;
   }
 
+  ensureBrapiToken((token) => {
+    executeFetchFundamentalsForModal(asset, token);
+  });
+}
+
+/**
+ * Executa a busca e aplicação de fundamentos no modal
+ */
+async function executeFetchFundamentalsForModal(asset, token) {
   const rawTicker = (asset.ticker || '').trim().toUpperCase();
   const cleanTicker = rawTicker.replace(/\.SA$/i, '');
   if (!cleanTicker) {
@@ -1311,38 +1422,23 @@ async function fetchFundamentalsForCurrentModal() {
     return;
   }
 
-  // Verificar existência de token da Brapi
-  let token = cleanBrapiToken((appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token'));
-  if (!token) {
-    const entered = prompt(
-      `Para buscar os indicadores de ${cleanTicker} via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).`,
-      ''
-    );
-    if (entered && entered.trim()) {
-      token = cleanBrapiToken(entered);
-      localStorage.setItem('wingene_brapi_token', token);
-      if (appState) appState.brapiToken = token;
-      saveLocalState(false, true);
-      const cfgInput = document.getElementById('cfgBrapiToken');
-      if (cfgInput) cfgInput.value = token;
-    } else {
-      showToast('Token da Brapi não informado. Você pode cadastrá-lo a qualquer momento na aba Configurações.', 'info');
-      return;
-    }
-  }
-
   const btn = document.getElementById('btnFetchFundamentalsOnline');
   const origHtml = btn ? btn.innerHTML : '';
+  const statusTextEl = document.getElementById('onlineFundamentalsStatusText');
+
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = `⏳ Buscando ${cleanTicker}...`;
   }
+  if (statusTextEl) {
+    statusTextEl.innerHTML = `<span style="color: #60a5fa; font-weight: 600;">⏳ Consultando balanço e indicadores de ${cleanTicker} na Brapi...</span>`;
+  }
 
   try {
-    // Tentativa em múltiplos endpoints (módulos avançados, rota padrão com token, rota pública)
+    const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
     const endpointsToTry = [
-      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`,
-      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?token=${encodeURIComponent(token)}`,
+      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics${tokenParam}`,
+      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?${token ? `token=${encodeURIComponent(token)}` : ''}`,
       `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}`
     ];
 
@@ -1361,6 +1457,7 @@ async function fetchFundamentalsForCurrentModal() {
         const json = await res.json().catch(() => null);
         if (!res.ok) {
           if (json && json.message) lastErrorMsg = json.message;
+          else lastErrorMsg = `HTTP ${res.status}`;
           continue;
         }
         if (json && Array.isArray(json.results) && json.results.length > 0) {
@@ -1371,12 +1468,12 @@ async function fetchFundamentalsForCurrentModal() {
           lastErrorMsg = json.message;
         }
       } catch (e) {
-        // Fallback silencioso para o próximo endpoint
+        if (e && e.message) lastErrorMsg = e.message;
       }
     }
 
     if (!data || !Array.isArray(data.results) || data.results.length === 0) {
-      const detailErr = lastErrorMsg ? `Brapi: ${lastErrorMsg}` : `Não foi possível obter dados para ${cleanTicker}. Verifique seu token na aba Configurações.`;
+      const detailErr = lastErrorMsg ? `Brapi: "${lastErrorMsg}"` : `Não foi possível obter dados para ${cleanTicker}. Verifique seu token nas Configurações.`;
       throw new Error(detailErr);
     }
 
@@ -1392,14 +1489,26 @@ async function fetchFundamentalsForCurrentModal() {
       return pct.toFixed(1).replace('.', ',');
     };
 
+    const parsePctNum = (val) => {
+      if (val === null || val === undefined || isNaN(val)) return null;
+      const n = parseFloat(val);
+      const pct = (Math.abs(n) > 0 && Math.abs(n) < 1.0) ? (n * 100) : n;
+      return parseFloat(pct.toFixed(2));
+    };
+
     const formatIntVal = (val) => {
       if (val === null || val === undefined || isNaN(val)) return null;
       return Math.round(parseFloat(val)).toString();
     };
 
+    const parseIntNum = (val) => {
+      if (val === null || val === undefined || isNaN(val)) return null;
+      return Math.round(parseFloat(val));
+    };
+
     let filledCount = 0;
 
-    // 1. Identificar Tipo de Ativo (BDR, FII ou Ação Comum)
+    // 1. Identificar Tipo de Ativo
     const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || 
                   (item.longName && item.longName.toLowerCase().includes('depository receipt'));
     const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
@@ -1410,6 +1519,8 @@ async function fetchFundamentalsForCurrentModal() {
       else if (isFii) tipoEl.value = 'FII';
       else tipoEl.value = 'STOCK';
     }
+    if (isBdr) asset.tipo = 'BDR';
+    else if (isFii) asset.tipo = 'FII';
 
     // 2. Setor / Indústria
     const sectorEl = document.getElementById('editHealthSetor');
@@ -1417,9 +1528,11 @@ async function fetchFundamentalsForCurrentModal() {
       const parts = [prof.sector, prof.industry].filter(Boolean);
       if (parts.length > 0) {
         sectorEl.value = parts.join(' / ');
+        asset.setor = sectorEl.value;
         filledCount++;
       } else if (isBdr && !sectorEl.value) {
         sectorEl.value = 'BDR Internacional (EUA)';
+        asset.setor = sectorEl.value;
         filledCount++;
       }
     }
@@ -1430,6 +1543,10 @@ async function fetchFundamentalsForCurrentModal() {
     const pe = parseFloat(item.priceEarnings || 0);
     const eps = parseFloat(item.earningsPerShare || 0);
 
+    if (price > 0) {
+      asset.precoAtual = price;
+    }
+
     // Total de Ações em Circulação
     let shares = stats.sharesOutstanding ? parseFloat(stats.sharesOutstanding) : null;
     if (!shares && mCap > 0 && price > 0) {
@@ -1437,10 +1554,7 @@ async function fetchFundamentalsForCurrentModal() {
     }
     if (shares && shares > 0) {
       const el = document.getElementById('editHealthShares');
-      if (el) {
-        el.value = shares.toString();
-        filledCount++;
-      }
+      if (el) { el.value = shares.toString(); filledCount++; }
     }
 
     // Lucro Líquido
@@ -1452,61 +1566,77 @@ async function fetchFundamentalsForCurrentModal() {
     }
     if (netIncome) {
       const el = document.getElementById('editHealthNetIncome');
-      if (el) {
-        el.value = Math.round(netIncome).toString();
-        filledCount++;
-      }
+      if (el) { el.value = Math.round(netIncome).toString(); filledCount++; }
     }
 
-    // 4. Margens e Rentabilidade (se presentes)
+    // 4. Margens e Rentabilidade
+    let netMarginNum = null;
     if (fin.profitMargins !== undefined) {
+      netMarginNum = parsePctNum(fin.profitMargins);
       const el = document.getElementById('editHealthNetMargin');
       if (el) { el.value = formatPctVal(fin.profitMargins); filledCount++; }
     }
+    let ebitdaMarginNum = null;
     if (fin.ebitdaMargins !== undefined) {
+      ebitdaMarginNum = parsePctNum(fin.ebitdaMargins);
       const el = document.getElementById('editHealthEbitdaMargin');
       if (el) { el.value = formatPctVal(fin.ebitdaMargins); filledCount++; }
     }
+    let roeNum = null;
     if (fin.returnOnEquity !== undefined) {
+      roeNum = parsePctNum(fin.returnOnEquity);
       const el = document.getElementById('editHealthRoe');
       if (el) { el.value = formatPctVal(fin.returnOnEquity); filledCount++; }
     }
+    let roicNum = null;
     if (item.roic !== undefined || fin.returnOnAssets !== undefined) {
+      roicNum = parsePctNum(item.roic !== undefined ? item.roic : fin.returnOnAssets);
       const el = document.getElementById('editHealthRoic');
       if (el) { el.value = formatPctVal(item.roic !== undefined ? item.roic : fin.returnOnAssets); filledCount++; }
     }
 
     // 5. Crescimentos
+    let revGrowthNum = null;
     if (fin.revenueGrowth !== undefined) {
+      revGrowthNum = parsePctNum(fin.revenueGrowth);
       const el = document.getElementById('editHealthRevenueGrowth');
       if (el) { el.value = formatPctVal(fin.revenueGrowth); filledCount++; }
     }
+    let netGrowthNum = null;
     if (fin.earningsGrowth !== undefined) {
+      netGrowthNum = parsePctNum(fin.earningsGrowth);
       const el = document.getElementById('editHealthNetIncomeGrowth');
       if (el) { el.value = formatPctVal(fin.earningsGrowth); filledCount++; }
     }
 
     // 6. Dividend Yield
     const dyVal = item.dividendYield !== undefined ? item.dividendYield : item.regularMarketDividendYield;
+    let dyNum = null;
     if (dyVal !== undefined && dyVal !== null) {
+      dyNum = parsePctNum(dyVal);
       const el = document.getElementById('editHealthDividendYield');
       if (el) { el.value = formatPctVal(dyVal); filledCount++; }
     }
 
-    // 7. Totais Financeiros (Receita e FCF se presentes)
+    // 7. Totais Financeiros
+    let revNum = null;
     if (fin.totalRevenue) {
+      revNum = parseIntNum(fin.totalRevenue);
       const el = document.getElementById('editHealthRevenue');
       if (el) { el.value = formatIntVal(fin.totalRevenue); filledCount++; }
     }
+    let fcfNum = null;
     if (fin.freeCashflow) {
+      fcfNum = parseIntNum(fin.freeCashflow);
       const el = document.getElementById('editHealthFcf');
       if (el) { el.value = formatIntVal(fin.freeCashflow); filledCount++; }
     }
 
-    // 8. Dívida Líquida & Dívida Líq / EBITDA (se presentes)
+    // 8. Dívida Líquida & Dívida Líq / EBITDA
     let netDebtNum = null;
+    let netDebtEbitdaNum = null;
     if (fin.totalDebt !== undefined && fin.totalCash !== undefined) {
-      netDebtNum = parseFloat(fin.totalDebt) - parseFloat(fin.totalCash);
+      netDebtNum = Math.round(parseFloat(fin.totalDebt) - parseFloat(fin.totalCash));
       const el = document.getElementById('editHealthNetDebt');
       if (el) { el.value = formatIntVal(netDebtNum); filledCount++; }
     }
@@ -1517,6 +1647,7 @@ async function fetchFundamentalsForCurrentModal() {
         ebitdaNum = parseFloat(fin.totalRevenue) * parseFloat(fin.ebitdaMargins);
       }
       if (ebitdaNum > 0) {
+        netDebtEbitdaNum = parseFloat((netDebtNum / ebitdaNum).toFixed(2));
         const debtRatio = (netDebtNum / ebitdaNum).toFixed(1).replace('.', ',');
         const el = document.getElementById('editHealthNetDebtEbitda');
         if (el) { el.value = debtRatio; filledCount++; }
@@ -1528,7 +1659,25 @@ async function fetchFundamentalsForCurrentModal() {
     const dateEl = document.getElementById('editHealthUpdatedAt');
     if (dateEl) dateEl.value = todayIso;
 
-    // Atualizar badges semafóricos e hipóteses em tempo real
+    // Atualizar diretamente o objeto asset.fundamentals
+    asset.fundamentals = asset.fundamentals || {};
+    if (roicNum !== null) asset.fundamentals.roic = roicNum;
+    if (roeNum !== null) asset.fundamentals.roe = roeNum;
+    if (revNum !== null) asset.fundamentals.revenue = revNum;
+    if (revGrowthNum !== null) asset.fundamentals.revenueGrowth = revGrowthNum;
+    if (netIncome !== null) asset.fundamentals.netIncome = netIncome;
+    if (netGrowthNum !== null) asset.fundamentals.netIncomeGrowth = netGrowthNum;
+    if (fcfNum !== null) asset.fundamentals.freeCashFlow = fcfNum;
+    if (ebitdaMarginNum !== null) asset.fundamentals.ebitdaMargin = ebitdaMarginNum;
+    if (netMarginNum !== null) asset.fundamentals.netMargin = netMarginNum;
+    if (netDebtNum !== null) asset.fundamentals.netDebt = netDebtNum;
+    if (netDebtEbitdaNum !== null) asset.fundamentals.netDebtEbitda = netDebtEbitdaNum;
+    if (shares !== null) asset.fundamentals.sharesOutstanding = shares;
+    if (dyNum !== null) asset.fundamentals.dividendYield = dyNum;
+    asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+
+    // Salvar e atualizar interface
+    saveLocalState(true, true);
     updateModalFundamentalBadges();
 
     let detailMsg = `Dados de ${cleanTicker} atualizados!`;
@@ -1538,9 +1687,18 @@ async function fetchFundamentalsForCurrentModal() {
     if (isBdr) {
       detailMsg += ` [BDR: balanço da matriz consulte em StatusInvest ↗]`;
     }
+
+    if (statusTextEl) {
+      statusTextEl.innerHTML = `<span style="color: #34d399; font-weight: 600;">✅ ${cleanTicker}: ${filledCount} indicadores preenchidos e salvos!</span>`;
+    }
     showToast(detailMsg, 'success');
   } catch (err) {
     console.error('Erro ao buscar indicadores online:', err);
+    if (statusTextEl) {
+      const isAuthErr = err.message && (err.message.toLowerCase().includes('token') || err.message.includes('401') || err.message.toLowerCase().includes('autentica'));
+      const authLink = isAuthErr ? ` — <a href="#" onclick="openBrapiTokenPromptModal((t) => executeFetchFundamentalsForModal(asset, t));return false;" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Inserir Chave Brapi ↗</a>` : '';
+      statusTextEl.innerHTML = `<span style="color: #f87171; font-weight: 600;">❌ ${escapeHtml(err.message)}</span>${authLink}`;
+    }
     showToast(err.message || 'Falha ao buscar indicadores online.', 'error');
   } finally {
     if (btn) {
@@ -1552,38 +1710,39 @@ async function fetchFundamentalsForCurrentModal() {
 
 /**
  * Atualiza os fundamentos e indicadores de TODOS os ativos da carteira em 1 clique (Sincronização em Lote)
- * Utiliza Brapi com fallback resiliente e preservação de dados personalizados/manuais
  */
-async function syncAllAssetsFundamentals() {
+function syncAllAssetsFundamentals() {
   if (!appState || !Array.isArray(appState.acoes) || appState.acoes.length === 0) {
     showToast('Nenhum ativo de ações encontrado na carteira.', 'warning');
     return;
   }
 
-  // Verificar existência de token da Brapi
-  let token = cleanBrapiToken((appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token'));
-  if (!token) {
-    const entered = prompt(
-      'Para atualizar os fundamentos de toda a carteira via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em 1 minuto).',
-      ''
-    );
-    if (entered && entered.trim()) {
-      token = cleanBrapiToken(entered);
-      localStorage.setItem('wingene_brapi_token', token);
-      if (appState) appState.brapiToken = token;
-      saveLocalState(false, true);
-      const cfgInput = document.getElementById('cfgBrapiToken');
-      if (cfgInput) cfgInput.value = token;
-    } else {
-      showToast('Token da Brapi não informado. Cadastre-o na aba Configurações.', 'info');
-      return;
-    }
-  }
+  ensureBrapiToken((token) => {
+    executeSyncAllAssetsFundamentals(token);
+  });
+}
 
+/**
+ * Executa a sincronização em lote de todos os ativos
+ */
+async function executeSyncAllAssetsFundamentals(token) {
   const btnAcoes = document.getElementById('btnSyncAllFundamentalsAcoes');
   const btnRebal = document.getElementById('btnSyncAllFundamentalsRebal');
   const origAcoesHtml = btnAcoes ? btnAcoes.innerHTML : '';
   const origRebalHtml = btnRebal ? btnRebal.innerHTML : '';
+  const statusAcoesEl = document.getElementById('syncAllFundamentalsStatusAcoes');
+  const statusRebalEl = document.getElementById('syncAllFundamentalsStatusRebal');
+
+  const updateStatusDisplay = (text, isHtml = false) => {
+    if (statusAcoesEl) {
+      if (isHtml) statusAcoesEl.innerHTML = text;
+      else statusAcoesEl.textContent = text;
+    }
+    if (statusRebalEl) {
+      if (isHtml) statusRebalEl.innerHTML = text;
+      else statusRebalEl.textContent = text;
+    }
+  };
 
   const setButtonsState = (disabled, text) => {
     if (btnAcoes) {
@@ -1597,6 +1756,7 @@ async function syncAllAssetsFundamentals() {
   };
 
   setButtonsState(true, '⏳ Iniciando sincronização...');
+  updateStatusDisplay('⏳ Iniciando conexão com a Brapi...');
 
   const total = appState.acoes.length;
   let successCount = 0;
@@ -1623,12 +1783,15 @@ async function syncAllAssetsFundamentals() {
     const cleanTicker = rawTicker.replace(/\.SA$/i, '');
     if (!cleanTicker) continue;
 
-    setButtonsState(true, `⏳ Sincronizando ${cleanTicker} (${i + 1}/${total})...`);
+    const progressMsg = `⏳ Sincronizando (${i + 1}/${total}): ${cleanTicker}...`;
+    setButtonsState(true, progressMsg);
+    updateStatusDisplay(progressMsg);
 
     try {
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
       const endpointsToTry = [
-        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`,
-        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?token=${encodeURIComponent(token)}`,
+        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics${tokenParam}`,
+        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?${token ? `token=${encodeURIComponent(token)}` : ''}`,
         `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}`
       ];
 
@@ -1646,6 +1809,7 @@ async function syncAllAssetsFundamentals() {
           const json = await res.json().catch(() => null);
           if (!res.ok) {
             if (json && json.message) tickerError = json.message;
+            else tickerError = `HTTP ${res.status}`;
             continue;
           }
           if (json && Array.isArray(json.results) && json.results.length > 0) {
@@ -1655,7 +1819,7 @@ async function syncAllAssetsFundamentals() {
             tickerError = json.message;
           }
         } catch (e) {
-          // Ignora e tenta o próximo endpoint
+          if (e && e.message) tickerError = e.message;
         }
       }
 
@@ -1784,10 +1948,20 @@ async function syncAllAssetsFundamentals() {
     btnRebal.innerHTML = origRebalHtml;
   }
 
-  if (authErrorCount > 0 && successCount < total) {
-    showToast(`⚠️ Atualizados ${successCount} de ${total}. Erro da Brapi: "${lastAuthError}". Teste seu token em Configurações.`, 'warning');
+  if (successCount === total && total > 0) {
+    const okHtml = `<span style="color: #34d399; font-weight: 600;">✅ Todos os ${total} ativos atualizados com sucesso! (${new Date().toLocaleTimeString('pt-BR')})</span>`;
+    updateStatusDisplay(okHtml, true);
+    showToast(`⚡ Fundamentos de todos os ${total} ativos atualizados com sucesso!`, 'success');
+  } else if (successCount > 0) {
+    const errorDetail = lastAuthError ? ` (Resposta da Brapi: "${lastAuthError}")` : '';
+    const partialHtml = `<span style="color: #fbbf24; font-weight: 600;">⚠️ ${successCount} de ${total} atualizados com sucesso${errorDetail}. <a href="#" onclick="openBrapiTokenPromptModal((t) => executeSyncAllAssetsFundamentals(t));return false;" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Atualizar Token Brapi ↗</a></span>`;
+    updateStatusDisplay(partialHtml, true);
+    showToast(`⚠️ ${successCount} de ${total} ativos atualizados. ${lastAuthError || 'Verifique seu token para os demais'}.`, 'warning');
   } else {
-    showToast(`⚡ Fundamentos de ${successCount} de ${total} ativos atualizados com sucesso!`, 'success');
+    const errText = lastAuthError ? `Brapi: "${lastAuthError}"` : 'Nenhum dado retornado';
+    const failHtml = `<span style="color: #f87171; font-weight: 600;">❌ Falha ao sincronizar ativos (${errText}). <a href="#" onclick="openBrapiTokenPromptModal((t) => executeSyncAllAssetsFundamentals(t));return false;" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Inserir Chave Brapi ↗</a></span>`;
+    updateStatusDisplay(failHtml, true);
+    showToast(`❌ Não foi possível atualizar ativos: ${errText}.`, 'error');
   }
 }
 
