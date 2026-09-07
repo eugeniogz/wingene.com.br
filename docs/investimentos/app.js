@@ -250,6 +250,82 @@ function sanitizeAppState() {
     if (!Array.isArray(ac.analysisSnapshots)) {
       ac.analysisSnapshots = [];
     }
+
+    // 6. CORREÇÃO DE PREÇOS CORROMPIDOS (por remoção indevida de ponto decimal ex: 38.5 -> 385 ou 145.1 -> 1451)
+    const rawT = (ac.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+    let pAt = parseFloat(ac.precoAtual);
+    let pCad = parseFloat(ac.preco);
+
+    // Se precoAtual for ~10x do preco cadastrado (ex: preco: 38.5 e precoAtual: 385)
+    if (!isNaN(pCad) && pCad > 0 && !isNaN(pAt) && Math.abs(pAt - pCad * 10) < 1.5) {
+      ac.precoAtual = pCad;
+      pAt = pCad;
+    }
+    // Se preco foi multiplicado por 10 em relação ao precoAtual
+    else if (!isNaN(pAt) && pAt > 0 && !isNaN(pCad) && Math.abs(pCad - pAt * 10) < 1.5) {
+      ac.preco = pAt;
+      pCad = pAt;
+    }
+
+    // Ações brasileiras padrão com preços absurdos > 150 (PETR4, VALE3, ITUB4, WEGE3, BBAS3, BBDC4 etc)
+    const standardB3Stocks = ['PETR4', 'PETR3', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'WEGE3', 'ABEV3', 'MGLU3', 'RENT3', 'PRIO3', 'ELET3', 'SUZB3', 'RAIL3', 'RADL3', 'EQTL3', 'LREN3', 'SANB11', 'CMIG4', 'VBBR3', 'KLBN11', 'CYRE3', 'TAEE11', 'CPFE3'];
+    if (standardB3Stocks.includes(rawT)) {
+      if (pAt > 150) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 150) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+    }
+
+    // BDR GOGL34 (~R$ 130-180), se ficou > 500 (ex: 1451)
+    if (rawT === 'GOGL34') {
+      if (pAt > 500) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 500) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+    }
+
+    // FIIs (ALZR11, MXRF11, HGLG11 etc)
+    if (rawT.endsWith('11')) {
+      if (rawT === 'MXRF11' && pAt > 50) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+      if (rawT === 'ALZR11' && pAt > 300) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+    }
+
+    // Sincronizar preco e precoAtual
+    if ((isNaN(pCad) || pCad <= 0) && !isNaN(pAt) && pAt > 0) {
+      ac.preco = pAt;
+    }
+    if ((isNaN(pAt) || pAt <= 0) && !isNaN(pCad) && pCad > 0) {
+      ac.precoAtual = pCad;
+    }
+
+    // Recalcular valorInvestido se estiver baseado no preço corrompido
+    const qty = parseFloat(ac.quantidade) || 0;
+    const finalPrice = parseFloat(ac.precoAtual || ac.preco || 0);
+    if (qty > 0 && finalPrice > 0) {
+      ac.valorInvestido = qty * finalPrice;
+    }
+
+    // 7. CORREÇÃO DE MÚLTIPLOS CORROMPIDOS NOS FUNDAMENTOS
+    if (ac.fundamentals) {
+      const f = ac.fundamentals;
+      if (f.pe && f.pe > 500) f.pe = parseFloat((f.pe / 10).toFixed(1));
+      if (f.eps && f.eps > 50) f.eps = parseFloat((f.eps / 10).toFixed(2));
+      if (f.roic && f.roic > 100) f.roic = parseFloat((f.roic / 10).toFixed(2));
+      if (f.roe && f.roe > 100) f.roe = parseFloat((f.roe / 10).toFixed(2));
+      if (f.netMargin && f.netMargin > 100) f.netMargin = parseFloat((f.netMargin / 10).toFixed(2));
+      if (f.ebitdaMargin && f.ebitdaMargin > 100) f.ebitdaMargin = parseFloat((f.ebitdaMargin / 10).toFixed(2));
+      if (f.dividendYield && f.dividendYield > 50) f.dividendYield = parseFloat((f.dividendYield / 10).toFixed(2));
+      if (f.revenueGrowth && f.revenueGrowth > 100) f.revenueGrowth = parseFloat((f.revenueGrowth / 10).toFixed(2));
+      if (f.netIncomeGrowth && f.netIncomeGrowth > 100) f.netIncomeGrowth = parseFloat((f.netIncomeGrowth / 10).toFixed(2));
+    }
   });
 
   // Configuração central de análise
@@ -3063,44 +3139,50 @@ async function fetchQuoteSingleTicker(ticker) {
   const yahooSymbol = isIndex ? '^BVSP' : `${cleanSymbol}.SA`;
   const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
 
+  const isFii = cleanSymbol.endsWith('11') && !cleanSymbol.startsWith('BOVA') && !cleanSymbol.startsWith('SMAL');
+  const mfinanceCategory = isFii ? 'fiis' : 'stocks';
+
   const rawBrapiToken = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token') || '';
   const brapiToken = typeof cleanBrapiToken === 'function' ? cleanBrapiToken(rawBrapiToken) : rawBrapiToken.trim().replace(/^["']+|["']+$/g, '');
   const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
   const brapiHeaders = brapiToken ? { 'Authorization': `Bearer ${brapiToken}` } : {};
 
   const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
-  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
-  const endpoints = [
-    {
+  const endpoints = [];
+
+  // 1. MFinance (Gratuito, rápido, sem token, com CORS liberado para B3 e FIIs)
+  if (!isIndex) {
+    endpoints.push({
+      url: `https://mfinance.com.br/api/v1/${mfinanceCategory}/${encodeURIComponent(cleanSymbol)}`,
+      type: 'mfinance'
+    });
+  }
+
+  // 2. Brapi (se token existir ou para sandbox público)
+  if (brapiToken) {
+    endpoints.push({
       url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
       type: 'brapi'
-    },
-    {
+    });
+  } else {
+    endpoints.push({
       url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d`,
       type: 'brapi'
-    },
+    });
+  }
+
+  // 3. Fallback Proxies para Yahoo Finance
+  endpoints.push(
     {
       url: `https://api.allorigins.win/raw?url=${encodeURIComponent(rawYahooUrl)}`,
-      type: 'yahoo'
-    },
-    {
-      url: `https://corsproxy.io/?${rawYahooUrl}`,
-      type: 'yahoo'
-    },
-    {
-      url: `https://api.allorigins.win/get?url=${encodeURIComponent(rawYahooUrl)}`,
-      type: 'allorigins'
-    },
-    {
-      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawYahooUrl)}`,
       type: 'yahoo'
     },
     {
       url: rawYahooUrl,
       type: 'yahoo'
     }
-  ];
+  );
 
   for (const ep of endpoints) {
     try {
@@ -3113,6 +3195,18 @@ async function fetchQuoteSingleTicker(ticker) {
 
       if (!res.ok) continue;
       let data = await res.json();
+
+      if (ep.type === 'mfinance' && data) {
+        const lastP = parseFloat(data.lastPrice || data.closingPrice || 0);
+        if (lastP > 0) {
+          return {
+            symbol: cleanSymbol,
+            currentPrice: lastP,
+            updatedAt: new Date().toISOString(),
+            history: []
+          };
+        }
+      }
 
       if (ep.type === 'allorigins') {
         if (data && data.contents) {
@@ -3178,6 +3272,19 @@ async function fetchQuoteSingleTicker(ticker) {
       }
     } catch (err) {
       // Tentar próximo endpoint silenciosamente
+    }
+  }
+
+  // Se for ativo cadastrado nas referências de mercado internas (ex: BDRs ou histórico fixo)
+  if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[cleanSymbol]) {
+    const ref = B3_MARKET_SERIES_REF[cleanSymbol];
+    if (ref && ref.pAtual > 0) {
+      return {
+        symbol: cleanSymbol,
+        currentPrice: ref.pAtual,
+        updatedAt: new Date().toISOString(),
+        history: []
+      };
     }
   }
 
@@ -3291,23 +3398,6 @@ async function triggerB3Sync(force = false) {
     return;
   }
 
-  // Verificar existência de token da Brapi para cotações completas de toda a carteira
-  let token = (appState && appState.brapiToken) || localStorage.getItem('wingene_brapi_token');
-  if (!token || token.trim() === '') {
-    const entered = prompt(
-      'Para sincronizar cotações de todas as suas ações via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).',
-      ''
-    );
-    if (entered && entered.trim()) {
-      token = entered.trim();
-      localStorage.setItem('wingene_brapi_token', token);
-      if (appState) appState.brapiToken = token;
-      saveLocalState(false, true);
-      const cfgInput = document.getElementById('cfgBrapiToken');
-      if (cfgInput) cfgInput.value = token;
-    }
-  }
-
   isB3SyncInProgress = true;
   setButtonsDisabled(true);
   updateStatusText('🔄 Atualizando cotações B3...');
@@ -3369,7 +3459,12 @@ async function triggerB3Sync(force = false) {
               acaoItem.precoAtual = newQuotes[symbol].currentPrice;
             }
 
-            const hist = cache.quotes[symbol].history;
+            let hist = cache.quotes[symbol].history;
+            if (!Array.isArray(hist) || hist.length <= 1) {
+              hist = generateRealB3HistoryForTicker(symbol, acaoItem.precoAtual, acaoItem.precoAnoAnterior, acaoItem.precoMesAnterior);
+              cache.quotes[symbol].history = hist;
+            }
+
             if (Array.isArray(hist) && hist.length > 1) {
               const pAnoHistoric = hist[0].close;
               if (pAnoHistoric > 0) {
@@ -3393,6 +3488,7 @@ async function triggerB3Sync(force = false) {
       saveB3QuotesCache(cache);
     }
 
+    sanitizeAppState();
     saveLocalState(false, false);
     renderApp();
 

@@ -851,6 +851,22 @@ const MODAL_METRIC_INPUT_MAP = [
 ];
 
 /**
+ * Parse seguro de número decimal, tratando formatos com vírgula (pt-BR) e com ponto (US/JSON)
+ * sem remover os pontos decimais inadvertidamente.
+ */
+function parseInputFloat(val) {
+  if (val === undefined || val === null) return NaN;
+  if (typeof val === 'number') return isNaN(val) ? NaN : val;
+  let str = String(val).trim();
+  if (!str) return NaN;
+  if (str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  }
+  const n = parseFloat(str);
+  return isNaN(n) ? NaN : n;
+}
+
+/**
  * Avalia um indicador fundamentalista retornando estado semafórico (verde, amarelo, vermelho)
  */
 function evaluateModalIndicatorValue(metricKey, rawVal) {
@@ -914,8 +930,8 @@ function updateModalFundamentalBadges() {
     const input = document.getElementById(m.id);
     const badge = document.getElementById(m.badgeId);
     if (!input || !badge) return;
-    const val = input.value.replace(/\./g, '').replace(',', '.').trim();
-    const evalRes = evaluateModalIndicatorValue(m.key, val);
+    const numVal = parseInputFloat(input.value);
+    const evalRes = evaluateModalIndicatorValue(m.key, numVal);
     badge.className = `badge ${evalRes.badgeClass}`;
     badge.textContent = `${evalRes.icon} ${evalRes.label}`;
   });
@@ -944,8 +960,8 @@ function evaluateModalCheckRow(rowEl) {
   if (!rowEl) return;
   const metric = rowEl.querySelector('.check-metric')?.value;
   const op = rowEl.querySelector('.check-op')?.value || '>=';
-  const threshVal = rowEl.querySelector('.check-threshold')?.value.replace(',', '.').trim();
-  const threshold = parseFloat(threshVal);
+  const threshVal = rowEl.querySelector('.check-threshold')?.value;
+  const threshold = parseInputFloat(threshVal);
 
   const badgeEl = rowEl.querySelector('.check-status-badge');
   if (!badgeEl) return;
@@ -959,15 +975,15 @@ function evaluateModalCheckRow(rowEl) {
   // Buscar valor atual do campo fundamental correspondente no modal
   const inputEntry = MODAL_METRIC_INPUT_MAP.find(m => m.key === metric);
   const inputEl = inputEntry ? document.getElementById(inputEntry.id) : null;
-  const rawVal = inputEl ? inputEl.value.replace(/\./g, '').replace(',', '.').trim() : '';
+  const currentVal = inputEl ? parseInputFloat(inputEl.value) : NaN;
 
-  if (rawVal === '' || isNaN(parseFloat(rawVal))) {
+  if (isNaN(currentVal)) {
     badgeEl.className = 'check-status-badge badge badge-secondary';
     badgeEl.textContent = '⚪ Sem Dado';
     return;
   }
 
-  const currentVal = parseFloat(rawVal);
+  currentVal = parseFloat(rawVal);
   let isPassed = false;
   let isNear = false;
 
@@ -1126,7 +1142,7 @@ function handleSaveAssetHealthSubmit(e) {
   const parseOrNull = (id) => {
     const el = document.getElementById(id);
     if (!el || el.value.trim() === '') return null;
-    const num = parseFloat(el.value.replace(/\./g, '').replace(',', '.'));
+    const num = parseInputFloat(el.value);
     return isNaN(num) ? null : num;
   };
 
@@ -1442,7 +1458,10 @@ function processBatchAiResponse() {
       asset.fundamentals = asset.fundamentals || {};
 
       const price = getNum(item, 'precoAtual', 'preco', 'cotacao', 'regularMarketPrice');
-      if (price && price > 0) asset.precoAtual = price;
+      if (price && price > 0) {
+        asset.precoAtual = price;
+        asset.preco = price;
+      }
 
       const pe = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
       if (pe !== null) asset.fundamentals.pe = pe;
@@ -1511,8 +1530,11 @@ function processBatchAiResponse() {
             // Extrair cotação se presente no bloco
             const priceMatch = blockText.match(/(?:Cotação|Preço|Cotacao|Preco)\s*[:=\s]+R?\$?\s*([+-]?\d+(?:[.,]\d+)?)/i);
             if (priceMatch && priceMatch[1]) {
-              const p = parseFloat(priceMatch[1].replace(',', '.'));
-              if (!isNaN(p) && p > 0) asset.precoAtual = p;
+              const p = parseInputFloat(priceMatch[1]);
+              if (!isNaN(p) && p > 0) {
+                asset.precoAtual = p;
+                asset.preco = p;
+              }
             }
 
             asset.fundamentals.fundamentalsUpdatedAt = todayIso;
