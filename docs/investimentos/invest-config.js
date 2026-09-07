@@ -173,33 +173,35 @@ function handleSaveAnalysisConfigSubmit(e) {
   if (e) e.preventDefault();
   if (typeof appState === 'undefined' || !appState) return;
 
-  const parseWeight = (id) => {
+  const parseWeight = (id, fallback) => {
     const el = document.getElementById(id);
-    const num = el ? parseFloat(el.value) : NaN;
-    return isNaN(num) ? 0 : num / 100;
+    const val = el ? el.value.trim() : '';
+    if (val === '') return fallback;
+    const num = parseFloat(val);
+    return isNaN(num) ? fallback : num / 100;
   };
 
   appState.analysisConfig = appState.analysisConfig || {};
 
   appState.analysisConfig.qualityWeights = {
-    rentabilidade: parseWeight('cfgWeightRentab') || 0.20,
-    crescimento: parseWeight('cfgWeightCresc') || 0.15,
-    caixa: parseWeight('cfgWeightCaixa') || 0.20,
-    endividamento: parseWeight('cfgWeightDivida') || 0.15,
-    margens: parseWeight('cfgWeightMargens') || 0.10,
-    vantagemCompetitiva: parseWeight('cfgWeightMoat') || 0.10,
-    governanca: parseWeight('cfgWeightGov') || 0.10
+    rentabilidade: parseWeight('cfgWeightRentab', 0.20),
+    crescimento: parseWeight('cfgWeightCresc', 0.15),
+    caixa: parseWeight('cfgWeightCaixa', 0.20),
+    endividamento: parseWeight('cfgWeightDivida', 0.15),
+    margens: parseWeight('cfgWeightMargens', 0.10),
+    vantagemCompetitiva: parseWeight('cfgWeightMoat', 0.10),
+    governanca: parseWeight('cfgWeightGov', 0.10)
   };
 
   appState.analysisConfig.valuationWeights = {
-    dcf: parseWeight('cfgWeightDcf') || 0.60,
-    multiples: parseWeight('cfgWeightMultiplos') || 0.40
+    dcf: parseWeight('cfgWeightDcf', 0.60),
+    multiples: parseWeight('cfgWeightMultiplos', 0.40)
   };
 
   appState.analysisConfig.investmentWeights = {
-    quality: parseWeight('cfgWeightInvQuality') || 0.40,
-    valuation: parseWeight('cfgWeightInvValuation') || 0.40,
-    thesis: parseWeight('cfgWeightInvThesis') || 0.20
+    quality: parseWeight('cfgWeightInvQuality', 0.40),
+    valuation: parseWeight('cfgWeightInvValuation', 0.40),
+    thesis: parseWeight('cfgWeightInvThesis', 0.20)
   };
 
   saveLocalState(true, true);

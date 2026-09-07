@@ -15,41 +15,18 @@ let currentAssetHealthId = null;
 /**
  * Inicializa a navegação e eventos de Apoio à Decisão
  */
+/**
+ * Inicializa a navegação e eventos de Apoio à Decisão
+ */
 function initInvestDecisionUI() {
-  renderAssetNavDrawerSubmenu();
+  // Inicialização UI
 }
 
 /**
- * Renderiza os links de cada ativo no Menu Gaveta (Menu Sanduíche)
+ * Menu gaveta simplificado sem listagem individual de ativos (conforme solicitado)
  */
 function renderAssetNavDrawerSubmenu() {
-  const container = document.getElementById('navDrawerAssetsContainer');
-  if (!container) return;
-
-  if (!appState || !Array.isArray(appState.acoes) || appState.acoes.length === 0) {
-    container.innerHTML = `<div class="text-muted text-small px-3 py-2">Nenhum ativo cadastrado.</div>`;
-    return;
-  }
-
-  container.innerHTML = appState.acoes.map((ac, idx) => {
-    const qRes = typeof calculateQualityScore === 'function' ? calculateQualityScore(ac) : null;
-    const scoreText = (qRes && qRes.score !== null) ? `${qRes.score} pts` : 'N/D';
-    const color = getPaletteColor(idx);
-
-    return `
-      <button type="button" class="nav-drawer-item" onclick="openAssetHealthDashboard('${ac.id}')" style="border-left: 3px solid ${color}; padding-left: 12px;">
-        <span class="nav-item-icon" style="font-weight: 800; font-size: 0.8rem; color: ${color}; min-width: 48px;">
-          ${ac.ticker}
-        </span>
-        <span class="nav-item-text" style="font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          ${escapeHtml(ac.nome || ac.ticker)}
-        </span>
-        <span class="badge" style="background: rgba(255,255,255,0.06); font-size: 0.7rem; margin-left: auto;">
-          ${scoreText}
-        </span>
-      </button>
-    `;
-  }).join('');
+  // Desativado a pedido do usuário para manter o menu limpo
 }
 
 /**
@@ -685,6 +662,14 @@ function renderSmartRebalancingDecision(fin) {
 
   // Tabela Ordenada por Prioridade de Aporte
   let tableHtml = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div style="font-weight: 700; color: #cbd5e1; font-size: 0.92rem; display: flex; align-items: center; gap: 6px;">
+        <span>🎯</span> Alocação Recomendada (Prioridade de Aporte)
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btnSyncAllFundamentalsRebal" onclick="syncAllAssetsFundamentals()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+        ⚡ Atualizar Fundamentos de Toda a Carteira
+      </button>
+    </div>
     <div class="table-responsive">
       <table class="data-table">
         <thead>
@@ -1245,7 +1230,7 @@ function saveBrapiTokenSetting() {
 
 /**
  * Busca os indicadores fundamentalistas mais recentes de um ativo na internet via Brapi (brapi.dev)
- * e preenche automaticamente os campos da tela de edição com feedback semafórico instantâneo.
+ * com fallback resiliente para plano gratuito/padrão, cálculo inteligente de métricas e sem apagar o token.
  */
 async function fetchFundamentalsForCurrentModal() {
   const assetId = document.getElementById('editHealthAssetId')?.value;
@@ -1266,7 +1251,7 @@ async function fetchFundamentalsForCurrentModal() {
   let token = localStorage.getItem('wingene_brapi_token');
   if (!token || token.trim() === '') {
     const entered = prompt(
-      `Para buscar os indicadores fundamentalistas de ${cleanTicker} diretamente da internet, insira seu Token gratuito da Brapi (brapi.dev):\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).`,
+      `Para buscar os indicadores de ${cleanTicker} via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em menos de 1 minuto).`,
       ''
     );
     if (entered && entered.trim()) {
@@ -1288,24 +1273,37 @@ async function fetchFundamentalsForCurrentModal() {
   }
 
   try {
-    const url = `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000);
+    // Tentativa em múltiplos endpoints (tenta módulos avançados e depois a rota padrão compatível com conta gratuita)
+    const endpointsToTry = [
+      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`,
+      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?token=${encodeURIComponent(token)}`,
+      `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}`
+    ];
 
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    let data = null;
+    let usedEndpoint = '';
 
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('wingene_brapi_token');
-        throw new Error('Token da Brapi inválido ou não autorizado. Verifique seu token em brapi.dev.');
+    for (const testUrl of endpointsToTry) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(testUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) continue;
+        const json = await res.json();
+        if (json && Array.isArray(json.results) && json.results.length > 0) {
+          data = json;
+          usedEndpoint = testUrl;
+          break;
+        }
+      } catch (e) {
+        // Fallback silencioso para o próximo endpoint
       }
-      throw new Error(`Erro na consulta da API Brapi (Status ${res.status}).`);
     }
 
-    const data = await res.json();
     if (!data || !Array.isArray(data.results) || data.results.length === 0) {
-      throw new Error(`Nenhum dado encontrado para o ticker ${cleanTicker}.`);
+      throw new Error(`Não foi possível obter dados para ${cleanTicker}. Verifique seu token nas Configurações.`);
     }
 
     const item = data.results[0];
@@ -1325,72 +1323,118 @@ async function fetchFundamentalsForCurrentModal() {
       return Math.round(parseFloat(val)).toString();
     };
 
-    // 1. Setor / Indústria
+    let filledCount = 0;
+
+    // 1. Identificar Tipo de Ativo (BDR, FII ou Ação Comum)
+    const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || 
+                  (item.longName && item.longName.toLowerCase().includes('depository receipt'));
+    const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
+
+    const tipoEl = document.getElementById('editHealthTipo');
+    if (tipoEl) {
+      if (isBdr) tipoEl.value = 'BDR';
+      else if (isFii) tipoEl.value = 'FII';
+      else tipoEl.value = 'STOCK';
+    }
+
+    // 2. Setor / Indústria
     const sectorEl = document.getElementById('editHealthSetor');
     if (sectorEl) {
       const parts = [prof.sector, prof.industry].filter(Boolean);
-      if (parts.length > 0) sectorEl.value = parts.join(' / ');
+      if (parts.length > 0) {
+        sectorEl.value = parts.join(' / ');
+        filledCount++;
+      } else if (isBdr && !sectorEl.value) {
+        sectorEl.value = 'BDR Internacional (EUA)';
+        filledCount++;
+      }
     }
 
-    // 2. Margens e Rentabilidade
+    // 3. Métricas Básicas e Derivadas da Resposta Oficial
+    const price = parseFloat(item.regularMarketPrice || 0);
+    const mCap = parseFloat(item.marketCap || 0);
+    const pe = parseFloat(item.priceEarnings || 0);
+    const eps = parseFloat(item.earningsPerShare || 0);
+
+    // Total de Ações em Circulação
+    let shares = stats.sharesOutstanding ? parseFloat(stats.sharesOutstanding) : null;
+    if (!shares && mCap > 0 && price > 0) {
+      shares = Math.round(mCap / price);
+    }
+    if (shares && shares > 0) {
+      const el = document.getElementById('editHealthShares');
+      if (el) {
+        el.value = shares.toString();
+        filledCount++;
+      }
+    }
+
+    // Lucro Líquido
+    let netIncome = stats.netIncomeToCommon ? parseFloat(stats.netIncomeToCommon) : null;
+    if (!netIncome && eps > 0 && shares > 0) {
+      netIncome = Math.round(eps * shares);
+    } else if (!netIncome && mCap > 0 && pe > 0) {
+      netIncome = Math.round(mCap / pe);
+    }
+    if (netIncome) {
+      const el = document.getElementById('editHealthNetIncome');
+      if (el) {
+        el.value = Math.round(netIncome).toString();
+        filledCount++;
+      }
+    }
+
+    // 4. Margens e Rentabilidade (se presentes)
     if (fin.profitMargins !== undefined) {
       const el = document.getElementById('editHealthNetMargin');
-      if (el) el.value = formatPctVal(fin.profitMargins);
+      if (el) { el.value = formatPctVal(fin.profitMargins); filledCount++; }
     }
     if (fin.ebitdaMargins !== undefined) {
       const el = document.getElementById('editHealthEbitdaMargin');
-      if (el) el.value = formatPctVal(fin.ebitdaMargins);
+      if (el) { el.value = formatPctVal(fin.ebitdaMargins); filledCount++; }
     }
     if (fin.returnOnEquity !== undefined) {
       const el = document.getElementById('editHealthRoe');
-      if (el) el.value = formatPctVal(fin.returnOnEquity);
+      if (el) { el.value = formatPctVal(fin.returnOnEquity); filledCount++; }
     }
     if (item.roic !== undefined || fin.returnOnAssets !== undefined) {
       const el = document.getElementById('editHealthRoic');
-      if (el) el.value = formatPctVal(item.roic !== undefined ? item.roic : fin.returnOnAssets);
+      if (el) { el.value = formatPctVal(item.roic !== undefined ? item.roic : fin.returnOnAssets); filledCount++; }
     }
 
-    // 3. Crescimentos
+    // 5. Crescimentos
     if (fin.revenueGrowth !== undefined) {
       const el = document.getElementById('editHealthRevenueGrowth');
-      if (el) el.value = formatPctVal(fin.revenueGrowth);
+      if (el) { el.value = formatPctVal(fin.revenueGrowth); filledCount++; }
     }
     if (fin.earningsGrowth !== undefined) {
       const el = document.getElementById('editHealthNetIncomeGrowth');
-      if (el) el.value = formatPctVal(fin.earningsGrowth);
+      if (el) { el.value = formatPctVal(fin.earningsGrowth); filledCount++; }
     }
 
-    // 4. Dividend Yield
+    // 6. Dividend Yield
     const dyVal = item.dividendYield !== undefined ? item.dividendYield : item.regularMarketDividendYield;
     if (dyVal !== undefined && dyVal !== null) {
       const el = document.getElementById('editHealthDividendYield');
-      if (el) el.value = formatPctVal(dyVal);
+      if (el) { el.value = formatPctVal(dyVal); filledCount++; }
     }
 
-    // 5. Totais Financeiros (R$)
+    // 7. Totais Financeiros (Receita e FCF se presentes)
     if (fin.totalRevenue) {
       const el = document.getElementById('editHealthRevenue');
-      if (el) el.value = formatIntVal(fin.totalRevenue);
-    }
-    if (stats.netIncomeToCommon || fin.netIncome) {
-      const el = document.getElementById('editHealthNetIncome');
-      if (el) el.value = formatIntVal(stats.netIncomeToCommon || fin.netIncome);
+      if (el) { el.value = formatIntVal(fin.totalRevenue); filledCount++; }
     }
     if (fin.freeCashflow) {
       const el = document.getElementById('editHealthFcf');
-      if (el) el.value = formatIntVal(fin.freeCashflow);
-    }
-    if (stats.sharesOutstanding) {
-      const el = document.getElementById('editHealthShares');
-      if (el) el.value = formatIntVal(stats.sharesOutstanding);
+      if (el) { el.value = formatIntVal(fin.freeCashflow); filledCount++; }
     }
 
-    // Dívida Líquida & Dívida Líq / EBITDA
+    // 8. Dívida Líquida & Dívida Líq / EBITDA (se presentes)
     let netDebtNum = null;
     if (fin.totalDebt !== undefined && fin.totalCash !== undefined) {
       netDebtNum = parseFloat(fin.totalDebt) - parseFloat(fin.totalCash);
       const el = document.getElementById('editHealthNetDebt');
-      if (el) el.value = formatIntVal(netDebtNum);
+      if (el) { el.value = formatIntVal(netDebtNum); filledCount++; }
     }
 
     if (netDebtNum !== null) {
@@ -1401,7 +1445,7 @@ async function fetchFundamentalsForCurrentModal() {
       if (ebitdaNum > 0) {
         const debtRatio = (netDebtNum / ebitdaNum).toFixed(1).replace('.', ',');
         const el = document.getElementById('editHealthNetDebtEbitda');
-        if (el) el.value = debtRatio;
+        if (el) { el.value = debtRatio; filledCount++; }
       }
     }
 
@@ -1412,7 +1456,15 @@ async function fetchFundamentalsForCurrentModal() {
 
     // Atualizar badges semafóricos e hipóteses em tempo real
     updateModalFundamentalBadges();
-    showToast(`Indicadores de ${cleanTicker} atualizados com sucesso da internet!`, 'success');
+
+    let detailMsg = `Dados de ${cleanTicker} atualizados!`;
+    if (pe > 0 || eps > 0) {
+      detailMsg += ` (P/L: ${pe > 0 ? pe.toFixed(1) : '-'}, LPA: R$ ${eps > 0 ? eps.toFixed(2) : '-'}, Cotação: R$ ${price.toFixed(2)})`;
+    }
+    if (isBdr) {
+      detailMsg += ` [BDR: balanço da matriz consulte em StatusInvest ↗]`;
+    }
+    showToast(detailMsg, 'success');
   } catch (err) {
     console.error('Erro ao buscar indicadores online:', err);
     showToast(err.message || 'Falha ao buscar indicadores online.', 'error');
@@ -1423,3 +1475,224 @@ async function fetchFundamentalsForCurrentModal() {
     }
   }
 }
+
+/**
+ * Atualiza os fundamentos e indicadores de TODOS os ativos da carteira em 1 clique (Sincronização em Lote)
+ * Utiliza Brapi com fallback resiliente e preservação de dados personalizados/manuais
+ */
+async function syncAllAssetsFundamentals() {
+  if (!appState || !Array.isArray(appState.acoes) || appState.acoes.length === 0) {
+    showToast('Nenhum ativo de ações encontrado na carteira.', 'warning');
+    return;
+  }
+
+  // Verificar existência de token da Brapi
+  let token = localStorage.getItem('wingene_brapi_token');
+  if (!token || token.trim() === '') {
+    const entered = prompt(
+      'Para atualizar os fundamentos de toda a carteira via Brapi (brapi.dev), insira seu Token gratuito:\n\n(Obtenha gratuitamente criando sua conta em https://brapi.dev em 1 minuto).',
+      ''
+    );
+    if (entered && entered.trim()) {
+      token = entered.trim();
+      localStorage.setItem('wingene_brapi_token', token);
+      const cfgInput = document.getElementById('cfgBrapiToken');
+      if (cfgInput) cfgInput.value = token;
+    } else {
+      showToast('Token da Brapi não informado. Cadastre-o na aba Configurações.', 'info');
+      return;
+    }
+  }
+
+  const btnAcoes = document.getElementById('btnSyncAllFundamentalsAcoes');
+  const btnRebal = document.getElementById('btnSyncAllFundamentalsRebal');
+  const origAcoesHtml = btnAcoes ? btnAcoes.innerHTML : '';
+  const origRebalHtml = btnRebal ? btnRebal.innerHTML : '';
+
+  const setButtonsState = (disabled, text) => {
+    if (btnAcoes) {
+      btnAcoes.disabled = disabled;
+      if (text) btnAcoes.innerHTML = text;
+    }
+    if (btnRebal) {
+      btnRebal.disabled = disabled;
+      if (text) btnRebal.innerHTML = text;
+    }
+  };
+
+  setButtonsState(true, '⏳ Iniciando sincronização...');
+
+  const total = appState.acoes.length;
+  let successCount = 0;
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const parseApiPct = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    const n = parseFloat(val);
+    const pct = (Math.abs(n) > 0 && Math.abs(n) < 1.0) ? (n * 100) : n;
+    return parseFloat(pct.toFixed(2));
+  };
+
+  const parseApiInt = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return null;
+    const n = parseFloat(val);
+    return Math.round(n);
+  };
+
+  for (let i = 0; i < total; i++) {
+    const asset = appState.acoes[i];
+    const rawTicker = (asset.ticker || '').trim().toUpperCase();
+    const cleanTicker = rawTicker.replace(/\.SA$/i, '');
+    if (!cleanTicker) continue;
+
+    setButtonsState(true, `⏳ Sincronizando ${cleanTicker} (${i + 1}/${total})...`);
+
+    try {
+      const endpointsToTry = [
+        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?fundamental=true&modules=summaryProfile,financialData,defaultKeyStatistics&token=${encodeURIComponent(token)}`,
+        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}?token=${encodeURIComponent(token)}`,
+        `https://brapi.dev/api/quote/${encodeURIComponent(cleanTicker)}`
+      ];
+
+      let data = null;
+      for (const testUrl of endpointsToTry) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const res = await fetch(testUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (json && Array.isArray(json.results) && json.results.length > 0) {
+            data = json;
+            break;
+          }
+        } catch (e) {
+          // Ignora e tenta o próximo endpoint
+        }
+      }
+
+      if (data && Array.isArray(data.results) && data.results.length > 0) {
+        const item = data.results[0];
+        const fin = item.financialData || {};
+        const stats = item.defaultKeyStatistics || {};
+        const prof = item.summaryProfile || {};
+
+        // 1. Identificar Tipo de Ativo
+        const isBdr = cleanTicker.endsWith('34') || cleanTicker.endsWith('35') || cleanTicker.endsWith('39') || 
+                      (item.longName && item.longName.toLowerCase().includes('depository receipt'));
+        const isFii = cleanTicker.endsWith('11') && !cleanTicker.startsWith('BOVA') && !cleanTicker.startsWith('SMAL');
+        if (!asset.tipo || asset.tipo === 'STOCK') {
+          if (isBdr) asset.tipo = 'BDR';
+          else if (isFii) asset.tipo = 'FII';
+        }
+
+        // Setor
+        if (isBdr && (!asset.setor || asset.setor.trim() === '')) {
+          asset.setor = 'BDR Internacional (EUA)';
+        } else if (prof.sector || prof.industry) {
+          asset.setor = [prof.sector, prof.industry].filter(Boolean).join(' / ');
+        }
+
+        // Cotação e Métricas
+        const price = parseFloat(item.regularMarketPrice || 0);
+        const mCap = parseFloat(item.marketCap || 0);
+        const pe = parseFloat(item.priceEarnings || 0);
+        const eps = parseFloat(item.earningsPerShare || 0);
+
+        if (price > 0) {
+          asset.precoAtual = price;
+        }
+
+        let shares = stats.sharesOutstanding ? parseFloat(stats.sharesOutstanding) : null;
+        if (!shares && mCap > 0 && price > 0) {
+          shares = Math.round(mCap / price);
+        }
+
+        let netIncome = stats.netIncomeToCommon ? parseFloat(stats.netIncomeToCommon) : null;
+        if (!netIncome && eps > 0 && shares > 0) {
+          netIncome = Math.round(eps * shares);
+        } else if (!netIncome && mCap > 0 && pe > 0) {
+          netIncome = Math.round(mCap / pe);
+        }
+
+        // Indicadores
+        const netMargin = parseApiPct(fin.profitMargins);
+        const ebitdaMargin = parseApiPct(fin.ebitdaMargins);
+        const roe = parseApiPct(fin.returnOnEquity);
+        const roic = parseApiPct(item.roic !== undefined ? item.roic : fin.returnOnAssets);
+        const revenueGrowth = parseApiPct(fin.revenueGrowth);
+        const netIncomeGrowth = parseApiPct(fin.earningsGrowth);
+        const dividendYield = parseApiPct(item.dividendYield !== undefined ? item.dividendYield : item.regularMarketDividendYield);
+        const revenue = parseApiInt(fin.totalRevenue);
+        const freeCashFlow = parseApiInt(fin.freeCashflow);
+
+        let netDebt = null;
+        let netDebtEbitda = null;
+        if (fin.totalDebt !== undefined && fin.totalCash !== undefined) {
+          netDebt = Math.round(parseFloat(fin.totalDebt) - parseFloat(fin.totalCash));
+        }
+        if (netDebt !== null) {
+          let ebitdaNum = parseFloat(fin.ebitda || 0);
+          if (ebitdaNum <= 0 && fin.totalRevenue && fin.ebitdaMargins) {
+            ebitdaNum = parseFloat(fin.totalRevenue) * parseFloat(fin.ebitdaMargins);
+          }
+          if (ebitdaNum > 0) {
+            netDebtEbitda = parseFloat((netDebt / ebitdaNum).toFixed(2));
+          }
+        }
+
+        // Mesclar no asset.fundamentals sem sobrescrever dados que a API não trouxe
+        asset.fundamentals = asset.fundamentals || {};
+        if (roic !== null) asset.fundamentals.roic = roic;
+        if (roe !== null) asset.fundamentals.roe = roe;
+        if (revenue !== null) asset.fundamentals.revenue = revenue;
+        if (revenueGrowth !== null) asset.fundamentals.revenueGrowth = revenueGrowth;
+        if (netIncome !== null) asset.fundamentals.netIncome = netIncome;
+        if (netIncomeGrowth !== null) asset.fundamentals.netIncomeGrowth = netIncomeGrowth;
+        if (freeCashFlow !== null) asset.fundamentals.freeCashFlow = freeCashFlow;
+        if (ebitdaMargin !== null) asset.fundamentals.ebitdaMargin = ebitdaMargin;
+        if (netMargin !== null) asset.fundamentals.netMargin = netMargin;
+        if (netDebt !== null) asset.fundamentals.netDebt = netDebt;
+        if (netDebtEbitda !== null) asset.fundamentals.netDebtEbitda = netDebtEbitda;
+        if (shares !== null) asset.fundamentals.sharesOutstanding = shares;
+        if (dividendYield !== null) asset.fundamentals.dividendYield = dividendYield;
+        asset.fundamentals.fundamentalsUpdatedAt = todayIso;
+
+        successCount++;
+      }
+    } catch (err) {
+      console.warn(`Erro ao sincronizar ${cleanTicker}:`, err);
+    }
+
+    // Intervalo de 250ms para evitar rate limiting da API
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+
+  // Salvar estado localmente
+  saveLocalState(true, true);
+
+  // Re-renderizar interface inteira com novos scores e prioridades calculadas
+  if (typeof renderApp === 'function') {
+    renderApp();
+  }
+
+  // Se o modal de edição de ativo estiver aberto, atualizar badges
+  if (typeof updateModalFundamentalBadges === 'function') {
+    updateModalFundamentalBadges();
+  }
+
+  // Restaurar botões
+  if (btnAcoes) {
+    btnAcoes.disabled = false;
+    btnAcoes.innerHTML = origAcoesHtml;
+  }
+  if (btnRebal) {
+    btnRebal.disabled = false;
+    btnRebal.innerHTML = origRebalHtml;
+  }
+
+  showToast(`⚡ Fundamentos de ${successCount} de ${total} ativos atualizados com sucesso!`, 'success');
+}
+

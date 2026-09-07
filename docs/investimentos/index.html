@@ -107,12 +107,6 @@
         <span class="nav-item-text">Metas & Rebalanceamento</span>
       </button>
 
-      <div class="nav-drawer-section-label mt-3" style="display: flex; align-items: center; justify-content: space-between;">
-        <span>Saúde dos Ativos</span>
-        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.65rem;">Apoio à Decisão</span>
-      </div>
-      <div id="navDrawerAssetsContainer" style="display: flex; flex-direction: column; gap: 2px;"></div>
-
       <div class="nav-drawer-section-label mt-3">Configurações & Sincronização</div>
       <button class="nav-drawer-item tab-btn" data-tab="config">
         <span class="nav-item-icon">
@@ -414,10 +408,13 @@
             <h2 class="card-title mb-1">Carteira de Ações</h2>
             <p class="text-muted text-small mb-0">Gerencie suas ações e FIIs, preços atuais, históricos (Mês/Ano Ant.) e metas de alocação.</p>
           </div>
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="text-muted text-small" id="b3CacheStatusSpanAcoes">Cache: Não sincronizado</span>
             <button type="button" class="btn btn-secondary btn-sm" id="btnSyncB3QuotesAcoes" onclick="triggerB3Sync(true)">
-              🔄 Atualizar Cotações em Tempo Real
+              🔄 Atualizar Cotações
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSyncAllFundamentalsAcoes" onclick="syncAllAssetsFundamentals()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              ⚡ Atualizar Fundamentos de Toda a Carteira
             </button>
           </div>
         </div>
