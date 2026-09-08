@@ -6,7 +6,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fábrica de Música Digital</title> 
+    <title>Fábrica de Música Digital — Wingene</title> 
+    <link rel="icon" type="image/svg+xml" href="../wingene-simplified.svg">
     <script src="https://cdn.jsdelivr.net/npm/abcjs@6.3.0/dist/abcjs-basic-min.js" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/abcjs@6.3.0/abcjs-audio.css">
     
@@ -494,11 +495,79 @@
             font-size: 14px !important;
             font-family: 'Courier New', Courier, monospace !important;
         }
+
+        /* Navegação superior discreta */
+        .musica-top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .musica-top-nav .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #475569;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .musica-top-nav .back-link:hover {
+            color: #0f172a;
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+
+        .musica-top-nav .wingene-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #475569;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s ease;
+        }
+
+        .musica-top-nav .wingene-link:hover {
+            color: #ec4899;
+            border-color: #fbcfe8;
+            background: #fdf2f8;
+        }
+
+        .musica-top-nav .wingene-logo-mini {
+            display: inline-block;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="musica-top-nav">
+        <a href="../educacao/index.html" class="back-link" title="Voltar a Recursos Educacionais">← Educação</a>
+        <a href="../index.html" class="wingene-link" title="Portal Wingene">
+            <img src="../wingene-simplified.svg" alt="" width="14" height="14" class="wingene-logo-mini">
+            <span>Wingene</span>
+        </a>
+    </div>
+
     <header>
         <h1>🎼 Estúdio Orquestra ABC</h1>
         <div class="aluno-info">

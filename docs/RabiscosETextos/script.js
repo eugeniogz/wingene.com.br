@@ -14,7 +14,6 @@ document.onkeydown = function (e) {
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 const btnLimpar = document.getElementById('btn-limpar');
-const progressCircle = document.querySelector('.ring-circle');
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -30,40 +29,19 @@ const colors = ['#000000', '#FF0000', '#0000FF', '#008000', '#FFA500', '#800080'
 let currentColorIndex = 0;
 let currentColor = colors[currentColorIndex];
 
-// --- LÓGICA DO BOTÃO "SEGURE PARA LIMPAR" ---
-let holdTimer;
-const holdDuration = 1500; 
-
-function startHold(e) {
-    e.preventDefault();
-    const startTime = Date.now();
-    holdTimer = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / holdDuration, 1);
-        progressCircle.style.strokeDashoffset = 251.2 - (progress * 251.2);
-        if (progress >= 1) {
-            limparTela();
-            stopHold();
-        }
-    }, 50);
-}
-
-function stopHold() {
-    clearInterval(holdTimer);
-    progressCircle.style.strokeDashoffset = 251.2;
-}
-
 function limparTela() {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     textHistory = [];
 }
+window.limparTela = limparTela;
 
-btnLimpar.addEventListener('mousedown', startHold);
-btnLimpar.addEventListener('mouseup', stopHold);
-btnLimpar.addEventListener('mouseleave', stopHold);
-btnLimpar.addEventListener('touchstart', startHold);
-btnLimpar.addEventListener('touchend', stopHold);
+if (btnLimpar) {
+    btnLimpar.addEventListener('click', (e) => {
+        e.preventDefault();
+        limparTela();
+    });
+}
 
 // --- INPUT E TEXTO (MAIÚSCULAS) ---
 const hiddenInput = document.createElement('input');

@@ -2,23 +2,95 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rabiscos e Textos</title>
+    <title>Desenhos e Textos — Wingene</title>
+    <link rel="icon" type="image/svg+xml" href="../wingene-simplified.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
+    <style>
+        .canvas-top-nav {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .canvas-top-nav .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #334155;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        .canvas-top-nav .back-link:hover {
+            color: #0f172a;
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .canvas-top-nav .wingene-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #334155;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            padding: 7px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+        .canvas-top-nav .wingene-link:hover {
+            color: #2563eb;
+            background: rgba(255, 255, 255, 1);
+            border-color: rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+        }
+        .canvas-top-nav .wingene-logo-mini {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
 </head>
 <body>
+    <div class="canvas-top-nav">
+        <a href="../educacao/index.html" class="back-link" title="Voltar a Recursos Educacionais">← Educação</a>
+        <a href="../index.html" class="wingene-link" title="Portal Wingene">
+            <img src="../wingene-simplified.svg" alt="" width="14" height="14" class="wingene-logo-mini">
+            <span>Wingene</span>
+        </a>
+    </div>
+
     <canvas id="canvas"></canvas>
 
     <div id="btn-limpar-container">
-        <svg id="progress-ring" width="90" height="90">
-            <circle class="ring-circle" stroke="#ff4d4d" stroke-width="6" fill="transparent" r="40" cx="45" cy="45"/>
-        </svg>
-        <button id="btn-limpar">SEGURE<br>PARA LIMPAR</button>
+        <button id="btn-limpar" title="Limpar tela" onclick="limparTela()">Limpar</button>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20260908_2"></script>
 </body>
 </html>

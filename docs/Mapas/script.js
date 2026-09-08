@@ -13,6 +13,7 @@ let visitedPathCells = new Set();
 let permanentTrees = new Set();
 let flashlightUsedCells = new Set();
 const maxFlashlightUses = 5;
+let stepsSinceRecharge = 0;
 
 function updateScoreUI() {
     if (scoreValueDisplay) scoreValueDisplay.innerText = score;
@@ -28,6 +29,9 @@ function updateFlashlightUI() {
             } else {
                 html += '<span style="opacity: 0.25; filter: grayscale(100%);">🔦</span> ';
             }
+        }
+        if (remaining < maxFlashlightUses) {
+            html += `<span style="font-size: 0.8rem; color: #64748b; font-weight: normal; margin-left: 6px;">(${stepsSinceRecharge}/5 casas p/ recarregar)</span>`;
         }
         flashlightDisplay.innerHTML = html.trim();
     }
@@ -49,6 +53,7 @@ function initGame(newMap = false, start = true) {
     visitedPathCells.add(`${playerPos.x},${playerPos.y}`);
     permanentTrees = new Set();
     flashlightUsedCells = new Set();
+    stepsSinceRecharge = 0;
     gameActive = true;
     msgDisplay.innerText = '';
     score = 0;
@@ -105,13 +110,14 @@ function handleCellHover(x, y) {
             cell.innerText = '🌳';
         }
     } else {
-        msgDisplay.innerText = "LANTERNA SEM BATERIA! 🔋";
+        const needed = 5 - stepsSinceRecharge;
+        msgDisplay.innerText = `LANTERNA SEM BATERIA! ANDE MAIS ${needed} ${needed === 1 ? 'CASA' : 'CASAS'} P/ RECARREGAR! 🔋`;
         msgDisplay.style.color = "orange";
         setTimeout(() => {
-            if (msgDisplay.innerText === "LANTERNA SEM BATERIA! 🔋") {
+            if (msgDisplay.innerText.includes("LANTERNA SEM BATERIA")) {
                 msgDisplay.innerText = "";
             }
-        }, 2000);
+        }, 2500);
     }
 }
 
@@ -134,37 +140,24 @@ function updatePlayerUI() {
     if (pCell) pCell.innerText = '🐶';
 }
 
-// Configuração do Clique Longo (Mesma lógica do seu quadro branco)
-function setupLongPress(btnId, ringId, callback) {
-    const btn = document.getElementById(btnId);
-    const ring = document.getElementById(ringId);
-    let timer;
-    const duration = 1200;
+// Configuração dos botões com clique simples
+window.initGame = initGame;
+const btnReiniciar = document.getElementById('btn-reiniciar');
+const btnNovo = document.getElementById('btn-novo');
 
-    if (!btn || !ring) return;
-
-    const start = (e) => {
+if (btnReiniciar) {
+    btnReiniciar.addEventListener('click', (e) => {
         e.preventDefault();
-        const startTime = Date.now();
-        timer = setInterval(() => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            ring.style.strokeDashoffset = 219.9 - (progress * 219.9);
-            if (progress >= 1) { clearInterval(timer); ring.style.strokeDashoffset = 219.9; callback(); }
-        }, 50);
-    };
-
-    const stop = () => { clearInterval(timer); ring.style.strokeDashoffset = 219.9; };
-
-    btn.addEventListener('mousedown', start);
-    btn.addEventListener('mouseup', stop);
-    btn.addEventListener('mouseleave', stop);
-    btn.addEventListener('touchstart', start);
-    btn.addEventListener('touchend', stop);
+        initGame(false, false);
+    });
 }
 
-setupLongPress('btn-reiniciar', 'ring-reiniciar', () => initGame(false, false));
-setupLongPress('btn-novo', 'ring-novo', () => initGame(true, false));
+if (btnNovo) {
+    btnNovo.addEventListener('click', (e) => {
+        e.preventDefault();
+        initGame(true, false);
+    });
+}
 
 // D-Pad para celular
 function simulateKey(key) {
@@ -241,6 +234,25 @@ window.addEventListener('keydown', (e) => {
                     updateScoreUI();
                 }
             }
+
+            // Recarga total da lanterna ao andar 5 casas
+            if (flashlightUsedCells.size > 0) {
+                stepsSinceRecharge++;
+                if (stepsSinceRecharge >= 5) {
+                    stepsSinceRecharge = 0;
+                    flashlightUsedCells.clear();
+                    msgDisplay.innerText = "LANTERNA TOTALMENTE RECARREGADA! 🔦⚡";
+                    msgDisplay.style.color = "#0284c7";
+                    setTimeout(() => {
+                        if (msgDisplay.innerText.includes("LANTERNA TOTALMENTE RECARREGADA")) {
+                            msgDisplay.innerText = "";
+                        }
+                    }, 2500);
+                }
+            } else {
+                stepsSinceRecharge = 0;
+            }
+            updateFlashlightUI();
             const lastPathPos = currentPath[currentPath.length - 1];
             if (playerPos.x === parseInt(lastPathPos.split(',')[0]) && playerPos.y === parseInt(lastPathPos.split(',')[1])) { 
                 // Preenche a linha de chegada com árvores nas células que não são do caminho

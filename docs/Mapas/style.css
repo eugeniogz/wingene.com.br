@@ -14,6 +14,66 @@ body {
     min-height: 100dvh;
 }
 
+/* Navegação superior discreta */
+.page-top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 0 6px 0;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
+    color: #0f172a;
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.wingene-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #475569;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.wingene-link:hover {
+    color: #2563eb;
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.wingene-logo-mini {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 #info {
     text-align: center;
     margin-top: 10px;
@@ -95,25 +155,36 @@ body {
 }
 
 .btn-wrapper {
-    position: relative;
-    width: 80px;
-    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .control-btn {
-    width: 64px;
-    height: 64px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     border: none;
     color: white;
     font-weight: bold;
-    font-size: 9px;
+    font-size: 11px;
     cursor: pointer;
-    z-index: 2;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease, filter 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.control-btn:hover {
+    transform: scale(1.06);
+    filter: brightness(1.08);
+}
+
+.control-btn:active {
+    transform: scale(0.95);
 }
 
 #btn-reiniciar {
@@ -122,18 +193,6 @@ body {
 
 #btn-novo {
     background-color: #4CAF50;
-}
-
-.progress-ring {
-    position: absolute;
-    transform: rotate(-90deg);
-    z-index: 1;
-}
-
-.ring-circle {
-    transition: stroke-dashoffset 0.1s linear;
-    stroke-dasharray: 219.9;
-    stroke-dashoffset: 219.9;
 }
 
 /* D-Pad para celular */
@@ -232,9 +291,9 @@ body {
     }
 
     .control-btn {
-        width: 56px;
-        height: 56px;
-        font-size: 8px;
+        width: 58px;
+        height: 58px;
+        font-size: 9.5px;
     }
 
     #dpad {

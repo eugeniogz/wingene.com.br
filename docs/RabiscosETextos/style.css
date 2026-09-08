@@ -11,41 +11,105 @@ canvas {
     display: block;
 }
 
+/* Navegação superior flutuante e discreta */
+.canvas-top-nav {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.wingene-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.wingene-link:hover {
+    color: #2563eb;
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.wingene-logo-mini {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* Interface do Botão de Limpar */
 #btn-limpar-container {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    width: 90px;
-    height: 90px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    z-index: 10;
     user-select: none;
 }
 
 #btn-limpar {
-    width: 70px;
-    height: 70px;
+    width: 68px;
+    height: 68px;
     background-color: #ff4d4d;
     border-radius: 50%;
     border: none;
     color: white;
     font-weight: bold;
-    font-size: 10px;
+    font-size: 13px;
     cursor: pointer;
-    z-index: 2;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(255, 77, 77, 0.4);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-#progress-ring {
-    position: absolute;
-    transform: rotate(-90deg);
-    z-index: 1;
+#btn-limpar:hover {
+    background-color: #ef4444;
+    transform: scale(1.06);
 }
 
-.ring-circle {
-    transition: stroke-dashoffset 0.1s linear;
-    stroke-dasharray: 251.2; /* Circunferência: 2 * PI * 40 */
-    stroke-dashoffset: 251.2;
+#btn-limpar:active {
+    transform: scale(0.95);
 }

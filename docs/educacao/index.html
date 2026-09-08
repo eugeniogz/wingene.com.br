@@ -64,6 +64,15 @@
         .icon-musica {
             background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
         }
+        .nav-brand-logo {
+            width: 28px;
+            height: 28px;
+            display: block;
+            transition: transform 0.2s ease;
+        }
+        .nav-brand:hover .nav-brand-logo {
+            transform: scale(1.08);
+        }
     </style>
 </head>
 <body>
@@ -75,6 +84,7 @@
     <nav class="navbar scrolled" id="navbar">
         <div class="nav-container">
             <a href="../index.html" class="nav-brand">
+                <img src="../wingene-simplified.svg" alt="Wingene" width="28" height="28" class="nav-brand-logo">
                 <span class="brand-text">WINGENE</span>
             </a>
             <div class="nav-links">
@@ -93,13 +103,13 @@
             </div>
             
             <div class="vida-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
-                <!-- Card Mapas -->
+                <!-- Card Trilha Secreta -->
                 <a href="../Mapas/index.html" class="card glassmorphism vida-card" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
                     <div class="card-icon-wrap icon-mapas">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 4L9 7"/></svg>
                     </div>
-                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Mapas <span class="card-arrow">→</span></h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Mapas educacionais interativos projetados para o aprendizado e exploração geográfica das crianças.</p>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Trilha Secreta <span class="card-arrow">→</span></h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Descubra o caminho oculto desviando das árvores com o auxílio da lanterna para levar o cãozinho até a casinha.</p>
                 </a>
 
                 <!-- Card Rabiscos e Textos -->
@@ -107,7 +117,7 @@
                     <div class="card-icon-wrap icon-rabiscos">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </div>
-                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Rabiscos e Textos <span class="card-arrow">→</span></h3>
+                    <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Desenhos e Textos<span class="card-arrow">→</span></h3>
                     <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Exercícios simples de desenho com o mouse e escrita no teclado.</p>
                 </a>
 
