@@ -674,6 +674,83 @@ h1, h2, h3, h4 {
     text-align: center;
 }
 
+/* Cards de Fundamentos Filosóficos (English Portal) */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2.5rem;
+    margin-bottom: 2rem;
+}
+
+.cards-grid .card {
+    padding: 2.5rem 2.2rem 2.4rem 2.2rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.cards-grid .card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass-hover);
+    color: var(--text-secondary);
+    margin-bottom: 1.4rem;
+    transition: var(--transition-quick);
+}
+
+.cards-grid .card-icon svg {
+    display: block;
+}
+
+.cards-grid .card h3 {
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 0.35rem;
+    color: var(--text-primary);
+}
+
+.cards-grid .card-subtitle {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+    color: var(--text-muted);
+}
+
+.cards-grid .card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+
+/* Destaque sutil no hover dos cards */
+.cards-grid .card:nth-child(1):hover .card-icon {
+    border-color: var(--color-valores);
+    color: var(--color-valores);
+    background: var(--color-valores-glow);
+}
+
+.cards-grid .card:nth-child(2):hover .card-icon {
+    border-color: var(--color-decisoes);
+    color: var(--color-decisoes);
+    background: var(--color-decisoes-glow);
+}
+
+.cards-grid .card:nth-child(3):hover .card-icon {
+    border-color: var(--color-atencao);
+    color: var(--color-atencao);
+    background: var(--color-atencao-glow);
+}
+
 /* Seção O Método VIDA */
 .vida-section {
     background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
@@ -798,6 +875,61 @@ h1, h2, h3, h4 {
 .link-atencao { color: var(--color-atencao); }
 .link-atencao:hover { color: var(--text-primary); }
 
+/* Callout Interativo: Wingene VIDA App */
+.vida-app-callout {
+    margin-top: 3rem;
+    padding: 2.2rem 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border-glass-hover);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.05) 100%), var(--bg-card);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+    transition: var(--transition-smooth);
+}
+
+.vida-app-callout:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 12px 36px 0 rgba(37, 99, 235, 0.15);
+}
+
+.vida-app-content {
+    flex: 1;
+}
+
+.vida-app-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    align-items: center;
+}
+
+.vida-app-badges .badge-lang-tag {
+    margin-left: 0;
+}
+
+.vida-app-callout h3 {
+    font-size: 1.45rem;
+    margin-top: 0;
+    margin-bottom: 0.4rem;
+    color: var(--text-primary);
+}
+
+.vida-app-callout p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.vida-app-action {
+    flex-shrink: 0;
+}
+
 /* Seção Mapa de Conteúdo (Tópicos do Acervo) */
 .content-directory-section {
     background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
@@ -823,6 +955,17 @@ h1, h2, h3, h4 {
     padding-bottom: 0.8rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.topic-group-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
 }
 
 .topic-card {
@@ -925,6 +1068,10 @@ h1, h2, h3, h4 {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-color);
     border-color: var(--btn-primary-border);
+}
+
+.quote-btn svg {
+    display: block;
 }
 
 /* Rodapé */
@@ -1100,6 +1247,31 @@ h1, h2, h3, h4 {
     .vida-grid {
         grid-template-columns: 1fr;
     }
+
+    .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .cards-grid .card {
+        padding: 2rem 1.6rem;
+    }
+
+    .vida-app-callout {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.8rem 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .vida-app-action {
+        width: 100%;
+    }
+
+    .vida-app-action .btn {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* Animações de entrada gerais */
@@ -1200,8 +1372,15 @@ h1, h2, h3, h4 {
 }
 
 .lang-notice-icon {
-    font-size: 1.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-atencao);
     flex-shrink: 0;
+}
+
+.lang-notice-icon svg {
+    display: block;
 }
 
 .badge-lang-tag {
@@ -1270,8 +1449,15 @@ h1, h2, h3, h4 {
 }
 
 .featured-essay-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.8rem;
     color: var(--text-muted);
     font-weight: 600;
+}
+
+.featured-essay-time svg {
+    display: block;
 }
 

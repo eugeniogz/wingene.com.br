@@ -94,7 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "Recordar: seiva que adoça a alegria.",
         "Pilares da felicidade: Criar, Amar, Recordar e Evoluir.",
         "Viver tece tons indescritíveis.",
-        "Paciência: quando a razão respira."
+        "Paciência: quando a razão respira.",
+        "Que nossa breve passagem seja mais que travessia — compassos que ecoem na música universal."
     ];
 
     let currentQuoteIndex = 0;
