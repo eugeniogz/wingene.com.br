@@ -19,7 +19,7 @@
   <link rel="manifest" href="manifest.json" />
 
   <!-- Estilos da Aplicação -->
-  <link rel="stylesheet" href="style.css?v=2.8.6" />
+  <link rel="stylesheet" href="style.css?v=2.9.2" />
 
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1305,14 +1305,26 @@
     </div>
   </div>
 
+  <!-- Barra de Ferramentas Matemática Flutuante para Teclado Mobile -->
+  <div id="mathInputToolbar" class="math-input-toolbar" style="display: none;" role="toolbar" aria-label="Operadores matemáticos">
+    <button type="button" class="btn-math-op" data-insert="+" title="Adição (+)">+</button>
+    <button type="button" class="btn-math-op" data-insert="-" title="Subtração (−)">−</button>
+    <button type="button" class="btn-math-op" data-insert="*" title="Multiplicação (×)">×</button>
+    <button type="button" class="btn-math-op" data-insert="/" title="Divisão (÷)">÷</button>
+    <button type="button" class="btn-math-op" data-insert="(" title="Abre Parênteses">(</button>
+    <button type="button" class="btn-math-op" data-insert=")" title="Fecha Parênteses">)</button>
+    <button type="button" class="btn-math-op btn-math-calc" data-action="calc" title="Calcular Expressão (=)">=</button>
+    <button type="button" class="btn-math-op btn-math-mode" data-action="toggle-mode" title="Alternar teclado numérico/alfanumérico">⌨️ ABC</button>
+  </div>
+
   <!-- Scripts da Aplicação & Módulos de Apoio à Decisão -->
-  <script src="invest-config.js?v=2.9.1"></script>
-  <script src="invest-quality.js?v=2.9.1"></script>
-  <script src="invest-valuation.js?v=2.9.1"></script>
-  <script src="invest-thesis.js?v=2.9.1"></script>
-  <script src="invest-decision.js?v=2.9.1"></script>
-  <script src="invest-ui.js?v=2.9.1"></script>
-  <script src="drive-sync.js?v=2.9.1"></script>
-  <script src="app.js?v=2.9.1"></script>
+  <script src="invest-config.js?v=2.9.2"></script>
+  <script src="invest-quality.js?v=2.9.2"></script>
+  <script src="invest-valuation.js?v=2.9.2"></script>
+  <script src="invest-thesis.js?v=2.9.2"></script>
+  <script src="invest-decision.js?v=2.9.2"></script>
+  <script src="invest-ui.js?v=2.9.2"></script>
+  <script src="drive-sync.js?v=2.9.2"></script>
+  <script src="app.js?v=2.9.2"></script>
 </body>
 </html>

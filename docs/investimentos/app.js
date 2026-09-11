@@ -883,6 +883,9 @@ function setupEventListeners() {
 }
 
 function setupMathExpressionInputListeners() {
+  let activeMathInputElement = null;
+  const toolbar = document.getElementById('mathInputToolbar');
+
   function isNumericMathInput(target) {
     if (!target || target.tagName !== 'INPUT') return false;
     if (target.type === 'password' || target.type === 'file' || target.type === 'checkbox' || target.type === 'radio' || target.type === 'hidden') {
@@ -900,24 +903,140 @@ function setupMathExpressionInputListeners() {
       return false;
     }
 
-    // Apenas inputs numéricos ou com inputmode decimal ou ids específicos de valores numéricos
-    if (target.getAttribute('inputmode') === 'decimal' || target.type === 'number') {
+    // Apenas inputs numéricos ou com inputmode decimal, marcados como math input ou ids específicos de valores numéricos
+    if (target.getAttribute('inputmode') === 'decimal' || target.type === 'number' || target.getAttribute('data-math-input') === 'true') {
       return true;
     }
 
-    if (id.includes('valor') || id.includes('preco') || id.includes('qtd') || id.includes('meta') || id.includes('rendimento') || id.includes('valmes') || id.includes('valano')) {
+    if (id.includes('valor') || id.includes('preco') || id.includes('qtd') || id.includes('meta') || 
+        id.includes('rendimento') || id.includes('valmes') || id.includes('valano') || id.includes('threshold') ||
+        id.includes('weight') || id.includes('pe') || id.includes('eps') || id.includes('roe') || id.includes('roic') ||
+        target.classList.contains('check-threshold')) {
       return true;
     }
 
     return false;
   }
 
+  function updateMathToolbarPosition() {
+    if (!toolbar || toolbar.style.display === 'none') return;
+    if (window.visualViewport) {
+      // In iOS Safari e Android Chrome, compensa a altura do teclado virtual na tela
+      const offsetBottom = Math.max(0, window.innerHeight - (window.visualViewport.offsetTop + window.visualViewport.height));
+      toolbar.style.bottom = `${offsetBottom}px`;
+    } else {
+      toolbar.style.bottom = '0px';
+    }
+  }
+
+  function showMathToolbarFor(input) {
+    if (!toolbar || !input) return;
+    activeMathInputElement = input;
+    input.setAttribute('data-math-input', 'true');
+
+    // Atualiza estado visual do alternador de teclado (ABC / 123)
+    const modeBtn = toolbar.querySelector('.btn-math-mode');
+    if (modeBtn) {
+      const isText = input.getAttribute('inputmode') === 'text';
+      modeBtn.innerHTML = isText ? '🔢 123' : '⌨️ ABC';
+      modeBtn.setAttribute('title', isText ? 'Alternar para teclado numérico' : 'Alternar para teclado completo');
+    }
+
+    toolbar.style.display = 'flex';
+    updateMathToolbarPosition();
+  }
+
+  function hideMathToolbar() {
+    if (!toolbar) return;
+    toolbar.style.display = 'none';
+    activeMathInputElement = null;
+  }
+
+  // Interceptar toques/cliques na barra para JAMAIS tirar o foco do input ativo nem fechar o teclado virtual
+  if (toolbar) {
+    const preventToolbarBlur = (e) => {
+      // Permite clicar nos botões sem desfocar o input
+      e.preventDefault();
+    };
+    toolbar.addEventListener('mousedown', preventToolbarBlur);
+    toolbar.addEventListener('touchstart', preventToolbarBlur, { passive: false });
+    toolbar.addEventListener('pointerdown', preventToolbarBlur);
+
+    toolbar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-math-op');
+      if (!btn || !activeMathInputElement) return;
+
+      const insertText = btn.getAttribute('data-insert');
+      const action = btn.getAttribute('data-action');
+
+      if (insertText) {
+        const input = activeMathInputElement;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? input.value.length;
+        const original = input.value;
+        input.value = original.substring(0, start) + insertText + original.substring(end);
+        const newPos = start + insertText.length;
+        if (typeof input.setSelectionRange === 'function') {
+          input.setSelectionRange(newPos, newPos);
+        }
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (action === 'calc') {
+        const input = activeMathInputElement;
+        const calcVal = parsePtBrFloat(input.value);
+        if (!isNaN(calcVal)) {
+          input.value = calcVal.toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false });
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      } else if (action === 'toggle-mode') {
+        const input = activeMathInputElement;
+        const curMode = input.getAttribute('inputmode') || 'decimal';
+        const newMode = (curMode === 'text') ? 'decimal' : 'text';
+        input.setAttribute('inputmode', newMode);
+        input.setAttribute('data-math-input', 'true');
+        btn.innerHTML = newMode === 'text' ? '🔢 123' : '⌨️ ABC';
+        btn.setAttribute('title', newMode === 'text' ? 'Alternar para teclado numérico' : 'Alternar para teclado completo');
+        
+        // Breve alternância de foco para o sistema operacional mobile atualizar o layout do teclado
+        input.blur();
+        setTimeout(() => {
+          input.focus();
+        }, 60);
+      }
+    });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateMathToolbarPosition);
+      window.visualViewport.addEventListener('scroll', updateMathToolbarPosition);
+    }
+    window.addEventListener('resize', updateMathToolbarPosition);
+    window.addEventListener('scroll', updateMathToolbarPosition, { passive: true });
+  }
+
+  // Monitorar foco para exibir ou ocultar a barra de ferramentas matemática
+  document.addEventListener('focusin', (e) => {
+    const target = e.target;
+    if (isNumericMathInput(target)) {
+      showMathToolbarFor(target);
+    }
+  });
+
+  document.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (document.activeElement && isNumericMathInput(document.activeElement)) {
+        showMathToolbarFor(document.activeElement);
+      } else {
+        hideMathToolbar();
+      }
+    }, 150);
+  });
+
   document.addEventListener('input', (e) => {
     const target = e.target;
     if (!isNumericMathInput(target)) return;
 
     const val = target.value;
-    const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
+    const normalizedVal = val.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+    const sansLeadingSign = normalizedVal.replace(/^[\s+\-]+/, '');
     const hasOperators = /[+\-*\/]/.test(sansLeadingSign);
 
     let hintEl = target.parentElement ? target.parentElement.querySelector('.math-expr-hint') : null;
@@ -950,7 +1069,8 @@ function setupMathExpressionInputListeners() {
     if (!isNumericMathInput(target)) return;
 
     const val = target.value;
-    const sansLeadingSign = val.replace(/^[\s+\-]+/, '');
+    const normalizedVal = val.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+    const sansLeadingSign = normalizedVal.replace(/^[\s+\-]+/, '');
     const hasOperators = /[+\-*\/]/.test(sansLeadingSign);
 
     if (hasOperators) {
@@ -1849,6 +1969,8 @@ function parsePtBrFloat(val) {
   if (!str) return NaN;
 
   str = str.replace(/[R$]/gi, '').trim();
+  // Normalizar caracteres de multiplicação, divisão e subtração comuns em teclados mobile
+  str = str.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
   if (!/[0-9]/.test(str)) return NaN;
 
   const sansLeadingSign = str.replace(/^[\s+\-]+/, '');
