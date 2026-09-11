@@ -12,6 +12,82 @@
     <link rel="alternate" hreflang="en" href="https://wingene.com.br/en/">
     <link rel="alternate" hreflang="x-default" href="https://wingene.com.br/">
     
+    <!-- Google Analytics (GA4) com suporte a Modo Administrador e Cookie Compartilhado -->
+    <script>
+      (function() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var cookieDomain = window.location.hostname.endsWith('wingene.com.br') ? '; domain=.wingene.com.br' : '';
+
+          if (params.get('admin') === '1') {
+            localStorage.setItem('ignore_analytics', 'true');
+            document.cookie = 'ignore_analytics=true' + cookieDomain + '; path=/; max-age=31536000; SameSite=Lax';
+            alert('Google Analytics: Acessos deste navegador foram BLOQUEADOS (Modo Administrador ativado).');
+            params.delete('admin');
+            var newSearch = params.toString() ? '?' + params.toString() : '';
+            window.history.replaceState({}, document.title, window.location.pathname + newSearch + window.location.hash);
+          } else if (params.get('admin') === '0') {
+            localStorage.removeItem('ignore_analytics');
+            document.cookie = 'ignore_analytics=' + cookieDomain + '; path=/; max-age=0; SameSite=Lax';
+            alert('Google Analytics: Acessos deste navegador voltaram a ser CONTABILIZADOS.');
+            params.delete('admin');
+            var newSearch = params.toString() ? '?' + params.toString() : '';
+            window.history.replaceState({}, document.title, window.location.pathname + newSearch + window.location.hash);
+          }
+
+          var isIgnored = localStorage.getItem('ignore_analytics') === 'true' ||
+                          document.cookie.indexOf('ignore_analytics=true') !== -1;
+
+          if (isIgnored) {
+            window['ga-disable-G-VV8V7GTRPD'] = true;
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function() {};
+            console.info('[Google Analytics] Desativado para este navegador (Modo Administrador).');
+
+            if (!sessionStorage.getItem('ga_disabled_notified')) {
+              sessionStorage.setItem('ga_disabled_notified', 'true');
+              var showNotice = function() {
+                var notice = document.createElement('div');
+                notice.id = 'ga-disabled-badge';
+                notice.innerHTML = '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b;"></span> Analytics: Disabled';
+                notice.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:999999;background:rgba(15,23,42,0.88);color:#cbd5e1;padding:6px 12px;border-radius:20px;font-family:system-ui,-apple-system,sans-serif;font-size:11px;font-weight:500;letter-spacing:0.02em;box-shadow:0 4px 14px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(6px);display:flex;align-items:center;gap:7px;pointer-events:none;opacity:0;transform:translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease;';
+                document.body.appendChild(notice);
+                setTimeout(function() {
+                  notice.style.opacity = '1';
+                  notice.style.transform = 'translateY(0)';
+                }, 100);
+                setTimeout(function() {
+                  notice.style.opacity = '0';
+                  notice.style.transform = 'translateY(8px)';
+                  setTimeout(function() {
+                    if (notice.parentNode) notice.parentNode.removeChild(notice);
+                  }, 500);
+                }, 4000);
+              };
+
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', showNotice);
+              } else {
+                showNotice();
+              }
+            }
+            return;
+          }
+        } catch (e) {}
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-VV8V7GTRPD';
+        document.head.appendChild(script);
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', 'G-VV8V7GTRPD');
+      })();
+    </script>
+
     <!-- Detecção automática de idioma e redirecionamento -->
     <script>
     (function() {
@@ -24,13 +100,13 @@
             }
             if (langParam === 'en') {
                 localStorage.setItem('wingene_lang', 'en');
-                window.location.replace('en/');
+                window.location.replace('en/' + window.location.search);
                 return;
             }
 
             const savedLang = localStorage.getItem('wingene_lang');
             if (savedLang === 'en') {
-                window.location.replace('en/');
+                window.location.replace('en/' + window.location.search);
                 return;
             }
             if (savedLang === 'pt') {
@@ -40,7 +116,7 @@
             const userLangs = navigator.languages || [navigator.language || navigator.userLanguage || ''];
             const primaryLang = userLangs[0] ? userLangs[0].toLowerCase() : '';
             if (primaryLang.startsWith('en')) {
-                window.location.replace('en/');
+                window.location.replace('en/' + window.location.search);
             }
         } catch(e) {}
     })();
@@ -112,75 +188,6 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="wingene-simplified.svg">
-
-    <!-- Google Analytics (GA4) com suporte a Modo Administrador -->
-    <script>
-      (function() {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          if (params.get('admin') === '1') {
-            localStorage.setItem('ignore_analytics', 'true');
-            alert('Google Analytics: Acessos deste navegador foram BLOQUEADOS (Modo Administrador ativado).');
-            params.delete('admin');
-            var newSearch = params.toString() ? '?' + params.toString() : '';
-            window.history.replaceState({}, document.title, window.location.pathname + newSearch + window.location.hash);
-          } else if (params.get('admin') === '0') {
-            localStorage.removeItem('ignore_analytics');
-            alert('Google Analytics: Acessos deste navegador voltaram a ser CONTABILIZADOS.');
-            params.delete('admin');
-            var newSearch = params.toString() ? '?' + params.toString() : '';
-            window.history.replaceState({}, document.title, window.location.pathname + newSearch + window.location.hash);
-          }
-
-          if (localStorage.getItem('ignore_analytics') === 'true') {
-            window['ga-disable-G-VV8V7GTRPD'] = true;
-            window.dataLayer = window.dataLayer || [];
-            window.gtag = function() {};
-            console.info('[Google Analytics] Desativado para este navegador (Modo Administrador).');
-
-            if (!sessionStorage.getItem('ga_disabled_notified')) {
-              sessionStorage.setItem('ga_disabled_notified', 'true');
-              var showNotice = function() {
-                var notice = document.createElement('div');
-                notice.id = 'ga-disabled-badge';
-                notice.innerHTML = '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#f59e0b;box-shadow:0 0 6px #f59e0b;"></span> Analytics: Disabled';
-                notice.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:999999;background:rgba(15,23,42,0.88);color:#cbd5e1;padding:6px 12px;border-radius:20px;font-family:system-ui,-apple-system,sans-serif;font-size:11px;font-weight:500;letter-spacing:0.02em;box-shadow:0 4px 14px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(6px);display:flex;align-items:center;gap:7px;pointer-events:none;opacity:0;transform:translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease;';
-                document.body.appendChild(notice);
-                setTimeout(function() {
-                  notice.style.opacity = '1';
-                  notice.style.transform = 'translateY(0)';
-                }, 100);
-                setTimeout(function() {
-                  notice.style.opacity = '0';
-                  notice.style.transform = 'translateY(8px)';
-                  setTimeout(function() {
-                    if (notice.parentNode) notice.parentNode.removeChild(notice);
-                  }, 500);
-                }, 4000);
-              };
-
-              if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', showNotice);
-              } else {
-                showNotice();
-              }
-            }
-            return;
-          }
-        } catch (e) {}
-
-        var script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-VV8V7GTRPD';
-        document.head.appendChild(script);
-
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        window.gtag = gtag;
-        gtag('js', new Date());
-        gtag('config', 'G-VV8V7GTRPD');
-      })();
-    </script>
 </head>
 <body>
 
