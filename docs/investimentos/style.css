@@ -1815,11 +1815,12 @@ select.form-control {
 }
 
 .btn-math-op:hover,
-.btn-math-op:active {
-  background: rgba(255, 255, 255, 0.22);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.5);
-  transform: scale(1.06);
+.btn-math-op:active,
+.btn-math-op.is-pressed {
+  background: rgba(255, 255, 255, 0.28) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.7) !important;
+  transform: scale(0.92) !important;
 }
 
 .btn-math-calc {
@@ -1830,10 +1831,12 @@ select.form-control {
 }
 
 .btn-math-calc:hover,
-.btn-math-calc:active {
-  background: #10b981;
-  color: #ffffff;
-  border-color: #34d399;
+.btn-math-calc:active,
+.btn-math-calc.is-pressed {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #34d399 !important;
+  transform: scale(0.92) !important;
 }
 
 .btn-math-mode {
@@ -1847,10 +1850,12 @@ select.form-control {
 }
 
 .btn-math-mode:hover,
-.btn-math-mode:active {
-  background: rgba(99, 102, 241, 0.4);
-  color: #ffffff;
-  border-color: rgba(129, 140, 248, 0.6);
+.btn-math-mode:active,
+.btn-math-mode.is-pressed {
+  background: rgba(99, 102, 241, 0.5) !important;
+  color: #ffffff !important;
+  border-color: rgba(129, 140, 248, 0.8) !important;
+  transform: scale(0.92) !important;
 }
 
 @media (max-width: 520px) {

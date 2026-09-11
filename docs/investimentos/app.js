@@ -952,56 +952,109 @@ function setupMathExpressionInputListeners() {
     activeMathInputElement = null;
   }
 
-  // Interceptar toques/cliques na barra para JAMAIS tirar o foco do input ativo nem fechar o teclado virtual
-  if (toolbar) {
-    const preventToolbarBlur = (e) => {
-      // Permite clicar nos botões sem desfocar o input
-      e.preventDefault();
-    };
-    toolbar.addEventListener('mousedown', preventToolbarBlur);
-    toolbar.addEventListener('touchstart', preventToolbarBlur, { passive: false });
-    toolbar.addEventListener('pointerdown', preventToolbarBlur);
+  let isInteractingWithToolbar = false;
+  let lastActionTimestamp = 0;
 
+  function resolveActiveInput() {
+    if (activeMathInputElement && document.body.contains(activeMathInputElement)) {
+      return activeMathInputElement;
+    }
+    if (document.activeElement && isNumericMathInput(document.activeElement)) {
+      activeMathInputElement = document.activeElement;
+      return activeMathInputElement;
+    }
+    // Procura no modal aberto no momento
+    const openModal = document.querySelector('.modal-backdrop[style*="display: flex"], .modal-backdrop:not([style*="display: none"])');
+    if (openModal) {
+      const candidate = openModal.querySelector('input[data-math-input="true"], input[inputmode="decimal"], input[id*="Valor"], input[id*="Preco"], input[id*="Qtd"]');
+      if (candidate) {
+        activeMathInputElement = candidate;
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  function handleToolbarButtonPress(btn) {
+    if (!btn) return;
+    const now = Date.now();
+    if (now - lastActionTimestamp < 220) return;
+    lastActionTimestamp = now;
+
+    // Feedback visual imediato e tátil no toque (.is-pressed)
+    btn.classList.add('is-pressed');
+    setTimeout(() => btn.classList.remove('is-pressed'), 180);
+
+    const input = resolveActiveInput();
+    if (!input) return;
+
+    const insertText = btn.getAttribute('data-insert');
+    const action = btn.getAttribute('data-action');
+
+    if (insertText) {
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      const original = input.value;
+      input.value = original.substring(0, start) + insertText + original.substring(end);
+      const newPos = start + insertText.length;
+      if (typeof input.setSelectionRange === 'function') {
+        input.setSelectionRange(newPos, newPos);
+      }
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (action === 'calc') {
+      const calcVal = parsePtBrFloat(input.value);
+      if (!isNaN(calcVal)) {
+        input.value = calcVal.toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false });
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } else if (action === 'toggle-mode') {
+      const curMode = input.getAttribute('inputmode') || 'decimal';
+      const newMode = (curMode === 'text') ? 'decimal' : 'text';
+      input.setAttribute('inputmode', newMode);
+      input.setAttribute('data-math-input', 'true');
+      btn.innerHTML = newMode === 'text' ? '🔢 123' : '⌨️ ABC';
+      btn.setAttribute('title', newMode === 'text' ? 'Alternar para teclado numérico' : 'Alternar para teclado completo');
+      
+      // Breve alternância de foco para o sistema operacional mobile atualizar o layout do teclado
+      input.blur();
+      setTimeout(() => {
+        input.focus();
+      }, 60);
+      return;
+    }
+
+    // Garante que o input continue focado sem sumir o teclado virtual
+    try {
+      input.focus({ preventScroll: true });
+    } catch (err) {
+      input.focus();
+    }
+  }
+
+  // Interceptar toques/cliques na barra para executar imediatamente sem perder foco
+  if (toolbar) {
+    const onTouchOrPointerDown = (e) => {
+      const btn = e.target.closest('.btn-math-op');
+      if (!btn) return;
+      // Previne que o navegador mude o foco para o botão
+      e.preventDefault();
+      isInteractingWithToolbar = true;
+      handleToolbarButtonPress(btn);
+      setTimeout(() => { isInteractingWithToolbar = false; }, 350);
+    };
+
+    if (window.PointerEvent) {
+      toolbar.addEventListener('pointerdown', onTouchOrPointerDown);
+    } else {
+      toolbar.addEventListener('touchstart', onTouchOrPointerDown, { passive: false });
+      toolbar.addEventListener('mousedown', onTouchOrPointerDown);
+    }
+
+    // Fallback para click caso pointerdown não seja emitido (ex: acessibilidade/teclado físico)
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('.btn-math-op');
-      if (!btn || !activeMathInputElement) return;
-
-      const insertText = btn.getAttribute('data-insert');
-      const action = btn.getAttribute('data-action');
-
-      if (insertText) {
-        const input = activeMathInputElement;
-        const start = input.selectionStart ?? input.value.length;
-        const end = input.selectionEnd ?? input.value.length;
-        const original = input.value;
-        input.value = original.substring(0, start) + insertText + original.substring(end);
-        const newPos = start + insertText.length;
-        if (typeof input.setSelectionRange === 'function') {
-          input.setSelectionRange(newPos, newPos);
-        }
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      } else if (action === 'calc') {
-        const input = activeMathInputElement;
-        const calcVal = parsePtBrFloat(input.value);
-        if (!isNaN(calcVal)) {
-          input.value = calcVal.toLocaleString('pt-BR', { maximumFractionDigits: 4, useGrouping: false });
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      } else if (action === 'toggle-mode') {
-        const input = activeMathInputElement;
-        const curMode = input.getAttribute('inputmode') || 'decimal';
-        const newMode = (curMode === 'text') ? 'decimal' : 'text';
-        input.setAttribute('inputmode', newMode);
-        input.setAttribute('data-math-input', 'true');
-        btn.innerHTML = newMode === 'text' ? '🔢 123' : '⌨️ ABC';
-        btn.setAttribute('title', newMode === 'text' ? 'Alternar para teclado numérico' : 'Alternar para teclado completo');
-        
-        // Breve alternância de foco para o sistema operacional mobile atualizar o layout do teclado
-        input.blur();
-        setTimeout(() => {
-          input.focus();
-        }, 60);
-      }
+      if (!btn) return;
+      handleToolbarButtonPress(btn);
     });
 
     if (window.visualViewport) {
@@ -1020,14 +1073,29 @@ function setupMathExpressionInputListeners() {
     }
   });
 
+  document.addEventListener('focus', (e) => {
+    const target = e.target;
+    if (isNumericMathInput(target)) {
+      showMathToolbarFor(target);
+    }
+  }, true);
+
+  document.addEventListener('pointerup', (e) => {
+    const target = e.target;
+    if (isNumericMathInput(target)) {
+      showMathToolbarFor(target);
+    }
+  }, true);
+
   document.addEventListener('focusout', () => {
     setTimeout(() => {
+      if (isInteractingWithToolbar) return;
       if (document.activeElement && isNumericMathInput(document.activeElement)) {
         showMathToolbarFor(document.activeElement);
       } else {
         hideMathToolbar();
       }
-    }, 150);
+    }, 250);
   });
 
   document.addEventListener('input', (e) => {
