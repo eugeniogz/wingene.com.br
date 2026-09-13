@@ -7,82 +7,73 @@
     <meta http-equiv="Expires" content="0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Desenhos e Textos — Wingene</title>
+    
+    <!-- Google Analytics (GA4) com suporte a Modo Administrador e Cookie Compartilhado -->
+    <script src="/analytics.js"></script>
+    <script src="../mobile-warning.js" data-app="Desenhos e Textos"></script>
+
     <link rel="icon" type="image/svg+xml" href="../wingene-simplified.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=2">
-    <style>
-        .canvas-top-nav {
-            position: fixed;
-            top: 16px;
-            left: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 100;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .canvas-top-nav .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #334155;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 7px 14px;
-            border-radius: 20px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
-        }
-        .canvas-top-nav .back-link:hover {
-            color: #0f172a;
-            background: rgba(255, 255, 255, 1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        .canvas-top-nav .wingene-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: #334155;
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            padding: 7px 14px;
-            border-radius: 20px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
-        }
-        .canvas-top-nav .wingene-link:hover {
-            color: #2563eb;
-            background: rgba(255, 255, 255, 1);
-            border-color: rgba(37, 99, 235, 0.3);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
-        }
-        .canvas-top-nav .wingene-logo-mini {
-            display: inline-block;
-            vertical-align: middle;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
-    <div class="canvas-top-nav">
-        <a href="../educacao/index.html" class="back-link" title="Voltar a Recursos Educacionais">← Educação</a>
-        <a href="../index.html" class="wingene-link" title="Portal Wingene">
-            <img src="../wingene-simplified.svg" alt="" width="14" height="14" class="wingene-logo-mini">
-            <span>Wingene</span>
-        </a>
+    <div class="canvas-top-bar">
+        <nav class="canvas-top-nav" aria-label="Navegação">
+            <a href="../educacao/index.html" class="back-link" title="Voltar a Recursos Educacionais">← Educação</a>
+            <a href="../index.html" class="wingene-link" title="Portal Wingene">
+                <img src="../wingene-simplified.svg" alt="" width="14" height="14" class="wingene-logo-mini">
+                <span>Wingene</span>
+            </a>
+        </nav>
+
+        <div class="canvas-center-toolbar">
+            <div id="shape-picker-container" class="shape-picker-container" role="toolbar" aria-label="Ferramentas de desenho">
+                <div class="shape-palette" role="radiogroup" aria-label="Modo de desenho">
+                    <button type="button" class="tool-btn active" data-tool="freehand" title="Risco Livre" aria-label="Risco Livre" aria-checked="true" role="radio">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            <path d="M15 5l4 4"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="tool-btn" data-tool="rectangle" title="Retângulo" aria-label="Retângulo" aria-checked="false" role="radio">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="16" rx="2"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="tool-btn" data-tool="circle" title="Círculo" aria-label="Círculo" aria-checked="false" role="radio">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                    </button>
+                    <button type="button" class="tool-btn" data-tool="bucket" title="Balde de Tinta (Preenchimento)" aria-label="Balde de Tinta" aria-checked="false" role="radio">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/>
+                            <path d="m5 2 5 5"/>
+                            <path d="M2 13h15"/>
+                            <path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-3.4.3 1 2 1.8 2 3.4Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="color-picker-container" class="color-picker-container" role="toolbar" aria-label="Seletor de cores">
+                <div class="color-palette" role="radiogroup" aria-label="Cores de desenho">
+                    <button type="button" class="color-swatch active" data-color="#000000" title="Preto" aria-label="Cor Preto" aria-checked="true" role="radio" style="background-color: #000000;"></button>
+                    <button type="button" class="color-swatch" data-color="#FF0000" title="Vermelho" aria-label="Cor Vermelho" aria-checked="false" role="radio" style="background-color: #FF0000;"></button>
+                    <button type="button" class="color-swatch" data-color="#0000FF" title="Azul" aria-label="Cor Azul" aria-checked="false" role="radio" style="background-color: #0000FF;"></button>
+                    <button type="button" class="color-swatch" data-color="#008000" title="Verde" aria-label="Cor Verde" aria-checked="false" role="radio" style="background-color: #008000;"></button>
+                    <button type="button" class="color-swatch" data-color="#FFA500" title="Laranja" aria-label="Cor Laranja" aria-checked="false" role="radio" style="background-color: #FFA500;"></button>
+                    <button type="button" class="color-swatch" data-color="#800080" title="Roxo" aria-label="Cor Roxo" aria-checked="false" role="radio" style="background-color: #800080;"></button>
+                    <label class="color-custom-btn" id="custom-color-btn" title="Mais cores (personalizada)" aria-label="Escolher cor personalizada">
+                        <input type="color" id="custom-color-input" value="#000000" aria-label="Paleta completa de cores">
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="top-bar-spacer" aria-hidden="true"></div>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -91,6 +82,6 @@
         <button id="btn-limpar" title="Limpar tela" onclick="limparTela()">Limpar</button>
     </div>
 
-    <script src="script.js?v=20260908_2"></script>
+    <script src="script.js?v=20260913_3"></script>
 </body>
 </html>

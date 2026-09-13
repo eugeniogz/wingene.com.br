@@ -9,19 +9,51 @@ body, html {
 
 canvas {
     display: block;
+    cursor: crosshair;
+    touch-action: none;
 }
 
-/* Navegação superior flutuante e discreta */
-.canvas-top-nav {
+canvas.cursor-bucket {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z' fill='%23ffffff'/%3E%3Cpath d='m5 2 5 5'/%3E%3Cpath d='M2 13h15'/%3E%3Cpath d='M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.4 2-3.4.3 1 2 1.8 2 3.4Z' fill='%232563eb' stroke='%232563eb'/%3E%3C/svg%3E") 2 19, cell;
+}
+
+/* Barra superior flutuante com navegação e seletores */
+.canvas-top-bar {
     position: fixed;
     top: 16px;
     left: 16px;
+    right: 16px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 10;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 100;
     user-select: none;
     -webkit-user-select: none;
+}
+
+.canvas-top-nav,
+.canvas-center-toolbar,
+.shape-picker-container,
+.color-picker-container {
+    pointer-events: auto;
+}
+
+.canvas-top-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.canvas-center-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.top-bar-spacer {
+    width: 220px;
+    display: block;
 }
 
 .back-link {
@@ -35,7 +67,7 @@ canvas {
     padding: 7px 14px;
     border-radius: 20px;
     border: 1px solid rgba(0, 0, 0, 0.12);
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -44,7 +76,7 @@ canvas {
 
 .back-link:hover {
     color: #0f172a;
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
@@ -60,7 +92,7 @@ canvas {
     padding: 7px 14px;
     border-radius: 20px;
     border: 1px solid rgba(0, 0, 0, 0.12);
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -69,7 +101,7 @@ canvas {
 
 .wingene-link:hover {
     color: #2563eb;
-    background: rgba(255, 255, 255, 0.98);
+    background: rgba(255, 255, 255, 1);
     border-color: rgba(37, 99, 235, 0.3);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
@@ -77,6 +109,206 @@ canvas {
 .wingene-logo-mini {
     display: inline-block;
     vertical-align: middle;
+}
+
+/* Seletor de Cores no Topo */
+.color-picker-container {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 24px;
+    padding: 5px 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+}
+
+.color-palette {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.color-swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: inline-block;
+    position: relative;
+}
+
+.color-swatch:hover {
+    transform: scale(1.18);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.color-swatch:focus-visible {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
+}
+
+.color-swatch.active {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0f172a, 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Botão de cor personalizada */
+.color-custom-btn {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.color-custom-btn:hover {
+    transform: scale(1.18);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.color-custom-btn:focus-within {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
+}
+
+.color-custom-btn.active {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0f172a, 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.color-custom-btn input[type="color"] {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 200%;
+    height: 200%;
+    opacity: 0;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+}
+
+/* Seletor de Formas no Topo */
+.shape-picker-container {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 24px;
+    padding: 4px 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+}
+
+.shape-palette {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tool-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #475569;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+}
+
+.tool-btn:hover {
+    background: rgba(0, 0, 0, 0.07);
+    color: #0f172a;
+    transform: scale(1.08);
+}
+
+.tool-btn:focus-visible {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
+}
+
+.tool-btn.active {
+    background: #0f172a;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+    transform: scale(1.05);
+}
+
+/* Responsividade */
+@media (max-width: 960px) {
+    .top-bar-spacer {
+        display: none;
+    }
+    .canvas-top-bar {
+        justify-content: center;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 680px) {
+    .canvas-top-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+    }
+    .canvas-top-nav {
+        align-self: flex-start;
+    }
+    .canvas-center-toolbar {
+        align-self: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
+    .shape-picker-container,
+    .color-picker-container {
+        padding: 4px 6px;
+    }
+    .shape-palette {
+        gap: 3px;
+    }
+    .tool-btn {
+        width: 28px;
+        height: 28px;
+    }
+    .tool-btn svg {
+        width: 15px;
+        height: 15px;
+    }
+    .color-palette {
+        gap: 6px;
+    }
+    .color-swatch,
+    .color-custom-btn {
+        width: 24px;
+        height: 24px;
+    }
 }
 
 /* Interface do Botão de Limpar */

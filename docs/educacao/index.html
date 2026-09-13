@@ -6,6 +6,9 @@
     <meta name="description" content="Recursos Educacionais — Atividades lúdico-pedagógicas de geografia, desenho e geometria 3D no ecossistema Wingene.">
     <title>Educação & Recursos Infantis — Wingene</title>
     
+    <!-- Google Analytics (GA4) com suporte a Modo Administrador e Cookie Compartilhado -->
+    <script src="/analytics.js"></script>
+
     <!-- Google Fonts: Outfit para títulos e Inter para o corpo -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -73,6 +76,40 @@
         .nav-brand:hover .nav-brand-logo {
             transform: scale(1.08);
         }
+        .card-device-badge {
+            margin-top: auto;
+            padding-top: 1.25rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+        .card-device-badge.warning {
+            color: #d97706;
+            background: rgba(245, 158, 11, 0.12);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            width: fit-content;
+        }
+        .card-device-badge.warning svg {
+            color: #d97706;
+            flex-shrink: 0;
+        }
+        .card-device-badge.success {
+            color: #059669;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            width: fit-content;
+        }
+        .card-device-badge.success svg {
+            color: #059669;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -98,27 +135,43 @@
     <main class="section-container education-section">
         <div class="container">
             <div class="page-header">
-                <h1 class="page-title">Recursos Educacionais</h1>
+                <h1 class="page-title">Recursos Pedagógicos</h1>
                 <p class="page-subtitle">Atividades lúdico-pedagógicas infantis focadas no aprendizado e desenvolvimento da percepção espacial e geográfica.</p>
             </div>
             
             <div class="vida-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
                 <!-- Card Trilha Secreta -->
-                <a href="../Mapas/index.html" class="card glassmorphism vida-card" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
+                <a href="../Mapas/index.html" class="card glassmorphism vida-card" data-desktop-only="true" data-app-name="Trilha Secreta (Mapas)" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
                     <div class="card-icon-wrap icon-mapas">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 4L9 7"/></svg>
                     </div>
                     <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Trilha Secreta <span class="card-arrow">→</span></h3>
                     <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Descubra o caminho oculto desviando das árvores com o auxílio da lanterna para levar o cãozinho até a casinha.</p>
+                    <div class="card-device-badge warning">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        <span>Melhor no computador • Não otimizado para celular</span>
+                    </div>
                 </a>
 
                 <!-- Card Rabiscos e Textos -->
-                <a href="../RabiscosETextos/index.html" class="card glassmorphism vida-card" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
+                <a href="../RabiscosETextos/index.html" class="card glassmorphism vida-card" data-desktop-only="true" data-app-name="Desenhos e Textos" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
                     <div class="card-icon-wrap icon-rabiscos">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </div>
                     <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Desenhos e Textos<span class="card-arrow">→</span></h3>
                     <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Exercícios simples de desenho com o mouse e escrita no teclado.</p>
+                    <div class="card-device-badge warning">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        <span>Melhor no computador • Não otimizado para celular</span>
+                    </div>
                 </a>
 
                 <!-- Card Geometria -->
@@ -128,15 +181,30 @@
                     </div>
                     <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Geometria <span class="card-arrow">→</span></h3>
                     <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Atividades de raciocínio espacial e visual com formas geométricas.</p>
+                    <div class="card-device-badge success">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                        </svg>
+                        <span>Compatível com Celular e Computador</span>
+                    </div>
                 </a>
 
                 <!-- Card Fábrica de Música -->
-                <a href="../musica/index.html" class="card glassmorphism vida-card" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
+                <a href="../musica/index.html" class="card glassmorphism vida-card" data-desktop-only="true" data-app-name="Fábrica de Música" style="display: flex; flex-direction: column; height: 100%; text-decoration: none;">
                     <div class="card-icon-wrap icon-musica">
                         <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12-3c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"/></svg>
                     </div>
                     <h3 style="font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 0.75rem;">Fábrica de Música <span class="card-arrow">→</span></h3>
                     <p style="color: var(--text-secondary); margin-bottom: 0; line-height: 1.6;">Experimentos e criação de música digital de forma lúdica, interativa e visual.</p>
+                    <div class="card-device-badge warning">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        <span>Melhor no computador • Não otimizado para celular</span>
+                    </div>
                 </a>
             </div>
             
@@ -178,7 +246,7 @@
         </div>
     </footer>
 
-    <!-- Script de fundo estelar -->
+    <!-- Script de fundo estelar e aviso de compatibilidade mobile -->
     <script>
         // Criar estrelas de fundo dinâmicas
         document.addEventListener('DOMContentLoaded', () => {
@@ -200,6 +268,60 @@
                     }
                     bg.appendChild(star);
                 }
+            }
+
+            // Intercepta cliques de usuários mobile nos recursos projetados para computador
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent) || 
+                             (('ontouchstart' in window || navigator.maxTouchPoints > 0) && (window.innerWidth <= 768 || window.innerHeight <= 500));
+            
+            if (isMobile) {
+                const desktopCards = document.querySelectorAll('a[data-desktop-only="true"]');
+                desktopCards.forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const targetUrl = card.getAttribute('href');
+                        const appName = card.getAttribute('data-app-name') || 'Esta atividade';
+                        showEducationMobilePrompt(appName, targetUrl);
+                    });
+                });
+            }
+
+            function showEducationMobilePrompt(appName, targetUrl) {
+                const existing = document.getElementById('edu-mobile-modal');
+                if (existing) existing.remove();
+
+                const modal = document.createElement('div');
+                modal.id = 'edu-mobile-modal';
+                modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(15,23,42,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;animation:mobFadeIn 0.25s ease-out;';
+                
+                modal.innerHTML = `
+                    <div style="background:#ffffff;color:#0f172a;border-radius:20px;max-width:390px;width:100%;padding:26px 22px;box-sizing:border-box;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.4);font-family:Inter,system-ui,sans-serif;">
+                        <div style="width:54px;height:54px;border-radius:16px;background:#fef3c7;color:#d97706;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                        </div>
+                        <h2 style="margin:0 0 8px 0;font-size:20px;font-weight:700;color:#0f172a;">Melhor no Computador</h2>
+                        <p style="margin:0 0 20px 0;font-size:14px;line-height:1.55;color:#475569;">
+                            O recurso <strong style="color:#0f172a;background:#f1f5f9;padding:2px 7px;border-radius:6px;">${appName}</strong> não funciona bem em telas de celulares e requer mouse e teclado físico em um computador.
+                        </p>
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <button type="button" id="btn-stay-menu" style="background:#2563eb;color:#ffffff;border:none;padding:12px 18px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+                                Permanecer no Menu
+                            </button>
+                            <a href="${targetUrl}" style="background:transparent;color:#64748b;border:1px solid #e2e8f0;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;text-decoration:none;display:block;">
+                                Abrir no celular mesmo assim →
+                            </a>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                modal.querySelector('#btn-stay-menu').addEventListener('click', () => {
+                    modal.remove();
+                });
             }
         });
     </script>
