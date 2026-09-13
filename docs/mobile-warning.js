@@ -164,7 +164,7 @@
                 </p>
                 <div class="mobile-warning-actions">
                     <a href="../educacao/index.html" class="btn-mob-warning-back">
-                        ← Voltar ao Menu de Educação
+                        ← Índice de Recursos Pedagógicos
                     </a>
                     <button type="button" class="btn-mob-warning-continue" id="btn-dismiss-mob-warn">
                         Continuar no celular mesmo assim
