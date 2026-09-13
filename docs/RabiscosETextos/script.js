@@ -22,11 +22,23 @@ let isDrawing = false;
 let startX = 0, startY = 0;
 let lastX = 0, lastY = 0, mouseX = 0, mouseY = 0;
 let snapshot = null;
-let currentTool = 'freehand'; // 'freehand' | 'rectangle' | 'circle'
+let currentTool = 'freehand'; // 'freehand' | 'rectangle' | 'circle' | 'bucket'
 let isTyping = false, textCursorX = 0, textCursorY = 0, lineStartX = 0;
 let savedCursorData = null, savedCursorX = 0, savedCursorY = 0, cursorInterval = null;
 let textHistory = [];
 let savedFeedbackData = null, savedFeedbackX = 0, savedFeedbackY = 0, feedbackTimeout = null;
+
+// --- Histórico de Ações (Desfazer / Refazer) ---
+const MAX_HISTORY = 30;
+let undoStack = [];
+let redoStack = [];
+let actionInitialSnapshot = null;
+let hasDrawnInCurrentAction = false;
+let typingInitialSnapshot = null;
+let hasTypedInCurrentSession = false;
+
+const btnUndo = document.getElementById('btn-undo');
+const btnRedo = document.getElementById('btn-redo');
 
 const colors = ['#000000', '#FF0000', '#0000FF', '#008000', '#FFA500', '#800080'];
 let currentColorIndex = 0;
@@ -37,6 +49,109 @@ const colorSwatches = document.querySelectorAll('.color-swatch');
 const customColorInput = document.getElementById('custom-color-input');
 const customColorBtn = document.getElementById('custom-color-btn');
 
+function updateHistoryButtons() {
+    if (btnUndo) {
+        btnUndo.disabled = undoStack.length === 0;
+        btnUndo.setAttribute('aria-disabled', undoStack.length === 0 ? 'true' : 'false');
+    }
+    if (btnRedo) {
+        btnRedo.disabled = redoStack.length === 0;
+        btnRedo.setAttribute('aria-disabled', redoStack.length === 0 ? 'true' : 'false');
+    }
+}
+
+function pushUndoState(state) {
+    if (!state) return;
+    undoStack.push(state);
+    if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+    }
+    redoStack = []; // Nova ação limpa a pilha de refazer
+    updateHistoryButtons();
+}
+
+function restoreSnapshot(state) {
+    if (state.width === canvas.width && state.height === canvas.height) {
+        ctx.putImageData(state, 0, 0);
+    } else {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = state.width;
+        offCanvas.height = state.height;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.putImageData(state, 0, 0);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(offCanvas, 0, 0);
+    }
+}
+
+function commitTypingSession() {
+    if (isTyping) {
+        stopBlinking();
+        isTyping = false;
+        if (hiddenInput) hiddenInput.blur();
+        if (hasTypedInCurrentSession && typingInitialSnapshot) {
+            pushUndoState(typingInitialSnapshot);
+        }
+        typingInitialSnapshot = null;
+        hasTypedInCurrentSession = false;
+    }
+}
+
+function undo() {
+    commitTypingSession();
+    if (undoStack.length === 0) return;
+
+    // Salva o estado atual na pilha de refazer
+    const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    redoStack.push(currentState);
+    if (redoStack.length > MAX_HISTORY) {
+        redoStack.shift();
+    }
+
+    // Restaura o estado anterior
+    const prevState = undoStack.pop();
+    restoreSnapshot(prevState);
+    snapshot = null;
+
+    updateHistoryButtons();
+}
+
+function redo() {
+    commitTypingSession();
+    if (redoStack.length === 0) return;
+
+    // Salva o estado atual na pilha de desfazer
+    const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    undoStack.push(currentState);
+    if (undoStack.length > MAX_HISTORY) {
+        undoStack.shift();
+    }
+
+    // Restaura o próximo estado
+    const nextState = redoStack.pop();
+    restoreSnapshot(nextState);
+    snapshot = null;
+
+    updateHistoryButtons();
+}
+
+if (btnUndo) {
+    btnUndo.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        undo();
+    });
+}
+
+if (btnRedo) {
+    btnRedo.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        redo();
+    });
+}
+
 function setTool(newTool) {
     currentTool = newTool;
     toolButtons.forEach(btn => {
@@ -46,12 +161,7 @@ function setTool(newTool) {
     });
 
     canvas.classList.toggle('cursor-bucket', newTool === 'bucket');
-
-    if (isTyping) {
-        stopBlinking();
-        isTyping = false;
-        if (hiddenInput) hiddenInput.blur();
-    }
+    commitTypingSession();
 }
 
 toolButtons.forEach(btn => {
@@ -104,7 +214,20 @@ if (customColorInput) {
     customColorInput.addEventListener('change', handleCustomColor);
 }
 
+function isCanvasBlank() {
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data32 = new Uint32Array(imgData.data.buffer);
+    for (let i = 0; i < data32.length; i++) {
+        if (data32[i] !== 0xFFFFFFFF) return false;
+    }
+    return true;
+}
+
 function limparTela() {
+    commitTypingSession();
+    if (!isCanvasBlank()) {
+        pushUndoState(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    }
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     textHistory = [];
@@ -180,6 +303,7 @@ function handleInput() {
     if (!isTyping) return;
     const text = hiddenInput.value.toUpperCase(); // FORÇA MAIÚSCULAS
     if (text.length > 0) {
+        hasTypedInCurrentSession = true;
         stopBlinking();
         ctx.fillStyle = currentColor;
         ctx.font = '20px Roboto, sans-serif';
@@ -289,7 +413,7 @@ function drawShapePreview(currentX, currentY, isShift) {
 function floodFill(startX, startY, fillHex) {
     const width = canvas.width;
     const height = canvas.height;
-    if (startX < 0 || startX >= width || startY < 0 || startY >= height) return;
+    if (startX < 0 || startX >= width || startY < 0 || startY >= height) return false;
 
     const imgData = ctx.getImageData(0, 0, width, height);
     const data32 = new Uint32Array(imgData.data.buffer);
@@ -315,7 +439,7 @@ function floodFill(startX, startY, fillHex) {
     const startIndex = startY * width + startX;
     const targetColor = data32[startIndex];
 
-    if (targetColor === fillColor) return;
+    if (targetColor === fillColor) return false;
 
     const targetR = targetColor & 0xFF;
     const targetG = (targetColor >> 8) & 0xFF;
@@ -383,16 +507,13 @@ function floodFill(startX, startY, fillHex) {
     }
 
     ctx.putImageData(imgData, 0, 0);
+    return true;
 }
 
 // Eventos de Mouse e Teclado
 canvas.addEventListener('mousedown', (e) => {
     if (e.button !== 0 && e.button !== undefined) return;
-    if (isTyping) {
-        stopBlinking();
-        isTyping = false;
-        hiddenInput.blur();
-    }
+    commitTypingSession();
     if (savedFeedbackData) {
         clearTimeout(feedbackTimeout);
         ctx.putImageData(savedFeedbackData, savedFeedbackX, savedFeedbackY);
@@ -402,18 +523,34 @@ canvas.addEventListener('mousedown', (e) => {
     const coords = getCanvasCoords(e);
 
     if (currentTool === 'bucket') {
-        floodFill(Math.floor(coords.x), Math.floor(coords.y), currentColor);
+        const beforeBucket = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const didFill = floodFill(Math.floor(coords.x), Math.floor(coords.y), currentColor);
+        if (didFill) {
+            pushUndoState(beforeBucket);
+        }
         return;
     }
 
     isDrawing = true;
+    hasDrawnInCurrentAction = false;
+    actionInitialSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
     startX = coords.x;
     startY = coords.y;
     lastX = coords.x;
     lastY = coords.y;
 
-    if (currentTool === 'rectangle' || currentTool === 'circle') {
-        snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    if (currentTool === 'freehand') {
+        ctx.strokeStyle = currentColor;
+        ctx.fillStyle = currentColor;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 1, 0, Math.PI * 2);
+        ctx.fill();
+        hasDrawnInCurrentAction = true;
+    } else if (currentTool === 'rectangle' || currentTool === 'circle') {
+        snapshot = actionInitialSnapshot;
     }
 });
 
@@ -435,7 +572,9 @@ canvas.addEventListener('mousemove', (e) => {
         ctx.stroke();
         lastX = coords.x;
         lastY = coords.y;
+        hasDrawnInCurrentAction = true;
     } else if (currentTool === 'rectangle' || currentTool === 'circle') {
+        hasDrawnInCurrentAction = true;
         drawShapePreview(coords.x, coords.y, e.shiftKey);
     }
 });
@@ -445,11 +584,25 @@ window.addEventListener('mouseup', (e) => {
 
     if (currentTool === 'rectangle' || currentTool === 'circle') {
         const coords = getCanvasCoords(e);
-        drawShapePreview(coords.x, coords.y, e.shiftKey);
+        if (Math.abs(coords.x - startX) > 2 || Math.abs(coords.y - startY) > 2) {
+            drawShapePreview(coords.x, coords.y, e.shiftKey);
+            hasDrawnInCurrentAction = true;
+        } else {
+            if (actionInitialSnapshot) {
+                restoreSnapshot(actionInitialSnapshot);
+            }
+            hasDrawnInCurrentAction = false;
+        }
+    }
+
+    if (hasDrawnInCurrentAction && actionInitialSnapshot) {
+        pushUndoState(actionInitialSnapshot);
     }
 
     isDrawing = false;
     snapshot = null;
+    actionInitialSnapshot = null;
+    hasDrawnInCurrentAction = false;
 });
 
 // Suporte a dispositivos de toque (Touch)
@@ -492,11 +645,37 @@ window.addEventListener('touchend', (e) => {
 });
 
 window.addEventListener('keydown', (e) => {
+    // Atalhos de teclado para Desfazer / Refazer (Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z, Cmd+Z no Mac)
+    const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+    if (isCtrlOrMeta) {
+        const key = e.key.toLowerCase();
+        if (key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                redo();
+            } else {
+                undo();
+            }
+            return;
+        } else if (key === 'y') {
+            e.preventDefault();
+            redo();
+            return;
+        }
+    }
+
+    if (e.key === 'Escape' && isTyping) {
+        commitTypingSession();
+        return;
+    }
+
     if (e.key === 'Enter' && isTyping) {
+        hasTypedInCurrentSession = true;
         textHistory.push({ isNewLine: true, prevX: textCursorX, prevY: textCursorY, lineStartX: lineStartX });
         textCursorY += 25; textCursorX = lineStartX;
         startBlinking();
     } else if (e.key === 'Backspace' && isTyping && textHistory.length > 0) {
+        hasTypedInCurrentSession = true;
         stopBlinking();
         const last = textHistory.pop();
         if (last.isNewLine) {
@@ -507,7 +686,9 @@ window.addEventListener('keydown', (e) => {
             ctx.fillRect(last.x - 1, last.y - 20, last.width + 2, 28);
         }
         startBlinking();
-    } else if (!isTyping && e.key.length === 1) {
+    } else if (!isTyping && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        typingInitialSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        hasTypedInCurrentSession = false;
         isTyping = true;
         lineStartX = mouseX; textCursorX = mouseX; textCursorY = mouseY;
         hiddenInput.focus();
@@ -535,3 +716,4 @@ window.addEventListener('resize', () => {
 
 ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
+updateHistoryButtons();

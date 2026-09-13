@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
     <div class="canvas-top-bar">
@@ -54,6 +54,21 @@
                 </div>
             </div>
 
+            <div id="history-container" class="history-container" role="toolbar" aria-label="Histórico de ações">
+                <button type="button" id="btn-undo" class="action-btn" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 7v6h6"/>
+                        <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+                    </svg>
+                </button>
+                <button type="button" id="btn-redo" class="action-btn" title="Refazer (Ctrl+Y)" aria-label="Refazer" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 7v6h-6"/>
+                        <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+                    </svg>
+                </button>
+            </div>
+
             <div id="color-picker-container" class="color-picker-container" role="toolbar" aria-label="Seletor de cores">
                 <div class="color-palette" role="radiogroup" aria-label="Cores de desenho">
                     <button type="button" class="color-swatch active" data-color="#000000" title="Preto" aria-label="Cor Preto" aria-checked="true" role="radio" style="background-color: #000000;"></button>
@@ -75,9 +90,9 @@
     <canvas id="canvas"></canvas>
 
     <div id="btn-limpar-container">
-        <button id="btn-limpar" title="Limpar tela" onclick="limparTela()">Limpar</button>
+        <button id="btn-limpar" title="Limpar tela">Limpar</button>
     </div>
 
-    <script src="script.js?v=20260913_3"></script>
+    <script src="script.js?v=20260913_6"></script>
 </body>
 </html>
