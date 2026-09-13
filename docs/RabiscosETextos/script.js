@@ -40,14 +40,24 @@ let hasTypedInCurrentSession = false;
 const btnUndo = document.getElementById('btn-undo');
 const btnRedo = document.getElementById('btn-redo');
 
-const colors = ['#000000', '#FF0000', '#0000FF', '#008000', '#FFA500', '#800080'];
+const colors = [
+    '#000000', // Preto
+    '#FFFFFF', // Branco (Borracha)
+    '#FF0000', // Vermelho
+    '#0000FF', // Azul
+    '#008000', // Verde
+    '#FFD700', // Amarelo
+    '#FFA500', // Laranja
+    '#800080', // Roxo
+    '#FF69B4', // Rosa
+    '#8B4513', // Marrom
+    '#00BCD4'  // Azul Claro
+];
 let currentColorIndex = 0;
 let currentColor = colors[currentColorIndex];
 
 const toolButtons = document.querySelectorAll('.tool-btn');
 const colorSwatches = document.querySelectorAll('.color-swatch');
-const customColorInput = document.getElementById('custom-color-input');
-const customColorBtn = document.getElementById('custom-color-btn');
 
 function updateHistoryButtons() {
     if (btnUndo) {
@@ -171,7 +181,7 @@ toolButtons.forEach(btn => {
     });
 });
 
-function setColor(newColor, isCustom = false) {
+function setColor(newColor) {
     currentColor = newColor;
     const index = colors.findIndex(c => c.toLowerCase() === newColor.toLowerCase());
     currentColorIndex = index !== -1 ? index : 0;
@@ -183,14 +193,6 @@ function setColor(newColor, isCustom = false) {
         swatch.setAttribute('aria-checked', isMatch ? 'true' : 'false');
     });
 
-    if (customColorBtn) {
-        const isCustomActive = isCustom || index === -1;
-        customColorBtn.classList.toggle('active', isCustomActive);
-        if (customColorInput && !isCustom) {
-            customColorInput.value = newColor;
-        }
-    }
-
     if (isTyping) {
         startBlinking();
         if (hiddenInput) hiddenInput.focus();
@@ -201,18 +203,9 @@ function setColor(newColor, isCustom = false) {
 colorSwatches.forEach(swatch => {
     swatch.addEventListener('click', (e) => {
         e.stopPropagation();
-        setColor(swatch.dataset.color, false);
+        setColor(swatch.dataset.color);
     });
 });
-
-// Suporte ao seletor nativo de cor personalizada
-if (customColorInput) {
-    const handleCustomColor = (e) => {
-        setColor(e.target.value, true);
-    };
-    customColorInput.addEventListener('input', handleCustomColor);
-    customColorInput.addEventListener('change', handleCustomColor);
-}
 
 function isCanvasBlank() {
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -289,6 +282,10 @@ function showColorFeedback(x, y) {
     const swatchX = feedbackX + 10 + ctx.measureText('COR ').width;
     ctx.fillStyle = currentColor;
     ctx.fillRect(swatchX, feedbackY + (feedbackHeight / 2) - 7, 14, 14);
+    if (currentColor.toLowerCase() === '#ffffff') {
+        ctx.strokeStyle = '#888';
+        ctx.strokeRect(swatchX, feedbackY + (feedbackHeight / 2) - 7, 14, 14);
+    }
 
     feedbackTimeout = setTimeout(() => {
         if (savedFeedbackData) {
@@ -661,7 +658,21 @@ window.addEventListener('keydown', (e) => {
             e.preventDefault();
             redo();
             return;
+        } else if (key === 'b') {
+            // Atalho para Cor Branca / Borracha (Ctrl+B)
+            e.preventDefault();
+            setColor('#FFFFFF');
+            showColorFeedback(mouseX || window.innerWidth / 2, mouseY || 100);
+            return;
         }
+    }
+
+    // Atalho alternativo: Alt + B para Cor Branca / Borracha
+    if (e.altKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        setColor('#FFFFFF');
+        showColorFeedback(mouseX || window.innerWidth / 2, mouseY || 100);
+        return;
     }
 
     if (e.key === 'Escape' && isTyping) {

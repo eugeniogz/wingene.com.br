@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
     <div class="canvas-top-bar">
@@ -72,14 +72,16 @@
             <div id="color-picker-container" class="color-picker-container" role="toolbar" aria-label="Seletor de cores">
                 <div class="color-palette" role="radiogroup" aria-label="Cores de desenho">
                     <button type="button" class="color-swatch active" data-color="#000000" title="Preto" aria-label="Cor Preto" aria-checked="true" role="radio" style="background-color: #000000;"></button>
+                    <button type="button" class="color-swatch" data-color="#FFFFFF" title="Branco / Borracha (Atalho: Ctrl+B)" aria-label="Cor Branco (Borracha)" aria-checked="false" role="radio" style="background-color: #FFFFFF;"></button>
                     <button type="button" class="color-swatch" data-color="#FF0000" title="Vermelho" aria-label="Cor Vermelho" aria-checked="false" role="radio" style="background-color: #FF0000;"></button>
                     <button type="button" class="color-swatch" data-color="#0000FF" title="Azul" aria-label="Cor Azul" aria-checked="false" role="radio" style="background-color: #0000FF;"></button>
                     <button type="button" class="color-swatch" data-color="#008000" title="Verde" aria-label="Cor Verde" aria-checked="false" role="radio" style="background-color: #008000;"></button>
+                    <button type="button" class="color-swatch" data-color="#FFD700" title="Amarelo" aria-label="Cor Amarelo" aria-checked="false" role="radio" style="background-color: #FFD700;"></button>
                     <button type="button" class="color-swatch" data-color="#FFA500" title="Laranja" aria-label="Cor Laranja" aria-checked="false" role="radio" style="background-color: #FFA500;"></button>
                     <button type="button" class="color-swatch" data-color="#800080" title="Roxo" aria-label="Cor Roxo" aria-checked="false" role="radio" style="background-color: #800080;"></button>
-                    <label class="color-custom-btn" id="custom-color-btn" title="Mais cores (personalizada)" aria-label="Escolher cor personalizada">
-                        <input type="color" id="custom-color-input" value="#000000" aria-label="Paleta completa de cores">
-                    </label>
+                    <button type="button" class="color-swatch" data-color="#FF69B4" title="Rosa" aria-label="Cor Rosa" aria-checked="false" role="radio" style="background-color: #FF69B4;"></button>
+                    <button type="button" class="color-swatch" data-color="#8B4513" title="Marrom" aria-label="Cor Marrom" aria-checked="false" role="radio" style="background-color: #8B4513;"></button>
+                    <button type="button" class="color-swatch" data-color="#00BCD4" title="Azul Claro" aria-label="Cor Azul Claro" aria-checked="false" role="radio" style="background-color: #00BCD4;"></button>
                 </div>
             </div>
         </div>
@@ -93,6 +95,6 @@
         <button id="btn-limpar" title="Limpar tela">Limpar</button>
     </div>
 
-    <script src="script.js?v=20260913_6"></script>
+    <script src="script.js?v=20260913_7"></script>
 </body>
 </html>

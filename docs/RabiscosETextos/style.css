@@ -160,49 +160,14 @@ canvas.cursor-bucket {
     box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0f172a, 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Botão de cor personalizada */
-.color-custom-btn {
-    position: relative;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: conic-gradient(from 0deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
+.color-swatch[data-color="#FFFFFF"],
+.color-swatch[data-color="#ffffff"] {
+    border: 2px solid #cbd5e1;
 }
 
-.color-custom-btn:hover {
-    transform: scale(1.18);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-.color-custom-btn:focus-within {
-    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2563eb;
-}
-
-.color-custom-btn.active {
-    transform: scale(1.15);
-    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0f172a, 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.color-custom-btn input[type="color"] {
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    width: 200%;
-    height: 200%;
-    opacity: 0;
-    cursor: pointer;
-    border: none;
-    padding: 0;
+.color-swatch[data-color="#FFFFFF"]:hover,
+.color-swatch[data-color="#ffffff"]:hover {
+    border-color: #94a3b8;
 }
 
 /* Seletor de Formas no Topo */
@@ -358,8 +323,7 @@ canvas.cursor-bucket {
     .color-palette {
         gap: 6px;
     }
-    .color-swatch,
-    .color-custom-btn {
+    .color-swatch {
         width: 24px;
         height: 24px;
     }
