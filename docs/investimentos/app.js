@@ -92,8 +92,8 @@ const B3_MARKET_SERIES_REF = {
   'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
   'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
 
-  // FIIs
-  'ALZR11': { pAno: 99.80, pMes: 104.20, pAtual: 105.00 },
+  // FIIs (ALZR11 realizou desdobramento 1:10 em maio/2025, base 10 ~R$ 10)
+  'ALZR11': { pAno: 9.98, pMes: 10.04, pAtual: 9.97 },
   'MXRF11': { pAno: 9.80,  pMes: 10.12,  pAtual: 10.15 },
   'HGLG11': { pAno: 158.40, pMes: 161.20, pAtual: 162.50 },
   'KNRI11': { pAno: 154.20, pMes: 157.80, pAtual: 159.00 },
@@ -334,15 +334,16 @@ function sanitizeAppState() {
     let pAt = parseFloat(ac.precoAtual);
     let pCad = parseFloat(ac.preco);
 
-    // Se precoAtual for ~10x do preco cadastrado (ex: preco: 38.5 e precoAtual: 385)
-    if (!isNaN(pCad) && pCad > 0 && !isNaN(pAt) && Math.abs(pAt - pCad * 10) < 1.5) {
-      ac.precoAtual = pCad;
-      pAt = pCad;
-    }
-    // Se preco foi multiplicado por 10 em relação ao precoAtual
-    else if (!isNaN(pAt) && pAt > 0 && !isNaN(pCad) && Math.abs(pCad - pAt * 10) < 1.5) {
-      ac.preco = pAt;
-      pCad = pAt;
+    // Se precoAtual for ~10x do preco cadastrado (ex: preco: 38.5 e precoAtual: 385, ou preco: 9.97 e precoAtual: 105)
+    if (!isNaN(pCad) && pCad > 0 && !isNaN(pAt) && pAt > 0) {
+      const ratio = pAt / pCad;
+      if (ratio >= 8.5 && ratio <= 11.5) {
+        ac.precoAtual = pCad;
+        pAt = pCad;
+      } else if (pCad / pAt >= 8.5 && pCad / pAt <= 11.5) {
+        ac.preco = pAt;
+        pCad = pAt;
+      }
     }
 
     // Ações brasileiras padrão com preços absurdos > 150 (PETR4, VALE3, ITUB4, WEGE3, BBAS3, BBDC4 etc)
@@ -390,10 +391,23 @@ function sanitizeAppState() {
       }
     }
 
-    // FIIs (ALZR11, MXRF11, HGLG11 etc)
-    if (rawT.endsWith('11')) {
-      if (rawT === 'MXRF11' && pAt > 50) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-      if (rawT === 'ALZR11' && pAt > 300) ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+    // FIIs de base 10 (ALZR11 realizou desdobramento 1:10 em maio/2025, cotando ~R$ 10; MXRF11 etc)
+    const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
+    if (base10FIIs.includes(rawT)) {
+      if (pAt > 30) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 30) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+      if (ac.precoMesAnterior && ac.precoMesAnterior > 30) {
+        ac.precoMesAnterior = parseFloat((ac.precoMesAnterior / 10).toFixed(2));
+      }
+      if (ac.precoAnoAnterior && ac.precoAnoAnterior > 30) {
+        ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
+      }
     }
 
     // Ativo sem preço (ou zerado): recuperar imediatamente de B3_MARKET_SERIES_REF ou cache de cotações
@@ -3281,7 +3295,32 @@ let showChartIbov = true;
 function getB3QuotesCache() {
   try {
     const raw = localStorage.getItem(B3_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && parsed.quotes) {
+      const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
+      let modified = false;
+      base10FIIs.forEach(sym => {
+        if (parsed.quotes[sym]) {
+          const q = parsed.quotes[sym];
+          if (q.currentPrice > 30) {
+            q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
+            modified = true;
+          }
+          if (Array.isArray(q.history)) {
+            q.history.forEach(h => {
+              if (h.close > 30) {
+                h.close = parseFloat((h.close / 10).toFixed(2));
+                modified = true;
+              }
+            });
+          }
+        }
+      });
+      if (modified) {
+        try { localStorage.setItem(B3_CACHE_KEY, JSON.stringify(parsed)); } catch (e) {}
+      }
+    }
+    return parsed;
   } catch (e) {
     return null;
   }
@@ -3442,6 +3481,23 @@ function toggleBenchmarkLine(type) {
   renderDailyEvolutionCharts();
 }
 
+function sanitizeFetchedQuote(quote) {
+  if (!quote || !quote.symbol) return quote;
+  const sym = quote.symbol.trim().toUpperCase().replace(/\.SA$/i, '');
+  const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
+  if (base10FIIs.includes(sym)) {
+    if (quote.currentPrice > 30) {
+      quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
+    }
+    if (Array.isArray(quote.history)) {
+      quote.history.forEach(h => {
+        if (h.close > 30) h.close = parseFloat((h.close / 10).toFixed(2));
+      });
+    }
+  }
+  return quote;
+}
+
 async function fetchQuoteSingleTicker(ticker) {
   const rawTicker = ticker.trim().toUpperCase();
   if (!rawTicker) return null;
@@ -3467,12 +3523,12 @@ async function fetchQuoteSingleTicker(ticker) {
       const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
         ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
         : [];
-      return {
+      return sanitizeFetchedQuote({
         symbol: cleanSymbol,
         currentPrice: ref.pAtual,
         updatedAt: new Date().toISOString(),
         history: generatedHist
-      };
+      });
     }
   }
 
@@ -3528,12 +3584,12 @@ async function fetchQuoteSingleTicker(ticker) {
       if (ep.type === 'mfinance' && data) {
         const lastP = parseFloat(data.lastPrice || data.closingPrice || 0);
         if (lastP > 0) {
-          return {
+          return sanitizeFetchedQuote({
             symbol: cleanSymbol,
             currentPrice: lastP,
             updatedAt: new Date().toISOString(),
             history: []
-          };
+          });
         }
       }
 
@@ -3564,9 +3620,9 @@ async function fetchQuoteSingleTicker(ticker) {
           if (history.length >= 10) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
-            return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
+            return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history });
           } else if (currentPrice > 0) {
-            return { symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] };
+            return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] });
           }
         }
       } else {
@@ -3593,9 +3649,9 @@ async function fetchQuoteSingleTicker(ticker) {
           if (history.length >= 10) {
             history.sort((a, b) => a.date.localeCompare(b.date));
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
-            return { symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history };
+            return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history });
           } else if (currentPrice > 0) {
-            return { symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] };
+            return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: currentPrice, updatedAt: new Date().toISOString(), history: history || [] });
           }
         }
       }
@@ -3611,12 +3667,12 @@ async function fetchQuoteSingleTicker(ticker) {
       const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
         ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
         : [];
-      return {
+      return sanitizeFetchedQuote({
         symbol: cleanSymbol,
         currentPrice: ref.pAtual,
         updatedAt: new Date().toISOString(),
         history: generatedHist
-      };
+      });
     }
   }
 
@@ -3626,12 +3682,12 @@ async function fetchQuoteSingleTicker(ticker) {
     if (existing) {
       const p = parseFloat(existing.precoAtual || existing.preco || 0);
       if (p > 0) {
-        return {
+        return sanitizeFetchedQuote({
           symbol: cleanSymbol,
           currentPrice: p,
           updatedAt: new Date().toISOString(),
           history: []
-        };
+        });
       }
     }
   }

@@ -1486,10 +1486,15 @@ function processBatchAiResponse() {
 
       const price = getNum(item, 'precoAtual', 'preco', 'cotacao', 'regularMarketPrice');
       if (price && price > 0) {
-        asset.precoAtual = price;
-        asset.preco = price;
+        let finalPrice = price;
+        const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
+        if (base10FIIs.includes(itemTicker) && finalPrice > 30) {
+          finalPrice = parseFloat((finalPrice / 10).toFixed(2));
+        }
+        asset.precoAtual = finalPrice;
+        asset.preco = finalPrice;
       }
-      const refPrice = (price && price > 0) ? price : (asset.precoAtual || asset.preco || null);
+      const refPrice = (price && price > 0) ? (asset.precoAtual || price) : (asset.precoAtual || asset.preco || null);
 
       // 1. Extração dos Dados Contábeis Base
       const receita = getNum(item, 'receitaLiquida', 'receita_liquida', 'receita', 'revenue', 'netRevenue');
@@ -1642,8 +1647,13 @@ function processBatchAiResponse() {
             if (priceMatch && priceMatch[1]) {
               const p = parseInputFloat(priceMatch[1]);
               if (!isNaN(p) && p > 0) {
-                asset.precoAtual = p;
-                asset.preco = p;
+                let finalP = p;
+                const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
+                if (base10FIIs.includes(rawTicker) && finalP > 30) {
+                  finalP = parseFloat((finalP / 10).toFixed(2));
+                }
+                asset.precoAtual = finalP;
+                asset.preco = finalP;
               }
             }
 
