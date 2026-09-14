@@ -1272,7 +1272,7 @@ function parsePastedTextIndicators(raw) {
     return isNaN(n) ? null : n;
   };
 
-  return {
+  const res = {
     pe: parseNum(getMatch(/(?:P\/L|P\/E|Preço\s*\/\s*Lucro)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
     eps: parseNum(getMatch(/(?:LPA|EPS|Lucro\s*por\s*Ação)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i)),
     roic: parseNum(getMatch(/(?:ROIC)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
@@ -1286,6 +1286,16 @@ function parsePastedTextIndicators(raw) {
     fcfGrowth: parseNum(getMatch(/(?:Cresc\.?\s*FCF|Crescimento\s*FCF|Cresc\.?\s*Fluxo)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i)),
     dividendYield: parseNum(getMatch(/(?:D\.?Y\.?|Dividend\s*Yield|Div\.?\s*Yield)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)\s*%?/i))
   };
+
+  // Se dívida bruta, caixa e ebitda estiverem no texto, calcula netDebtEbitda se ainda não preenchido
+  const grossDebt = parseNum(getMatch(/(?:Dívida\s*Bruta|Divida\s*Bruta)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i));
+  const cash = parseNum(getMatch(/(?:Caixa|Disponibilidades)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i));
+  const ebitda = parseNum(getMatch(/(?:EBITDA)\s*[:=\n\r\t\s]+([+-]?\d+(?:[.,]\d+)?)/i));
+  if (res.netDebtEbitda === null && grossDebt !== null && cash !== null && ebitda !== null && ebitda !== 0) {
+    res.netDebtEbitda = parseFloat(((grossDebt - cash) / ebitda).toFixed(2));
+  }
+
+  return res;
 }
 
 /**
@@ -1297,14 +1307,21 @@ function generateBatchAiPrompt() {
   const tickersStr = tickers.length > 0 ? tickers.join(', ') : 'PETR4, VALE3, ITUB4, WEGE3';
   const todayIso = new Date().toISOString().split('T')[0];
 
-  return `Atue como um analista de investimentos fundamentalista e especialista no mercado financeiro (B3 e BDRs).
+  return `Atue como um analista de investimentos fundamentalista sênior e especialista no mercado financeiro brasileiro e global (B3 e BDRs).
 Data de referência: ${todayIso}.
 
 Para cada uma das seguintes ações/BDRs da minha carteira:
 [${tickersStr}]
 
-Pesquise e forneça os indicadores fundamentalistas e múltiplos mais recentes disponíveis (LTM / últimos 12 meses divulgados), no formato JSON abaixo.
-Se algum indicador não for aplicável ao setor (ex: bancos não têm Dívida Líq/EBITDA nem Margem EBITDA), use null.
+Pesquise e forneça os DADOS CONTÁBEIS BASE mais recentes disponíveis (últimos 12 meses divulgados / LTM e balanço mais recente), para que nosso sistema calcule os múltiplos com precisão matemática.
+
+REGRA MANDATÓRIA DE VALIDAÇÃO:
+“Se valor parecer absurdamente elevado ou incompatível com o setor, interrompa a geração do resultado, recalcule-o a partir dos dados contábeis e confirme-o em uma segunda fonte. Nunca aceite automaticamente um valor de fonte sem validação.”
+
+DIRETRIZES TÉCNICAS:
+1. DADOS-BASE CONTÁBEIS: Retorne os números contábeis reais (em reais absolutos ou na moeda oficial de reporte, sem notações como "bi" ou "mi"): receitaLiquida, ebitda, ebit, lucroLiquido, patrimonioLiquido, dividaBruta, caixa, fluxoCaixaLivre, numeroAcoes, lpa, dividendosPorAcao (soma dos proventos pagos por ação nos últimos 12m).
+2. SETOR FINANCEIRO (BANCOS / SEGURADORAS): Não utilizam EBITDA nem endividamento líquido tradicional. Nesses casos, use null para ebitda, ebit, dividaBruta, caixa, margemEbitda e dividaLiquidaEbitda.
+3. MÚLTIPLOS E TAXAS: Forneça também as taxas de crescimento médio de 5 anos (crescimentoReceita5a, crescimentoLucro5a), ROIC (%) e ROE (%). Você pode incluir os múltiplos estimados de referência (pl, margemLiquida, margemEbitda, dividaLiquidaEbitda, dividendYield), mas o sistema priorizará o recálculo exato a partir dos dados contábeis.
 
 Responda ESTRITAMENTE com o bloco JSON válido abaixo, sem texto antes ou depois:
 
@@ -1312,16 +1329,26 @@ Responda ESTRITAMENTE com o bloco JSON válido abaixo, sem texto antes ou depois
   {
     "ticker": "WEGE3",
     "precoAtual": 52.10,
-    "pl": 34.72,
-    "lpa": 1.49,
+    "receitaLiquida": 32500000000,
+    "ebitda": 7200000000,
+    "ebit": 6100000000,
+    "lucroLiquido": 5060000000,
+    "patrimonioLiquido": 15260000000,
+    "dividaBruta": 3500000000,
+    "caixa": 6500000000,
+    "fluxoCaixaLivre": 4200000000,
+    "numeroAcoes": 4197317998,
+    "lpa": 1.21,
+    "dividendosPorAcao": 1.18,
     "roic": 25.73,
     "roe": 33.16,
-    "margemLiquida": 15.58,
-    "margemEbitda": 22.15,
-    "dividaLiquidaEbitda": -0.42,
     "crescimentoReceita5a": 18.49,
     "crescimentoLucro5a": 21.72,
-    "dividendYield": 2.28
+    "pl": 43.05,
+    "margemLiquida": 15.57,
+    "margemEbitda": 22.15,
+    "dividaLiquidaEbitda": -0.42,
+    "dividendYield": 2.27
   }
 ]`;
 }
@@ -1462,39 +1489,122 @@ function processBatchAiResponse() {
         asset.precoAtual = price;
         asset.preco = price;
       }
+      const refPrice = (price && price > 0) ? price : (asset.precoAtual || asset.preco || null);
 
-      const pe = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
-      if (pe !== null) asset.fundamentals.pe = pe;
+      // 1. Extração dos Dados Contábeis Base
+      const receita = getNum(item, 'receitaLiquida', 'receita_liquida', 'receita', 'revenue', 'netRevenue');
+      const ebitda = getNum(item, 'ebitda', 'EBITDA');
+      const ebit = getNum(item, 'ebit', 'EBIT');
+      const lucroLiquido = getNum(item, 'lucroLiquido', 'lucro_liquido', 'lucro', 'netIncome', 'net_income');
+      const patrimonioLiquido = getNum(item, 'patrimonioLiquido', 'patrimonio_liquido', 'patrimonio', 'equity', 'netWorth');
+      const dividaBruta = getNum(item, 'dividaBruta', 'divida_bruta', 'debt', 'grossDebt', 'totalDebt');
+      const caixa = getNum(item, 'caixa', 'caixaDisponibilidades', 'cash', 'cashAndEquivalents');
+      const despesasFin = getNum(item, 'despesasFinanceiras', 'despesas_financeiras', 'resultadoFinanceiro', 'jurosLiquidos', 'interestExpense');
+      const fcf = getNum(item, 'fluxoCaixaLivre', 'fluxo_caixa_livre', 'fcf', 'freeCashFlow', 'free_cash_flow');
+      const shares = getNum(item, 'numeroAcoes', 'numero_acoes', 'totalAcoes', 'sharesOutstanding', 'shares');
+      const dpa = getNum(item, 'dividendosPorAcao', 'dividendos12mPorAcao', 'dividendos12m', 'dpa', 'dividendPerShare');
+      const lpaRaw = getNum(item, 'lpa', 'eps', 'earningsPerShare');
 
-      const eps = getNum(item, 'lpa', 'eps', 'earningsPerShare');
-      if (eps !== null) asset.fundamentals.eps = eps;
+      // Persistir dados contábeis no ativo para modelo DCF e análise de saúde
+      if (receita !== null) asset.fundamentals.revenue = receita;
+      if (lucroLiquido !== null) asset.fundamentals.netIncome = lucroLiquido;
+      if (ebitda !== null) asset.fundamentals.ebitda = ebitda;
+      if (ebit !== null) asset.fundamentals.ebit = ebit;
+      if (dividaBruta !== null) asset.fundamentals.debt = dividaBruta;
+      if (caixa !== null) asset.fundamentals.cash = caixa;
+      if (fcf !== null) asset.fundamentals.freeCashFlow = fcf;
+      if (shares !== null) asset.fundamentals.sharesOutstanding = shares;
+      if (dpa !== null) asset.fundamentals.dividendPerShare = dpa;
 
+      // 2. Cálculo dos Múltiplos pelo Programa a partir dos Dados Contábeis Base
+
+      // Dívida Líquida e Dívida Líquida / EBITDA = (dívidaBruta - caixa) / EBITDA_LTM
+      if (dividaBruta !== null && caixa !== null) {
+        const netDebt = dividaBruta - caixa;
+        asset.fundamentals.netDebt = netDebt;
+        if (ebitda !== null && ebitda !== 0) {
+          asset.fundamentals.netDebtEbitda = parseFloat((netDebt / ebitda).toFixed(2));
+        }
+      }
+      if (asset.fundamentals.netDebtEbitda === undefined || asset.fundamentals.netDebtEbitda === null) {
+        const netDebtEbitdaRaw = getNum(item, 'dividaLiquidaEbitda', 'divida_liquida_ebitda', 'netDebtEbitda', 'net_debt_ebitda');
+        if (netDebtEbitdaRaw !== null) asset.fundamentals.netDebtEbitda = netDebtEbitdaRaw;
+      }
+      if (asset.fundamentals.netDebt === undefined || asset.fundamentals.netDebt === null) {
+        const netDebtRaw = getNum(item, 'dividaLiquida', 'divida_liquida', 'netDebt', 'net_debt');
+        if (netDebtRaw !== null) asset.fundamentals.netDebt = netDebtRaw;
+      }
+
+      // LPA (Lucro por Ação)
+      if (lpaRaw !== null) {
+        asset.fundamentals.eps = lpaRaw;
+      } else if (lucroLiquido !== null && shares && shares > 0) {
+        asset.fundamentals.eps = parseFloat((lucroLiquido / shares).toFixed(2));
+      }
+
+      // P/L (Preço / Lucro) = Cotação / LPA
+      if (refPrice && refPrice > 0 && asset.fundamentals.eps && asset.fundamentals.eps > 0) {
+        asset.fundamentals.pe = parseFloat((refPrice / asset.fundamentals.eps).toFixed(2));
+      } else {
+        const peRaw = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
+        if (peRaw !== null) asset.fundamentals.pe = peRaw;
+      }
+
+      // Margem Líquida (%) = (Lucro Líquido / Receita Líquida) * 100
+      if (receita && receita > 0 && lucroLiquido !== null) {
+        asset.fundamentals.netMargin = parseFloat(((lucroLiquido / receita) * 100).toFixed(2));
+      } else {
+        const netMarginRaw = getNum(item, 'margemLiquida', 'margem_liquida', 'netMargin', 'net_margin');
+        if (netMarginRaw !== null) asset.fundamentals.netMargin = netMarginRaw;
+      }
+
+      // Margem EBITDA (%) = (EBITDA / Receita Líquida) * 100
+      if (receita && receita > 0 && ebitda !== null) {
+        asset.fundamentals.ebitdaMargin = parseFloat(((ebitda / receita) * 100).toFixed(2));
+      } else {
+        const ebitdaMarginRaw = getNum(item, 'margemEbitda', 'margem_ebitda', 'ebitdaMargin', 'ebitda_margin');
+        if (ebitdaMarginRaw !== null) asset.fundamentals.ebitdaMargin = ebitdaMarginRaw;
+      }
+
+      // ROE (%) = (Lucro Líquido / Patrimônio Líquido) * 100
+      if (patrimonioLiquido && patrimonioLiquido > 0 && lucroLiquido !== null) {
+        asset.fundamentals.roe = parseFloat(((lucroLiquido / patrimonioLiquido) * 100).toFixed(2));
+      } else {
+        const roeRaw = getNum(item, 'roe', 'ROE');
+        if (roeRaw !== null) asset.fundamentals.roe = roeRaw;
+      }
+
+      // Dividend Yield (%) = (Dividendos por Ação / Cotação) * 100
+      if (refPrice && refPrice > 0 && dpa !== null) {
+        asset.fundamentals.dividendYield = parseFloat(((dpa / refPrice) * 100).toFixed(2));
+      } else {
+        const dyRaw = getNum(item, 'dividendYield', 'dividend_yield', 'dy', 'DY');
+        if (dyRaw !== null) asset.fundamentals.dividendYield = dyRaw;
+      }
+
+      // Cobertura de Juros = EBIT / Despesas Financeiras Líquidas
+      if (ebit !== null && despesasFin && despesasFin > 0) {
+        asset.fundamentals.interestCoverage = parseFloat((ebit / despesasFin).toFixed(2));
+      } else {
+        const interestCoverageRaw = getNum(item, 'coberturaJuros', 'cobertura_juros', 'interestCoverage');
+        if (interestCoverageRaw !== null) asset.fundamentals.interestCoverage = interestCoverageRaw;
+      }
+
+      // ROIC (%)
       const roic = getNum(item, 'roic', 'ROIC');
       if (roic !== null) asset.fundamentals.roic = roic;
 
-      const roe = getNum(item, 'roe', 'ROE');
-      if (roe !== null) asset.fundamentals.roe = roe;
-
-      const netMargin = getNum(item, 'margemLiquida', 'margem_liquida', 'netMargin', 'net_margin');
-      if (netMargin !== null) asset.fundamentals.netMargin = netMargin;
-
-      const ebitdaMargin = getNum(item, 'margemEbitda', 'margem_ebitda', 'ebitdaMargin', 'ebitda_margin');
-      if (ebitdaMargin !== null) asset.fundamentals.ebitdaMargin = ebitdaMargin;
-
-      const netDebtEbitda = getNum(item, 'dividaLiquidaEbitda', 'divida_liquida_ebitda', 'netDebtEbitda', 'net_debt_ebitda');
-      if (netDebtEbitda !== null) asset.fundamentals.netDebtEbitda = netDebtEbitda;
-
-      const interestCoverage = getNum(item, 'coberturaJuros', 'cobertura_juros', 'interestCoverage');
-      if (interestCoverage !== null) asset.fundamentals.interestCoverage = interestCoverage;
-
+      // Crescimento de Receita (5 anos)
       const revGrowth = getNum(item, 'crescimentoReceita5a', 'crescimento_receita_5a', 'crescimentoReceita', 'revenueGrowth');
       if (revGrowth !== null) asset.fundamentals.revenueGrowth = revGrowth;
 
+      // Crescimento de Lucro (5 anos)
       const netGrowth = getNum(item, 'crescimentoLucro5a', 'crescimento_lucro_5a', 'crescimentoLucro', 'netIncomeGrowth');
       if (netGrowth !== null) asset.fundamentals.netIncomeGrowth = netGrowth;
 
-      const dy = getNum(item, 'dividendYield', 'dividend_yield', 'dy', 'DY');
-      if (dy !== null) asset.fundamentals.dividendYield = dy;
+      // Crescimento de FCF (5 anos)
+      const fcfGrowth = getNum(item, 'crescimentoFcf5a', 'crescimento_fcf_5a', 'crescimentoFcf', 'fcfGrowth', 'freeCashFlowGrowth');
+      if (fcfGrowth !== null) asset.fundamentals.freeCashFlowGrowth = fcfGrowth;
 
       asset.fundamentals.fundamentalsUpdatedAt = todayIso;
       updatedAssets.push({ asset, fieldsCount: Object.keys(item).length });
@@ -1607,8 +1717,8 @@ function processBatchAiResponse() {
             </tbody>
           </table>
         </div>
-        <div style="margin-top: 8px; font-size: 0.78rem; color: #94a3b8;">
-          💡 Todos os múltiplos, pontuações de qualidade e prioridades de aporte foram recalculados e salvos.
+        <div style="margin-top: 8px; font-size: 0.78rem; color: #94a3b8; line-height: 1.4;">
+          💡 Múltiplos e indicadores recalculados matematicamente pelo programa a partir dos dados contábeis base (Dívida Líq/EBITDA, P/L, Margens, ROE e DY), eliminando alucinações e distorções da IA.
         </div>
       </div>
     `;
