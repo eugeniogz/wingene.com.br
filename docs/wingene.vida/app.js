@@ -23,13 +23,12 @@
     appScreen: document.getElementById('appScreen'),
     lockForm: document.getElementById('lockForm'),
     passwordInput: document.getElementById('passwordInput'),
-    confirmPasswordGroup: document.getElementById('confirmPasswordGroup'),
-    confirmPasswordInput: document.getElementById('confirmPasswordInput'),
     rememberPasswordCheck: document.getElementById('rememberPasswordCheck'),
     lockError: document.getElementById('lockError'),
     lockSubtitle: document.getElementById('lockSubtitle'),
     btnUnlock: document.getElementById('btnUnlock'),
     linkLoadSample: document.getElementById('linkLoadSample'),
+    linkResetVault: document.getElementById('linkResetVault'),
 
     brandHomeBtn: document.getElementById('brandHomeBtn'),
     btnDriveSync: document.getElementById('btnDriveSync'),
@@ -77,6 +76,10 @@
     btnExportJson: document.getElementById('btnExportJson'),
     importFileInput: document.getElementById('importFileInput'),
     btnClearSavedPassword: document.getElementById('btnClearSavedPassword'),
+    changePassNew: document.getElementById('changePassNew'),
+    btnApplyNewPassword: document.getElementById('btnApplyNewPassword'),
+    driveEncryptionPassword: document.getElementById('driveEncryptionPassword'),
+    btnSaveDrivePassword: document.getElementById('btnSaveDrivePassword'),
 
     driveStatusBadge: document.getElementById('driveStatusBadge'),
     btnConnectDriveModal: document.getElementById('btnConnectDriveModal'),
@@ -103,15 +106,13 @@
       state.isFirstTimeSetup = !initialized;
 
       if (state.isFirstTimeSetup) {
-        // Primeiro acesso: usuário deve definir a senha
-        elements.lockSubtitle.textContent = 'Defina uma senha mestre para criar seu cofre';
-        elements.confirmPasswordGroup.classList.remove('hidden');
+        // Primeiro acesso: usuário define a senha inicial
+        elements.lockSubtitle.textContent = 'Defina a senha para criar seu cofre';
         elements.btnUnlock.textContent = 'Criar Cofre Seguro';
-        elements.passwordInput.placeholder = 'Crie uma senha forte...';
+        elements.passwordInput.placeholder = 'Digite uma senha para o diário...';
       } else {
         // Já possui cofre: tenta desbloqueio silencioso se houver credencial salva
         elements.lockSubtitle.textContent = 'Cofre de Registros Pessoal';
-        elements.confirmPasswordGroup.classList.add('hidden');
         elements.btnUnlock.textContent = 'Desbloquear Diário';
         elements.passwordInput.placeholder = 'Digite sua senha...';
 
@@ -157,20 +158,15 @@
     }
 
     if (state.isFirstTimeSetup) {
-      const confirmPassword = elements.confirmPasswordInput.value.trim();
       if (password.length < 4) {
         showLockError('A senha deve conter no mínimo 4 caracteres.');
         return;
       }
-      if (password !== confirmPassword) {
-        showLockError('As senhas não coincidem. Digite novamente.');
-        return;
-      }
 
-      // Cria cofre inicial vazio
+      // Cria cofre inicial vazio diretamente com a senha informada
       try {
         elements.btnUnlock.disabled = true;
-        elements.btnUnlock.textContent = 'Criando cofre criptografado...';
+        elements.btnUnlock.textContent = 'Criando cofre seguro...';
 
         state.currentPassword = password;
         state.vaultData = { registros: [] };
@@ -229,7 +225,6 @@
     state.currentPassword = null;
     state.vaultData = { registros: [] };
     elements.passwordInput.value = '';
-    elements.confirmPasswordInput.value = '';
     hideLockError();
 
     elements.appScreen.classList.add('hidden');
@@ -292,6 +287,8 @@
       return;
     }
 
+    const drivePassword = sessionStorage.getItem('wingene_drive_custom_pass') || state.currentPassword;
+
     try {
       state.isSyncingDrive = true;
       elements.driveSyncIcon.classList.add('spin-icon');
@@ -308,7 +305,7 @@
       updateDriveStatusUI();
 
       // 2. Baixa registros existentes no Drive
-      const remoteRes = await GoogleDriveService.downloadMasterData(state.currentPassword);
+      const remoteRes = await GoogleDriveService.downloadMasterData(drivePassword);
       let mergedCount = 0;
 
       if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
@@ -340,7 +337,7 @@
         const sizeInfo = remoteRes.fileSizeBytes !== undefined ? ` (${remoteRes.fileSizeBytes} bytes)` : '';
         const keysInfo = remoteRes.rawKeys && remoteRes.rawKeys.length > 0 ? ` (Chaves detectadas: ${remoteRes.rawKeys.join(', ')})` : '';
         if (!silent) {
-          alert(`O arquivo 'diario_sync_master.json' foi encontrado no Google Drive${sizeInfo}, mas nenhum registro foi extraído${keysInfo}.\n\n💡 Verifique se a senha informada no diário é a mesma senha de backup utilizada no aplicativo móvel.`);
+          alert(`O arquivo 'diario_sync_master.json' foi encontrado no Google Drive${sizeInfo}, mas nenhum registro foi extraído${keysInfo}.\n\n💡 Verifique se a senha informada no diário é a mesma senha de backup utilizada no aplicativo móvel (ou defina a Senha do Drive nas Configurações).`);
         }
       } else {
         const filesList = (remoteRes.filesInDrive || []).join(', ');
@@ -354,7 +351,7 @@
       // 3. Somente faz upload se o usuário tiver registros locais a enviar
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
       if (state.vaultData.registros && state.vaultData.registros.length > 0 && (localHasUnsynced || remoteRes.fileFound)) {
-        await GoogleDriveService.uploadMasterData(state.vaultData.registros, state.currentPassword);
+        await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
         state.vaultData.registros.forEach((r) => (r.sincronizado = 1));
         await DBService.persistVault(state.vaultData, state.currentPassword);
       }
@@ -816,7 +813,6 @@
         showToast('11 entradas de exemplo carregadas no seu diário!');
       } else {
         elements.passwordInput.value = '1234';
-        elements.confirmPasswordInput.value = '1234';
         handleUnlock().then(async () => {
           state.vaultData.registros = records;
           await DBService.persistVault(state.vaultData, state.currentPassword);
@@ -828,6 +824,73 @@
     }
   }
 
+  // ─── Gerenciamento de Senhas & Cofre ──────────────────────────────────────────
+
+  async function applyNewPassword() {
+    if (!elements.changePassNew) return;
+    const newPass = elements.changePassNew.value.trim();
+
+    if (!newPass || newPass.length < 4) {
+      alert('A nova senha deve ter no mínimo 4 caracteres.');
+      return;
+    }
+
+    if (!state.currentPassword) {
+      alert('O diário deve estar desbloqueado para alterar a senha.');
+      return;
+    }
+
+    try {
+      await DBService.persistVault(state.vaultData, newPass);
+      state.currentPassword = newPass;
+
+      const saved = await CryptoService.getSavedPassword();
+      if (saved) {
+        await CryptoService.savePasswordLocally(newPass);
+      }
+
+      elements.changePassNew.value = '';
+      showToast('Senha do diário alterada com sucesso!');
+      alert('Senha do diário alterada com sucesso! Ela será solicitada nos próximos acessos.');
+    } catch (err) {
+      alert('Erro ao atualizar senha: ' + err.message);
+    }
+  }
+
+  function saveCustomDrivePassword() {
+    if (!elements.driveEncryptionPassword) return;
+    const drivePass = elements.driveEncryptionPassword.value.trim();
+    if (!drivePass) {
+      alert('Por favor, digite a senha usada no Google Drive / App Móvel.');
+      return;
+    }
+
+    sessionStorage.setItem('wingene_drive_custom_pass', drivePass);
+    showToast('Senha do Drive configurada!');
+    syncWithGoogleDrive(false);
+  }
+
+  async function handleResetVault(e) {
+    if (e) e.preventDefault();
+    const confirmed = confirm(
+      'Deseja redefinir os dados salvos localmente neste navegador?\n\n' +
+      '⚠️ Esta ação limpará o cofre local para que você possa definir uma nova senha ou reimportar seus dados.\n' +
+      '(Os seus arquivos no Google Drive e no app móvel NÃO serão excluídos).'
+    );
+    if (!confirmed) return;
+
+    try {
+      await DBService.resetVault();
+      CryptoService.clearSavedPassword();
+      localStorage.removeItem('wingene_last_drive_sync');
+      sessionStorage.removeItem('wingene_drive_custom_pass');
+      alert('Cofre local redefinido com sucesso.');
+      location.reload();
+    } catch (err) {
+      alert('Erro ao redefinir cofre: ' + err.message);
+    }
+  }
+
   // ─── Event Listeners ──────────────────────────────────────────────────────────
 
   function setupEventListeners() {
@@ -836,13 +899,13 @@
     elements.passwordInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleUnlock();
     });
-    elements.confirmPasswordInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') handleUnlock();
-    });
     elements.linkLoadSample.addEventListener('click', (e) => {
       e.preventDefault();
       loadSampleMockData();
     });
+    if (elements.linkResetVault) {
+      elements.linkResetVault.addEventListener('click', handleResetVault);
+    }
 
     // Google Drive Sync
     elements.btnDriveSync.addEventListener('click', () => {
@@ -936,6 +999,10 @@
     // Configurações & Backup
     elements.btnSettings.addEventListener('click', () => {
       updateDriveStatusUI();
+      const customDrivePass = sessionStorage.getItem('wingene_drive_custom_pass');
+      if (customDrivePass && elements.driveEncryptionPassword) {
+        elements.driveEncryptionPassword.value = customDrivePass;
+      }
       elements.settingsModal.classList.remove('hidden');
     });
     elements.btnCloseSettingsModal.addEventListener('click', () => {
@@ -950,6 +1017,23 @@
       CryptoService.clearSavedPassword();
       alert('A senha salva foi esquecida deste navegador.');
     });
+
+    if (elements.btnApplyNewPassword) {
+      elements.btnApplyNewPassword.addEventListener('click', applyNewPassword);
+    }
+    if (elements.changePassNew) {
+      elements.changePassNew.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') applyNewPassword();
+      });
+    }
+    if (elements.btnSaveDrivePassword) {
+      elements.btnSaveDrivePassword.addEventListener('click', saveCustomDrivePassword);
+    }
+    if (elements.driveEncryptionPassword) {
+      elements.driveEncryptionPassword.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveCustomDrivePassword();
+      });
+    }
   }
 
   function escapeHtml(str) {

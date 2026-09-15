@@ -42,11 +42,6 @@
           <input type="password" id="passwordInput" placeholder="Digite sua senha..." autocomplete="current-password" required>
         </div>
 
-        <div id="confirmPasswordGroup" class="form-group hidden">
-          <label for="confirmPasswordInput">Confirmar Nova Senha</label>
-          <input type="password" id="confirmPasswordInput" placeholder="Repita a senha..." autocomplete="new-password">
-        </div>
-
         <label class="checkbox-label">
           <input type="checkbox" id="rememberPasswordCheck" checked>
           <span>Lembrar senha neste dispositivo (armazenamento seguro)</span>
@@ -58,8 +53,9 @@
           Desbloquear Diário
         </button>
 
-        <div style="margin-top: 1rem; font-size: 0.8rem; text-align: center; color: var(--text-muted);">
-          <a href="#" id="linkLoadSample" style="color: #38bdf8; text-decoration: none;">Carregar dados de exemplo (Mock)</a>
+        <div style="margin-top: 1rem; font-size: 0.8rem; display: flex; justify-content: space-between; gap: 0.5rem; color: var(--text-muted);">
+          <a href="#" id="linkLoadSample" style="color: #38bdf8; text-decoration: none;">Carregar dados de exemplo</a>
+          <a href="#" id="linkResetVault" style="color: #fb7185; text-decoration: none;">Redefinir / Trocar senha</a>
         </div>
       </form>
     </div>
@@ -285,6 +281,20 @@
               Desconectar
             </button>
           </div>
+          <div style="margin-top: 0.85rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem;">
+            <label for="driveEncryptionPassword" style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">
+              Senha de Criptografia do Drive (caso seja diferente da senha do PWA):
+            </label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="password" id="driveEncryptionPassword" placeholder="Senha usada no aplicativo móvel..." style="font-size: 0.85rem; padding: 0.5rem 0.8rem;">
+              <button type="button" id="btnSaveDrivePassword" class="btn btn-secondary btn-sm" style="white-space: nowrap;">
+                Usar Esta Senha
+              </button>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+              Por padrão, o PWA usa a senha do diário. Altere aqui se o app móvel usar outra senha.
+            </span>
+          </div>
           <div id="driveLastSyncTime" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem;"></div>
         </div>
 
@@ -305,14 +315,23 @@
           </label>
         </div>
 
-        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Segurança no Dispositivo</h4>
-        <div style="margin-bottom: 1.5rem;">
-          <button type="button" id="btnClearSavedPassword" class="btn btn-secondary btn-sm">
-            Esquecer Senha Lembrada Neste Navegador
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Segurança & Senha do Diário</h4>
+        <div style="background: var(--bg-surface-elevated); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="form-group">
+            <label for="changePassNew" style="font-size: 0.8rem;">Nova Senha do Diário</label>
+            <input type="password" id="changePassNew" placeholder="Digite a nova senha..." autocomplete="new-password">
+          </div>
+          <button type="button" id="btnApplyNewPassword" class="btn btn-primary btn-sm" style="align-self: flex-start;">
+            Atualizar Senha
           </button>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-            Isto exigirá digitar a senha mestre na próxima vez que você abrir o app.
-          </p>
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.25rem;">
+            <button type="button" id="btnClearSavedPassword" class="btn btn-secondary btn-sm">
+              Esquecer Senha Lembrada Neste Navegador
+            </button>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Isto exigirá digitar a senha na próxima vez que você abrir o app.
+            </p>
+          </div>
         </div>
 
         <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Sobre os Resultados de IA</h4>

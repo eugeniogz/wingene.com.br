@@ -82,6 +82,18 @@ const DBService = {
     await this.saveRawVault(encrypted);
   },
 
+  // Limpa o cofre do banco local (permite redefinir/trocar senha)
+  async resetVault() {
+    const db = await this.openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+      const request = store.delete(this.VAULT_RECORD_KEY);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
   // Gera um UUID v4 no padrão RFC4122
   generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
