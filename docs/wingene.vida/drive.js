@@ -244,7 +244,7 @@ const GoogleDriveService = {
       finalBytes.set(new Uint8Array(cipherBuffer), 16);
 
       if (existing && existing.id) {
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
+        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
           method: 'PATCH',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -252,23 +252,26 @@ const GoogleDriveService = {
           },
           body: finalBytes
         });
+        if (!res.ok) {
+          console.warn('Erro ao atualizar validar.hash (PATCH):', res.status, await res.text().catch(() => ''));
+        }
       } else {
         const boundary = '-------validar_hash_' + Math.random().toString(36).substring(2);
         const metadata = JSON.stringify({
           name: this.VALIDATION_FILENAME,
           parents: ['appDataFolder']
         });
-        const delimiter = `\r\n--${boundary}\r\n`;
-        const closeDelimiter = `\r\n--${boundary}--`;
-        const p1 = encoder.encode(delimiter + 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + metadata + delimiter + 'Content-Type: application/octet-stream\r\n\r\n');
-        const p3 = encoder.encode(closeDelimiter);
+        const p1 = encoder.encode(
+          `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
+        );
+        const p3 = encoder.encode(`\r\n--${boundary}--`);
 
         const combined = new Uint8Array(p1.length + finalBytes.length + p3.length);
         combined.set(p1, 0);
         combined.set(finalBytes, p1.length);
         combined.set(p3, p1.length + finalBytes.length);
 
-        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -276,6 +279,9 @@ const GoogleDriveService = {
           },
           body: combined
         });
+        if (!res.ok) {
+          console.warn('Erro ao criar validar.hash (POST):', res.status, await res.text().catch(() => ''));
+        }
       }
     } catch (e) {
       console.warn('Não foi possível gravar validar.hash:', e);
@@ -285,6 +291,7 @@ const GoogleDriveService = {
   // Baixa e descriptografa os registros do Drive
   async downloadMasterData(password) {
     const allFiles = await this.listAllAppDataFiles();
+    allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
     const masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
     const validationFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
     const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
@@ -394,6 +401,7 @@ const GoogleDriveService = {
 
     const encryptedBytes = await CryptoService.encryptDartFormat(payloadList, password);
     const allFiles = await this.listAllAppDataFiles();
+    allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
     const existingFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
 
     if (existingFile && existingFile.id) {
@@ -418,16 +426,11 @@ const GoogleDriveService = {
         parents: ['appDataFolder']
       });
 
-      const delimiter = `\r\n--${boundary}\r\n`;
-      const closeDelimiter = `\r\n--${boundary}--`;
-
-      const metadataPart = 'Content-Type: application/json; charset=UTF-8\r\n\r\n' + metadata;
-      const mediaHeaderPart = 'Content-Type: application/octet-stream\r\n\r\n';
-
-      const enc = new TextEncoder();
-      const p1 = enc.encode(delimiter + metadataPart + delimiter + mediaHeaderPart);
+      const p1 = enc.encode(
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
+      );
       const p2 = encryptedBytes;
-      const p3 = enc.encode(closeDelimiter);
+      const p3 = enc.encode(`\r\n--${boundary}--`);
 
       const combined = new Uint8Array(p1.length + p2.length + p3.length);
       combined.set(p1, 0);
@@ -461,11 +464,12 @@ const GoogleDriveService = {
     try {
       const nowIso = new Date().toISOString();
       const allFiles = await this.listAllAppDataFiles();
+      allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
       const existing = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME);
       const bytes = new TextEncoder().encode(nowIso);
 
       if (existing && existing.id) {
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
+        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
           method: 'PATCH',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -473,6 +477,11 @@ const GoogleDriveService = {
           },
           body: bytes
         });
+        if (!res.ok) {
+          console.warn('Erro ao atualizar sync_timestamp.txt (PATCH):', res.status, await res.text().catch(() => ''));
+        } else {
+          console.log('[Drive] sync_timestamp.txt atualizado com sucesso via PATCH!');
+        }
       } else {
         const boundary = '-------timestamp_boundary_' + Math.random().toString(36).substring(2);
         const metadata = JSON.stringify({
@@ -483,7 +492,7 @@ const GoogleDriveService = {
           `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
           `--${boundary}\r\nContent-Type: text/plain\r\n\r\n${nowIso}\r\n--${boundary}--`;
 
-        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -491,6 +500,11 @@ const GoogleDriveService = {
           },
           body: multipartBody
         });
+        if (!res.ok) {
+          console.warn('Erro ao criar sync_timestamp.txt (POST):', res.status, await res.text().catch(() => ''));
+        } else {
+          console.log('[Drive] sync_timestamp.txt criado com sucesso via POST!');
+        }
       }
     } catch (e) {
       console.warn('Não foi possível atualizar sync_timestamp.txt:', e);
