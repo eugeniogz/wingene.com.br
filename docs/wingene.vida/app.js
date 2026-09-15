@@ -93,7 +93,8 @@
     btnCancelDrivePasswordModal: document.getElementById('btnCancelDrivePasswordModal'),
     btnConfirmDrivePasswordModal: document.getElementById('btnConfirmDrivePasswordModal'),
     inputModalDrivePassword: document.getElementById('inputModalDrivePassword'),
-    modalDrivePasswordError: document.getElementById('modalDrivePasswordError')
+    modalDrivePasswordError: document.getElementById('modalDrivePasswordError'),
+    driveDiagDetails: document.getElementById('driveDiagDetails')
   };
 
   // ─── Inicialização ────────────────────────────────────────────────────────────
@@ -365,6 +366,18 @@
         showToast(`✅ ${state.vaultData.registros.length} registros salvos no Google Drive!`);
       } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
         showToast(`✅ ${remoteRes.records.length} registros carregados do Google Drive!`);
+      }
+
+      // 4. Atualiza informações de diagnóstico na tela
+      if (elements.driveDiagDetails) {
+        const driveFiles = await GoogleDriveService.listAllAppDataFiles().catch(() => []);
+        const filesInfo = driveFiles.length > 0
+          ? driveFiles.map((f) => `• ${f.name} (ID: ${f.id.slice(0, 10)}..., modificado: ${new Date(f.modifiedTime).toLocaleTimeString()})`).join('\n')
+          : 'Nenhum arquivo listado.';
+        elements.driveDiagDetails.textContent =
+          `Conta: ${GoogleDriveService.userEmail || 'N/A'}\n` +
+          `Registros no PWA: ${state.vaultData.registros.length}\n` +
+          `Arquivos no Drive:\n${filesInfo}`;
       }
 
       const now = new Date();
