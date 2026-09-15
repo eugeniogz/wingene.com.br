@@ -342,7 +342,6 @@
         state.vaultData.registros = Array.from(localMap.values());
         await DBService.persistVault(state.vaultData, state.currentPassword);
         renderEntries();
-        showToast(`${remoteRes.records.length} registros carregados do Google Drive!`);
       } else if (remoteRes.fileFound && (!remoteRes.records || remoteRes.records.length === 0)) {
         const filesList = (remoteRes.filesInDrive || []).join(', ');
         if (!silent) {
@@ -357,12 +356,15 @@
         }
       }
 
-      // 3. Somente faz upload se o usuário tiver registros locais a enviar
+      // 3. Faz upload se houver novos registros locais ou base mesclada
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
       if (state.vaultData.registros && state.vaultData.registros.length > 0 && (localHasUnsynced || remoteRes.fileFound)) {
         await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
         state.vaultData.registros.forEach((r) => (r.sincronizado = 1));
         await DBService.persistVault(state.vaultData, state.currentPassword);
+        showToast(`✅ ${state.vaultData.registros.length} registros salvos no Google Drive!`);
+      } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
+        showToast(`✅ ${remoteRes.records.length} registros carregados do Google Drive!`);
       }
 
       const now = new Date();

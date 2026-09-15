@@ -426,11 +426,12 @@ const GoogleDriveService = {
         parents: ['appDataFolder']
       });
 
-      const p1 = enc.encode(
+      const encoder = new TextEncoder();
+      const p1 = encoder.encode(
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
       );
       const p2 = encryptedBytes;
-      const p3 = enc.encode(`\r\n--${boundary}--`);
+      const p3 = encoder.encode(`\r\n--${boundary}--`);
 
       const combined = new Uint8Array(p1.length + p2.length + p3.length);
       combined.set(p1, 0);
@@ -452,6 +453,9 @@ const GoogleDriveService = {
         throw new Error(`Falha ao criar arquivo no Drive: ${errData?.error?.message || res.status}`);
       }
     }
+
+    // Remove eventuais arquivos duplicados no appDataFolder para manter integridade
+    await this.cleanupDuplicates(token);
 
     // Grava o arquivo de validação de senha e o timestamp
     await this.createOrUpdateValidationFile(password);
@@ -505,9 +509,33 @@ const GoogleDriveService = {
         } else {
           console.log('[Drive] sync_timestamp.txt criado com sucesso via POST!');
         }
-      }
     } catch (e) {
       console.warn('Não foi possível atualizar sync_timestamp.txt:', e);
+    }
+  },
+
+  // Remove arquivos duplicados na pasta privada appDataFolder mantendo apenas o mais recente
+  async cleanupDuplicates(token) {
+    try {
+      const allFiles = await this.listAllAppDataFiles();
+      const targetNames = [this.MASTER_FILENAME, this.TIMESTAMP_FILENAME, this.VALIDATION_FILENAME];
+
+      for (const name of targetNames) {
+        const matching = allFiles.filter((f) => f.name === name);
+        if (matching.length > 1) {
+          matching.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
+          const toDelete = matching.slice(1);
+          for (const file of toDelete) {
+            console.log(`[Drive] Removendo duplicata de ${name} (ID: ${file.id})...`);
+            await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Drive] Aviso ao limpar duplicatas:', e);
     }
   }
 };
