@@ -157,14 +157,9 @@ const CryptoService = {
 
   // Descompactação ZLIB (inflate) nativa via DecompressionStream
   async zlibDecompress(uint8Array) {
-    try {
-      const stream = new Response(uint8Array).body.pipeThrough(new DecompressionStream('deflate'));
-      const buf = await new Response(stream).arrayBuffer();
-      return new Uint8Array(buf);
-    } catch (e) {
-      // Fallback: se não estiver compactado, retorna direto
-      return uint8Array;
-    }
+    const stream = new Response(uint8Array).body.pipeThrough(new DecompressionStream('deflate'));
+    const buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
   },
 
   // Adiciona padding PKCS7 a um Uint8Array (tamanho de bloco = 16 bytes)
@@ -235,17 +230,24 @@ const CryptoService = {
 
     const uint8 = new Uint8Array(rawBytes);
 
-    // Tenta primeiro se foi salvo sem senha
-    try {
-      const uncompressed = await this.zlibDecompress(uint8);
-      const jsonStr = new TextDecoder().decode(uncompressed);
-      return JSON.parse(jsonStr);
-    } catch (_) {
-      // Requer descriptografia com senha
+    // 1. Tenta primeiro se foi salvo sem criptografia (direto zlib ou JSON plain)
+    if (uint8[0] === 0x78) {
+      try {
+        const uncompressed = await this.zlibDecompress(uint8);
+        const jsonStr = new TextDecoder().decode(uncompressed).trim();
+        if (jsonStr.startsWith('{') || jsonStr.startsWith('[')) {
+          return JSON.parse(jsonStr);
+        }
+      } catch (_) {}
+    } else if (uint8[0] === 0x7b || uint8[0] === 0x5b) {
+      try {
+        const jsonStr = new TextDecoder().decode(uint8).trim();
+        return JSON.parse(jsonStr);
+      } catch (_) {}
     }
 
     if (!password || password.trim() === '' || uint8.length <= 16) {
-      throw new Error('Arquivo criptografado. A senha do diário é necessária.');
+      throw new Error('PASSWORD_REQUIRED: Arquivo criptografado. A senha do Google Drive é necessária.');
     }
 
     const iv = uint8.subarray(0, 16);
@@ -268,9 +270,32 @@ const CryptoService = {
     );
 
     const unpadded = this.removePkcs7Padding(new Uint8Array(decryptedBuffer));
-    const uncompressed = await this.zlibDecompress(unpadded);
-    const jsonStr = new TextDecoder().decode(uncompressed);
-    return JSON.parse(jsonStr);
+    let jsonStr = '';
+
+    // No formato do Flutter, os dados são sempre comprimidos com ZLIB (iniciando com 0x78)
+    if (unpadded.length > 2 && unpadded[0] === 0x78) {
+      try {
+        const uncompressed = await this.zlibDecompress(unpadded);
+        jsonStr = new TextDecoder().decode(uncompressed);
+      } catch (decompErr) {
+        throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+      }
+    } else if (unpadded.length > 0 && (unpadded[0] === 0x7b || unpadded[0] === 0x5b)) {
+      jsonStr = new TextDecoder().decode(unpadded);
+    } else {
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+    }
+
+    const trimmed = jsonStr.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+    }
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (parseErr) {
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+    }
   },
 
   // =========================================================================

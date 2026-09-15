@@ -293,7 +293,7 @@ const GoogleDriveService = {
     if (validationFile) {
       const isValid = await this.validatePasswordWithHash(password, validationFile);
       if (!isValid) {
-        throw new Error('A senha informada no diário está incorreta para os dados criptografados desta conta no Google Drive.');
+        throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
       }
     }
 

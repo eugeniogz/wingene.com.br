@@ -86,7 +86,14 @@
     btnSyncNowModal: document.getElementById('btnSyncNowModal'),
     btnDisconnectDriveModal: document.getElementById('btnDisconnectDriveModal'),
     driveLastSyncTime: document.getElementById('driveLastSyncTime'),
-    toastNotification: document.getElementById('toastNotification')
+    toastNotification: document.getElementById('toastNotification'),
+
+    drivePasswordModal: document.getElementById('drivePasswordModal'),
+    btnCloseDrivePasswordModal: document.getElementById('btnCloseDrivePasswordModal'),
+    btnCancelDrivePasswordModal: document.getElementById('btnCancelDrivePasswordModal'),
+    btnConfirmDrivePasswordModal: document.getElementById('btnConfirmDrivePasswordModal'),
+    inputModalDrivePassword: document.getElementById('inputModalDrivePassword'),
+    modalDrivePasswordError: document.getElementById('modalDrivePasswordError')
   };
 
   // ─── Inicialização ────────────────────────────────────────────────────────────
@@ -287,7 +294,10 @@
       return;
     }
 
-    const drivePassword = sessionStorage.getItem('wingene_drive_custom_pass') || state.currentPassword;
+    const drivePassword =
+      sessionStorage.getItem('wingene_drive_custom_pass') ||
+      localStorage.getItem('wingene_drive_custom_pass') ||
+      state.currentPassword;
 
     try {
       state.isSyncingDrive = true;
@@ -361,10 +371,21 @@
       updateDriveStatusUI();
     } catch (err) {
       console.error('Erro na sincronização com o Drive:', err);
-      if (!silent) {
+      const isPasswordError =
+        err.message &&
+        (err.message.includes('PASSWORD_INCORRECT') ||
+         err.message.includes('PASSWORD_REQUIRED') ||
+         err.message.includes('senha informada') ||
+         err.message.includes('Unexpected token') ||
+         err.message.includes('corrompida'));
+
+      if (isPasswordError) {
+        showToast('Senha de criptografia do Drive necessária.');
+        promptDrivePassword();
+      } else if (!silent) {
         alert('Erro ao sincronizar com o Google Drive: ' + err.message);
+        showToast('Falha ao sincronizar com o Drive');
       }
-      showToast('Falha ao sincronizar com o Drive');
     } finally {
       state.isSyncingDrive = false;
       elements.driveSyncIcon.classList.remove('spin-icon');
@@ -866,8 +887,68 @@
     }
 
     sessionStorage.setItem('wingene_drive_custom_pass', drivePass);
+    localStorage.setItem('wingene_drive_custom_pass', drivePass);
     showToast('Senha do Drive configurada!');
     syncWithGoogleDrive(false);
+  }
+
+  function promptDrivePassword() {
+    if (!elements.drivePasswordModal) return;
+    if (elements.modalDrivePasswordError) {
+      elements.modalDrivePasswordError.classList.add('hidden');
+      elements.modalDrivePasswordError.textContent = '';
+    }
+    if (elements.inputModalDrivePassword) {
+      const savedPass = sessionStorage.getItem('wingene_drive_custom_pass') || localStorage.getItem('wingene_drive_custom_pass') || '';
+      elements.inputModalDrivePassword.value = savedPass;
+    }
+    elements.drivePasswordModal.classList.remove('hidden');
+    setTimeout(() => {
+      elements.inputModalDrivePassword?.focus();
+    }, 150);
+  }
+
+  function closeDrivePasswordModal() {
+    if (elements.drivePasswordModal) {
+      elements.drivePasswordModal.classList.add('hidden');
+    }
+  }
+
+  async function submitDrivePasswordModal() {
+    const pass = elements.inputModalDrivePassword ? elements.inputModalDrivePassword.value.trim() : '';
+    if (!pass) {
+      if (elements.modalDrivePasswordError) {
+        elements.modalDrivePasswordError.textContent = 'Por favor, digite a senha de backup do app móvel.';
+        elements.modalDrivePasswordError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (elements.btnConfirmDrivePasswordModal) {
+      elements.btnConfirmDrivePasswordModal.disabled = true;
+      elements.btnConfirmDrivePasswordModal.textContent = 'Verificando...';
+    }
+
+    try {
+      sessionStorage.setItem('wingene_drive_custom_pass', pass);
+      localStorage.setItem('wingene_drive_custom_pass', pass);
+      if (elements.driveEncryptionPassword) {
+        elements.driveEncryptionPassword.value = pass;
+      }
+      closeDrivePasswordModal();
+      showToast('Tentando descriptografar com a nova senha...');
+      await syncWithGoogleDrive(false);
+    } catch (e) {
+      if (elements.modalDrivePasswordError) {
+        elements.modalDrivePasswordError.textContent = 'Senha incorreta para os dados do Drive. Tente novamente.';
+        elements.modalDrivePasswordError.classList.remove('hidden');
+      }
+    } finally {
+      if (elements.btnConfirmDrivePasswordModal) {
+        elements.btnConfirmDrivePasswordModal.disabled = false;
+        elements.btnConfirmDrivePasswordModal.textContent = 'Descriptografar & Sincronizar';
+      }
+    }
   }
 
   async function handleResetVault(e) {
@@ -999,7 +1080,7 @@
     // Configurações & Backup
     elements.btnSettings.addEventListener('click', () => {
       updateDriveStatusUI();
-      const customDrivePass = sessionStorage.getItem('wingene_drive_custom_pass');
+      const customDrivePass = sessionStorage.getItem('wingene_drive_custom_pass') || localStorage.getItem('wingene_drive_custom_pass');
       if (customDrivePass && elements.driveEncryptionPassword) {
         elements.driveEncryptionPassword.value = customDrivePass;
       }
@@ -1032,6 +1113,22 @@
     if (elements.driveEncryptionPassword) {
       elements.driveEncryptionPassword.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') saveCustomDrivePassword();
+      });
+    }
+
+    // Modal de Senha do Google Drive
+    if (elements.btnCloseDrivePasswordModal) {
+      elements.btnCloseDrivePasswordModal.addEventListener('click', closeDrivePasswordModal);
+    }
+    if (elements.btnCancelDrivePasswordModal) {
+      elements.btnCancelDrivePasswordModal.addEventListener('click', closeDrivePasswordModal);
+    }
+    if (elements.btnConfirmDrivePasswordModal) {
+      elements.btnConfirmDrivePasswordModal.addEventListener('click', submitDrivePasswordModal);
+    }
+    if (elements.inputModalDrivePassword) {
+      elements.inputModalDrivePassword.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitDrivePasswordModal();
       });
     }
   }
