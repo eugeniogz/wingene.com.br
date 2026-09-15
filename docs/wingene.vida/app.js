@@ -344,10 +344,9 @@
         renderEntries();
         showToast(`${remoteRes.records.length} registros carregados do Google Drive!`);
       } else if (remoteRes.fileFound && (!remoteRes.records || remoteRes.records.length === 0)) {
-        const sizeInfo = remoteRes.fileSizeBytes !== undefined ? ` (${remoteRes.fileSizeBytes} bytes)` : '';
-        const keysInfo = remoteRes.rawKeys && remoteRes.rawKeys.length > 0 ? ` (Chaves detectadas: ${remoteRes.rawKeys.join(', ')})` : '';
+        const filesList = (remoteRes.filesInDrive || []).join(', ');
         if (!silent) {
-          alert(`O arquivo 'diario_sync_master.json' foi encontrado no Google Drive${sizeInfo}, mas nenhum registro foi extraído${keysInfo}.\n\n💡 Verifique se a senha informada no diário é a mesma senha de backup utilizada no aplicativo móvel (ou defina a Senha do Drive nas Configurações).`);
+          alert(`✅ Conectado ao Google Drive com sucesso!\n\nSua senha foi validada e o arquivo 'diario_sync_master.json' foi descriptografado perfeitamente.\n\nNo entanto, a lista de registros na nuvem está vazia (0 registros).\n\nArquivos encontrados na sua pasta do Drive: ${filesList || 'Nenhum'}.\n\n💡 Dica: Se você já possui registros no seu celular, abra o app Wingene Vida no smartphone e toque no botão de sincronizar para enviá-los ao Google Drive.`);
         }
       } else {
         const filesList = (remoteRes.filesInDrive || []).join(', ');

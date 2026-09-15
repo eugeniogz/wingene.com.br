@@ -299,6 +299,10 @@ const GoogleDriveService = {
 
     const token = await this.requestToken();
 
+    let list = [];
+    let source = 'none';
+    let masterBufferLength = 0;
+
     // 1. Tenta baixar o arquivo mestre consolidado
     if (masterFile && masterFile.id) {
       const downloadUrl = `https://www.googleapis.com/drive/v3/files/${masterFile.id}?alt=media`;
@@ -312,9 +316,9 @@ const GoogleDriveService = {
       }
 
       const arrayBuffer = await res.arrayBuffer();
+      masterBufferLength = arrayBuffer.byteLength;
       const rawData = await CryptoService.decryptDartFormat(arrayBuffer, password);
 
-      let list = [];
       if (Array.isArray(rawData)) {
         list = rawData;
       } else if (rawData && rawData.registros && Array.isArray(rawData.registros)) {
@@ -326,25 +330,13 @@ const GoogleDriveService = {
         }
       }
 
-      console.log(`[Drive] Master baixado (${arrayBuffer.byteLength} bytes). Registros extraídos: ${list.length}. Estrutura:`, typeof rawData);
-
-      return {
-        fileFound: true,
-        source: 'master',
-        fileInfo: masterFile,
-        fileSizeBytes: arrayBuffer.byteLength,
-        rawType: typeof rawData,
-        rawKeys: rawData && typeof rawData === 'object' ? Object.keys(rawData).slice(0, 10) : [],
-        filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`),
-        records: list
-      };
+      source = 'master';
+      console.log(`[Drive] Master baixado (${arrayBuffer.byteLength} bytes). Registros extraídos: ${list.length}.`);
     }
 
-    // 2. Se não tem master, mas tem arquivos legados por registro
-    if (legacyFiles.length > 0) {
-      console.log(`Baixando ${legacyFiles.length} arquivos legados do Drive...`);
-      const recovered = [];
-
+    // 2. Se o master estava vazio ou não existia, verifica arquivos legados registro_*.json
+    if (list.length === 0 && legacyFiles.length > 0) {
+      console.log(`[Drive] Verificando ${legacyFiles.length} arquivos legados no Drive...`);
       for (const lf of legacyFiles) {
         try {
           const downloadUrl = `https://www.googleapis.com/drive/v3/files/${lf.id}?alt=media`;
@@ -354,20 +346,30 @@ const GoogleDriveService = {
           if (res.ok) {
             const ab = await res.arrayBuffer();
             const recData = await CryptoService.decryptDartFormat(ab, password);
-            if (recData && typeof recData === 'object' && !Array.isArray(recData)) {
-              recovered.push(recData);
+            if (Array.isArray(recData)) {
+              list.push(...recData);
+            } else if (recData && typeof recData === 'object' && (recData.conteudo !== undefined || recData.uuid !== undefined)) {
+              list.push(recData);
             }
           }
         } catch (err) {
           console.warn(`Erro no arquivo legado ${lf.name}:`, err);
         }
       }
+      if (list.length > 0) {
+        source = 'legacy';
+        console.log(`[Drive] ${list.length} registros recuperados dos arquivos legados!`);
+      }
+    }
 
+    if (masterFile || legacyFiles.length > 0) {
       return {
         fileFound: true,
-        source: 'legacy',
-        filesInDrive: allFiles.map((f) => f.name),
-        records: recovered
+        source: source,
+        fileInfo: masterFile,
+        fileSizeBytes: masterBufferLength || (masterFile ? masterFile.size : 0),
+        filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`),
+        records: list
       };
     }
 
