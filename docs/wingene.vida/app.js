@@ -258,10 +258,11 @@
 
   function updateDriveStatusUI() {
     const connected = GoogleDriveService.isConnected();
+    const userEmail = GoogleDriveService.userEmail;
     if (connected) {
       elements.btnDriveSync.classList.add('connected');
-      elements.driveSyncText.textContent = 'Drive Conectado';
-      elements.driveStatusBadge.textContent = 'Conectado';
+      elements.driveSyncText.textContent = userEmail ? userEmail.split('@')[0] : 'Drive Conectado';
+      elements.driveStatusBadge.textContent = userEmail ? `Conectado (${userEmail})` : 'Conectado';
       elements.driveStatusBadge.style.color = '#34d399';
       elements.btnConnectDriveModal.classList.add('hidden');
       elements.btnDisconnectDriveModal.classList.remove('hidden');
@@ -301,8 +302,9 @@
         showToast('Conectando ao Google Drive...');
       }
 
-      // 1. Garante autenticação
+      // 1. Garante autenticação e obtém e-mail da conta conectada
       await GoogleDriveService.requestToken();
+      await GoogleDriveService.fetchUserEmail();
       updateDriveStatusUI();
 
       // 2. Baixa registros existentes no Drive
@@ -321,7 +323,6 @@
             localMap.set(normRemote.uuid, normRemote);
             mergedCount++;
           } else {
-            // Conflito: mantém o que tiver maior versão ou lastModified mais recente
             const localVer = localRecord.versao || 1;
             const remoteVer = normRemote.versao || 1;
             if (remoteVer > localVer) {
@@ -334,16 +335,27 @@
         state.vaultData.registros = Array.from(localMap.values());
         await DBService.persistVault(state.vaultData, state.currentPassword);
         renderEntries();
+        showToast(`${remoteRes.records.length} registros carregados do Google Drive!`);
+      } else {
+        const filesList = (remoteRes.filesInDrive || []).join(', ');
+        const emailMsg = GoogleDriveService.userEmail ? `na conta ${GoogleDriveService.userEmail}` : 'no Google Drive';
+
+        if (!silent) {
+          alert(`Nenhum arquivo de diário encontrado ${emailMsg}.\n\nArquivos encontrados na pasta privada: ${filesList || 'Nenhum'}.\n\n💡 Verifique se você fez login com a mesma conta Google utilizada no aplicativo móvel.`);
+        }
       }
 
-      // 3. Faz upload dos registros atualizados de volta para o Drive
-      await GoogleDriveService.uploadMasterData(state.vaultData.registros, state.currentPassword);
+      // 3. Somente faz upload se o usuário tiver registros locais a enviar
+      const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
+      if (state.vaultData.registros && state.vaultData.registros.length > 0 && (localHasUnsynced || remoteRes.fileFound)) {
+        await GoogleDriveService.uploadMasterData(state.vaultData.registros, state.currentPassword);
+        state.vaultData.registros.forEach((r) => (r.sincronizado = 1));
+        await DBService.persistVault(state.vaultData, state.currentPassword);
+      }
 
       const now = new Date();
       localStorage.setItem('wingene_last_drive_sync', now.toISOString());
       updateDriveStatusUI();
-
-      showToast('Sincronizado com o Google Drive com sucesso!');
     } catch (err) {
       console.error('Erro na sincronização com o Drive:', err);
       if (!silent) {
