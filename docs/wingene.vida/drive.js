@@ -509,6 +509,7 @@ const GoogleDriveService = {
         } else {
           console.log('[Drive] sync_timestamp.txt criado com sucesso via POST!');
         }
+      }
     } catch (e) {
       console.warn('Não foi possível atualizar sync_timestamp.txt:', e);
     }
