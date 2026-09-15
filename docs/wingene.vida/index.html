@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base href="./">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <title>Wingene Vida - Diário</title>
+  <meta name="description" content="Diário pessoal seguro com o Método VIDA - Registros, reflexões e acompanhamento.">
+  <meta name="theme-color" content="#0b0f19">
+
+  <!-- Configurações PWA & iOS -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Wingene Vida">
+
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Identity Services para OAuth Drive -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <!-- ========================================================================
+       TELA DE BLOQUEIO / AUTENTICAÇÃO
+       ======================================================================== -->
+  <section id="lockScreen" class="screen lock-screen-container">
+    <div class="lock-card">
+      <div class="app-brand">
+        <img src="icons/Icon-192.png" alt="Wingene Vida" class="app-logo">
+        <h1>Wingene Vida</h1>
+        <p id="lockSubtitle">Cofre de Registros Pessoal</p>
+      </div>
+
+      <form id="lockForm" class="lock-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="passwordInput" id="passwordLabel">Senha do Diário</label>
+          <input type="password" id="passwordInput" placeholder="Digite sua senha..." autocomplete="current-password" required>
+        </div>
+
+        <div id="confirmPasswordGroup" class="form-group hidden">
+          <label for="confirmPasswordInput">Confirmar Nova Senha</label>
+          <input type="password" id="confirmPasswordInput" placeholder="Repita a senha..." autocomplete="new-password">
+        </div>
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="rememberPasswordCheck" checked>
+          <span>Lembrar senha neste dispositivo (armazenamento seguro)</span>
+        </label>
+
+        <div id="lockError" class="error-banner hidden"></div>
+
+        <button type="button" id="btnUnlock" class="btn btn-primary" style="width: 100%;">
+          Desbloquear Diário
+        </button>
+
+        <div style="margin-top: 1rem; font-size: 0.8rem; text-align: center; color: var(--text-muted);">
+          <a href="#" id="linkLoadSample" style="color: #38bdf8; text-decoration: none;">Carregar dados de exemplo (Mock)</a>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       TELA PRINCIPAL DO APLICATIVO
+       ======================================================================== -->
+  <section id="appScreen" class="screen hidden">
+    <!-- Header Principal -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="header-brand" id="brandHomeBtn">
+          <img src="icons/Icon-192.png" alt="Logo">
+          <div class="header-title-group">
+            <h2>Wingene Vida</h2>
+            <span>Cofre Ativo • Sincronizado</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- Botão Sincronizar Drive -->
+          <button id="btnDriveSync" class="btn btn-secondary btn-sm" title="Sincronizar com Google Drive">
+            <svg id="driveSyncIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m11 13 2 2 4-4"/></svg>
+            <span id="driveSyncText" class="btn-text">Drive</span>
+          </button>
+
+          <button id="btnNewEntryHeader" class="btn btn-primary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span class="btn-text">Nova Entrada</span>
+          </button>
+          <button id="btnSettings" class="btn-icon" title="Configurações & Backup">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <button id="btnLock" class="btn-icon" title="Bloquear Sessão">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-container">
+      <!-- Barra de Pesquisa e Filtros -->
+      <section class="toolbar-section">
+        <div class="search-bar-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Buscar no conteúdo, tags, reflexões ou IA...">
+        </div>
+
+        <div class="pilar-filter-chips">
+          <button class="filter-chip active" data-pilar="ALL">Todos</button>
+          <button class="filter-chip chip-v" data-pilar="V">V • Valores</button>
+          <button class="filter-chip chip-i" data-pilar="I">I • Imperfeições</button>
+          <button class="filter-chip chip-d" data-pilar="D">D • Decisões</button>
+          <button class="filter-chip chip-a" data-pilar="A">A • Atenção</button>
+        </div>
+
+        <div class="summary-stats">
+          <span id="entriesCountText">0 entradas</span>
+          <span id="entriesImpactText">Impacto médio: 0.0</span>
+        </div>
+      </section>
+
+      <!-- Lista de Registros -->
+      <section id="entriesList" class="entries-list">
+        <!-- Renderizado dinamicamente pelo app.js -->
+      </section>
+
+      <!-- Estado Vazio -->
+      <div id="emptyState" class="empty-state hidden">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <h3>Nenhuma entrada encontrada</h3>
+        <p>Escreva o que viveu, suas decisões ou percepções de hoje com o Método VIDA.</p>
+        <button id="btnNewEntryEmpty" class="btn btn-primary">Criar Primeira Entrada</button>
+      </div>
+    </main>
+
+    <!-- Botão Flutuante (FAB) -->
+    <button id="fabNewEntry" class="fab-btn" title="Nova Entrada">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      <span class="fab-text">Nova Entrada</span>
+    </button>
+  </section>
+
+  <!-- ========================================================================
+       MODAL DE CRIAÇÃO / EDIÇÃO DE ENTRADA
+       ======================================================================== -->
+  <div id="entryModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalEntryTitle">Nova Entrada no Diário</h3>
+        <button type="button" class="btn-icon" id="btnCloseEntryModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="entryForm" class="modal-body" onsubmit="return false;">
+        <input type="hidden" id="entryUuid">
+
+        <div class="form-group">
+          <label>Pilar Principal (Método VIDA)</label>
+          <div class="pilar-selector" id="modalPilarSelector">
+            <div class="pilar-option opt-v selected" data-pilar="V">
+              <span class="letter">V</span>
+              <span class="name">Valores</span>
+            </div>
+            <div class="pilar-option opt-i" data-pilar="I">
+              <span class="letter">I</span>
+              <span class="name">mperfeições</span>
+            </div>
+            <div class="pilar-option opt-d" data-pilar="D">
+              <span class="letter">D</span>
+              <span class="name">Decisões</span>
+            </div>
+            <div class="pilar-option opt-a" data-pilar="A">
+              <span class="letter">A</span>
+              <span class="name">Atenção</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="entryConteudo">O que aconteceu? (Conteúdo da entrada)</label>
+          <textarea id="entryConteudo" rows="4" placeholder="Descreva sua experiência, sentimento, observação ou atitude..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="entryData">Data e Hora</label>
+          <input type="datetime-local" id="entryData" required>
+        </div>
+
+        <div class="form-group">
+          <label for="entryImpacto">Impacto na Vida (-5 a +5)</label>
+          <div class="impacto-range-wrap">
+            <input type="range" id="entryImpacto" min="-5" max="5" step="1" value="0">
+            <div id="entryImpactoDisplay" class="impacto-val-display">0</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="entryTags">Tags (separadas por vírgula)</label>
+          <input type="text" id="entryTags" placeholder="Ex: Trabalho, Família, Hábito, Presença">
+        </div>
+
+        <div class="form-group">
+          <label for="entryCategoria">Categoria / Código (opcional)</label>
+          <input type="text" id="entryCategoria" placeholder="Ex: V0, I1, D2, A1">
+        </div>
+
+        <div id="modalAiPreviewBox" class="ai-insight-box hidden">
+          <div class="ai-header">
+            <span class="ai-badge">Insight da IA (Preservado)</span>
+            <span class="ai-badge-readonly">Somente-leitura</span>
+          </div>
+          <p id="modalAiPreviewComment" class="ai-comment"></p>
+          <span id="modalAiPreviewKeyword" class="ai-keyword-tag"></span>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelEntryModal">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveEntry">Salvar Entrada</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+       ======================================================================== -->
+  <div id="deleteModal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Excluir Entrada</h3>
+        <button type="button" class="btn-icon" id="btnCloseDeleteModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-secondary);">Tem certeza de que deseja excluir esta entrada do diário? Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelDelete">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmDelete">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL DE CONFIGURAÇÕES E BACKUP
+       ======================================================================== -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>Configurações & Sincronização</h3>
+        <button type="button" class="btn-icon" id="btnCloseSettingsModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Google Drive Sync Section -->
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Sincronização com Google Drive</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Conecte sua conta Google para sincronizar com o arquivo <code style="color:#38bdf8;">diario_sync_master.json</code> do aplicativo móvel Wingene Vida.
+        </p>
+
+        <div style="background: var(--bg-surface-elevated); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.5rem; border: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Status da Conexão:</span>
+            <span id="driveStatusBadge" style="font-size: 0.8rem; font-weight: 700; color: #94a3b8;">Desconectado</span>
+          </div>
+
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" id="btnConnectDriveModal" class="btn btn-primary btn-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+              Conectar Google Drive
+            </button>
+            <button type="button" id="btnSyncNowModal" class="btn btn-secondary btn-sm" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              Sincronizar Agora
+            </button>
+            <button type="button" id="btnDisconnectDriveModal" class="btn btn-secondary btn-sm hidden" style="color: #fb7185;">
+              Desconectar
+            </button>
+          </div>
+          <div id="driveLastSyncTime" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.6rem;"></div>
+        </div>
+
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Backup Manual em Arquivo</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Você também pode exportar e importar arquivos de backup JSON em disco a qualquer momento.
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          <button type="button" id="btnExportJson" class="btn btn-secondary btn-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar Backup JSON
+          </button>
+          <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Importar Arquivo JSON
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+          </label>
+        </div>
+
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Segurança no Dispositivo</h4>
+        <div style="margin-bottom: 1.5rem;">
+          <button type="button" id="btnClearSavedPassword" class="btn btn-secondary btn-sm">
+            Esquecer Senha Lembrada Neste Navegador
+          </button>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            Isto exigirá digitar a senha mestre na próxima vez que você abrir o app.
+          </p>
+        </div>
+
+        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: #38bdf8;">Sobre os Resultados de IA</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          O PWA exibe os insights e reflexões gerados pela IA no aplicativo móvel. A criação de novos registros no PWA é sincronizada com o app, onde o tutor poderá analisar suas entradas.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="btnCloseSettingsModalBtn">Concluído</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notificação Toast Flutuante -->
+  <div id="toastNotification" class="toast-notice hidden"></div>
+
+  <!-- Scripts do App -->
+  <script src="crypto.js"></script>
+  <script src="db.js"></script>
+  <script src="drive.js"></script>
+  <script src="app.js"></script>
+
+  <!-- Registro do Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('Falha ao registrar Service Worker:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
