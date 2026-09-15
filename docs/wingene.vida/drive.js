@@ -123,11 +123,16 @@ const GoogleDriveService = {
     });
 
     if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      const detail = errData?.error?.message || `HTTP ${res.status}`;
       if (res.status === 401) {
         this.signOut();
         throw new Error('Sessão expirada no Google Drive. Por favor reconecte.');
       }
-      throw new Error(`Erro ao buscar arquivos no Google Drive (status ${res.status}).`);
+      if (res.status === 403 && detail.toLowerCase().includes('drive.googleapis.com')) {
+        throw new Error('A Google Drive API não está ativada no projeto Google Cloud. Acesse o console e ative a Google Drive API: https://console.cloud.google.com/apis/library/drive.googleapis.com?project=wingene-vida-24a89');
+      }
+      throw new Error(`Erro ao buscar arquivos no Google Drive: ${detail}`);
     }
 
     const data = await res.json();
@@ -152,7 +157,9 @@ const GoogleDriveService = {
     });
 
     if (!res.ok) {
-      throw new Error(`Erro ao baixar arquivo do Drive: HTTP ${res.status}`);
+      const errData = await res.json().catch(() => null);
+      const detail = errData?.error?.message || `HTTP ${res.status}`;
+      throw new Error(`Erro ao baixar arquivo do Drive: ${detail}`);
     }
 
     const arrayBuffer = await res.arrayBuffer();
@@ -202,7 +209,9 @@ const GoogleDriveService = {
       });
 
       if (!res.ok) {
-        throw new Error(`Falha no upload para o Drive: HTTP ${res.status}`);
+        const errData = await res.json().catch(() => null);
+        const detail = errData?.error?.message || `HTTP ${res.status}`;
+        throw new Error(`Falha no upload para o Drive: ${detail}`);
       }
     } else {
       // Cria novo arquivo via POST Multipart na pasta appDataFolder
