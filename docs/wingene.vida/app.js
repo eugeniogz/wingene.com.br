@@ -336,6 +336,12 @@
         await DBService.persistVault(state.vaultData, state.currentPassword);
         renderEntries();
         showToast(`${remoteRes.records.length} registros carregados do Google Drive!`);
+      } else if (remoteRes.fileFound && (!remoteRes.records || remoteRes.records.length === 0)) {
+        const sizeInfo = remoteRes.fileSizeBytes !== undefined ? ` (${remoteRes.fileSizeBytes} bytes)` : '';
+        const keysInfo = remoteRes.rawKeys && remoteRes.rawKeys.length > 0 ? ` (Chaves detectadas: ${remoteRes.rawKeys.join(', ')})` : '';
+        if (!silent) {
+          alert(`O arquivo 'diario_sync_master.json' foi encontrado no Google Drive${sizeInfo}, mas nenhum registro foi extraído${keysInfo}.\n\n💡 Verifique se a senha informada no diário é a mesma senha de backup utilizada no aplicativo móvel.`);
+        }
       } else {
         const filesList = (remoteRes.filesInDrive || []).join(', ');
         const emailMsg = GoogleDriveService.userEmail ? `na conta ${GoogleDriveService.userEmail}` : 'no Google Drive';

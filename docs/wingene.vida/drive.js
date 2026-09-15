@@ -319,13 +319,23 @@ const GoogleDriveService = {
         list = rawData;
       } else if (rawData && rawData.registros && Array.isArray(rawData.registros)) {
         list = rawData.registros;
+      } else if (rawData && typeof rawData === 'object') {
+        const values = Object.values(rawData);
+        if (values.length > 0 && values.some((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined || v.pilar !== undefined))) {
+          list = values.filter((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined));
+        }
       }
+
+      console.log(`[Drive] Master baixado (${arrayBuffer.byteLength} bytes). Registros extraídos: ${list.length}. Estrutura:`, typeof rawData);
 
       return {
         fileFound: true,
         source: 'master',
         fileInfo: masterFile,
-        filesInDrive: allFiles.map((f) => f.name),
+        fileSizeBytes: arrayBuffer.byteLength,
+        rawType: typeof rawData,
+        rawKeys: rawData && typeof rawData === 'object' ? Object.keys(rawData).slice(0, 10) : [],
+        filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`),
         records: list
       };
     }
