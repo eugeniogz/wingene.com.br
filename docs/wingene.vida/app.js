@@ -779,7 +779,34 @@
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const parsed = JSON.parse(evt.target.result);
+        const arrayBuffer = evt.target.result;
+        let drivePassword = state.currentPassword;
+        if (!drivePassword) {
+          const saved = await CryptoService.getSavedPasswordLocally();
+          if (saved) drivePassword = saved;
+        }
+
+        let parsed = null;
+        try {
+          parsed = await CryptoService.decryptDartFormat(arrayBuffer, drivePassword);
+        } catch (decryptErr) {
+          const isPassErr = decryptErr.message && (
+            decryptErr.message.includes('PASSWORD_') ||
+            decryptErr.message.includes('senha') ||
+            decryptErr.message.includes('corrompida')
+          );
+          if (isPassErr) {
+            const userPass = prompt('Este arquivo de backup está protegido por senha. Digite a senha do seu diário para descriptografar:');
+            if (!userPass) {
+              alert('Importação cancelada: a senha é necessária para ler este arquivo de backup.');
+              return;
+            }
+            parsed = await CryptoService.decryptDartFormat(arrayBuffer, userPass);
+          } else {
+            throw decryptErr;
+          }
+        }
+
         const importedRecords = DBService.importBackupData(parsed);
 
         if (importedRecords.length === 0) {
@@ -798,19 +825,21 @@
         await DBService.persistVault(state.vaultData, state.currentPassword);
 
         renderEntries();
-        alert(`${importedRecords.length} registros processados e importados com sucesso!`);
+        alert(`✅ ${importedRecords.length} registros importados com sucesso!`);
         elements.settingsModal.classList.add('hidden');
 
         if (GoogleDriveService.isConnected()) {
+          showToast('Sincronizando base completa com o Google Drive...');
           syncWithGoogleDrive(true);
         }
       } catch (err) {
-        alert('Falha ao importar backup: ' + err.message);
+        console.error('Falha ao importar backup:', err);
+        alert('Falha ao importar backup: ' + (err.message || 'Arquivo inválido ou senha incorreta.'));
       } finally {
         e.target.value = '';
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   }
 
   async function loadSampleMockData() {
