@@ -178,48 +178,99 @@ const GoogleDriveService = {
     return data.files || [];
   },
 
-  // Valida a senha contra validar.hash se este existir
-  async validatePasswordWithHash(password, validationFile) {
-    if (!validationFile || !validationFile.id) return true;
-    const token = await this.requestToken();
-    const downloadUrl = `https://www.googleapis.com/drive/v3/files/${validationFile.id}?alt=media`;
-
-    const res = await fetch(downloadUrl, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!res.ok) return true; // se falhar o download do hash, ignora
-
+  // Valida a senha contra validar.hash ou diretamente contra diario_sync_master.json
+  async validatePasswordWithHash(password, validationFile = null) {
+    if (!password || password.trim() === '') return false;
+    let file = validationFile;
+    let masterFile = null;
     try {
-      const arrayBuffer = await res.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuffer);
-      if (uint8.length <= 16) return true;
-
-      const iv = uint8.subarray(0, 16);
-      const cipher = uint8.subarray(16);
-
-      const encoder = new TextEncoder();
-      const paddedPassword = CryptoService.padKey(password);
-      const key = await window.crypto.subtle.importKey(
-        'raw',
-        encoder.encode(paddedPassword),
-        { name: 'AES-CTR' },
-        false,
-        ['decrypt']
-      );
-
-      const decryptedBuffer = await window.crypto.subtle.decrypt(
-        { name: 'AES-CTR', counter: iv, length: 128 },
-        key,
-        cipher
-      );
-
-      const unpadded = CryptoService.removePkcs7Padding(new Uint8Array(decryptedBuffer));
-      const str = new TextDecoder().decode(unpadded);
-      return str === 'WINGENE_VIDA_VALIDATION';
+      const allFiles = await this.listAllAppDataFiles();
+      if (!file) {
+        file = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
+      }
+      masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
     } catch (e) {
-      return false;
+      console.warn('[Drive] Erro ao listar arquivos na appDataFolder:', e);
     }
+
+    // 1. Tenta validar com validar.hash se este existir
+    if (file && file.id) {
+      try {
+        const token = await this.requestToken();
+        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+        const res = await fetch(downloadUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const arrayBuffer = await res.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          if (uint8.length > 16) {
+            const iv = uint8.subarray(0, 16);
+            const cipher = uint8.subarray(16);
+
+            const encoder = new TextEncoder();
+            const paddedPassword = CryptoService.padKey(password);
+            const key = await window.crypto.subtle.importKey(
+              'raw',
+              encoder.encode(paddedPassword),
+              { name: 'AES-CTR' },
+              false,
+              ['decrypt']
+            );
+
+            const decryptedBuffer = await window.crypto.subtle.decrypt(
+              { name: 'AES-CTR', counter: iv, length: 128 },
+              key,
+              cipher
+            );
+
+            const unpadded = CryptoService.removePkcs7Padding(new Uint8Array(decryptedBuffer));
+            const str = new TextDecoder().decode(unpadded);
+            if (str === 'WINGENE_VIDA_VALIDATION') {
+              console.log('[Drive] Senha confirmada via validar.hash!');
+              return true;
+            } else {
+              console.warn('[Drive] validar.hash decifrado mas texto não bateu:', str);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Drive] Erro na validação de validar.hash:', err.message || err);
+      }
+    }
+
+    // 2. Se validar.hash não existir ou falhar, testa diretamente no diario_sync_master.json
+    if (masterFile && masterFile.id) {
+      console.log('[Drive] Testando senha diretamente contra diario_sync_master.json...');
+      try {
+        const token = await this.requestToken();
+        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${masterFile.id}?alt=media`;
+        const res = await fetch(downloadUrl, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          const parsed = await CryptoService.decryptDartFormat(ab, password);
+          if (parsed && (Array.isArray(parsed) || parsed.registros || typeof parsed === 'object')) {
+            console.log('[Drive] diario_sync_master.json descriptografado com sucesso! A senha está correta.');
+            // Auto-recupera o validar.hash para as próximas validações
+            this.createOrUpdateValidationFile(password).catch((e) => console.warn('[Drive] Falha ao recriar validar.hash:', e));
+            return true;
+          }
+        }
+      } catch (masterErr) {
+        console.warn('[Drive] Teste no masterFile falhou:', masterErr.message || masterErr);
+      }
+    }
+
+    // 3. Se não houver nem arquivo de validação nem masterFile, aceita
+    if (!file && !masterFile) {
+      console.log('[Drive] Nenhum arquivo de dados ou validação encontrado na conta.');
+      return true;
+    }
+
+    return false;
   },
 
   // Cria ou atualiza o validar.hash para proteger a integridade da senha
@@ -310,11 +361,11 @@ const GoogleDriveService = {
     const validationFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
     const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
 
-    // Valida a senha se houver arquivo de validação
-    if (validationFile) {
+    // Valida a senha se houver arquivo de validação ou masterFile
+    if (validationFile || masterFile) {
       const isValid = await this.validatePasswordWithHash(password, validationFile);
       if (!isValid) {
-        throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
+        throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados de backup desta conta no Google Drive.');
       }
     }
 

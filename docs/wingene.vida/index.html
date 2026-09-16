@@ -266,13 +266,18 @@
           Os dados encontrados na sua pasta do Google Drive foram criptografados com a senha do aplicativo móvel <strong>Wingene Vida</strong>.
         </p>
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem; line-height: 1.4;">
-          Informe abaixo a senha de backup utilizada nesta conta no app do celular para descriptografar e sincronizar seus registros:
+          Informe abaixo a <strong>Senha de Backup</strong> configurada no app móvel (em <em>Configurações &gt; Backup e bloqueio</em>) para esta conta Google:
         </p>
         <div class="form-group">
-          <label for="inputModalDrivePassword">Senha do App Móvel / Drive</label>
-          <input type="password" id="inputModalDrivePassword" placeholder="Digite a senha de backup..." autocomplete="current-password">
+          <label for="inputModalDrivePassword">Senha de Backup do Drive</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="password" id="inputModalDrivePassword" placeholder="Digite a senha de backup..." autocomplete="current-password" style="padding-right: 2.75rem; width: 100%;">
+            <button type="button" id="btnToggleDrivePassword" style="position: absolute; right: 0.5rem; background: transparent; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; padding: 0.25rem;" title="Mostrar / Ocultar Senha">
+              <svg id="svgEyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
-        <div id="modalDrivePasswordError" class="error-banner hidden" style="margin-top: 0.5rem;"></div>
+        <div id="modalDrivePasswordError" class="error-banner hidden" style="margin-top: 0.6rem;"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btnCancelDrivePasswordModal">Cancelar</button>

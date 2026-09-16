@@ -278,22 +278,26 @@ const CryptoService = {
         const uncompressed = await this.zlibDecompress(unpadded);
         jsonStr = new TextDecoder().decode(uncompressed);
       } catch (decompErr) {
+        console.warn('[Crypto] Falha ao descompactar ZLIB com a senha informada:', decompErr);
         throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
       }
     } else if (unpadded.length > 0 && (unpadded[0] === 0x7b || unpadded[0] === 0x5b)) {
       jsonStr = new TextDecoder().decode(unpadded);
     } else {
+      console.warn('[Crypto] Cabeçalho inesperado após decifrar. Primeiro byte:', unpadded.length > 0 ? '0x' + unpadded[0].toString(16) : 'vazio');
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
     const trimmed = jsonStr.trim();
     if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      console.warn('[Crypto] Texto decifrado não é JSON válido:', trimmed.slice(0, 40));
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
     try {
       return JSON.parse(trimmed);
     } catch (parseErr) {
+      console.warn('[Crypto] Erro de JSON.parse:', parseErr);
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
   },
