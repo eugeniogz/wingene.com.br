@@ -264,6 +264,8 @@ const GoogleDriveService = {
               console.log(`[Drive] Senha confirmada com sucesso via validar.hash (${vFile.id})!`);
               audit.hashAttempts.push({ fileId: vFile.id, success: true, text: str });
               audit.result = true;
+              this.lastValidationAudit = audit;
+              return true;
             } else {
               audit.hashAttempts.push({ fileId: vFile.id, success: false, decryptedText: str.slice(0, 30) });
             }
@@ -456,11 +458,11 @@ const GoogleDriveService = {
     const validationFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
     const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
 
-    // Valida a senha se houver arquivo de validação ou masterFile
-    if (validationFile || masterFile) {
+    // Valida a senha se houver arquivo de validação
+    if (validationFile) {
       const isValid = await this.validatePasswordWithHash(password, validationFile);
       if (!isValid) {
-        throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados de backup desta conta no Google Drive.');
+        throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
       }
     }
 

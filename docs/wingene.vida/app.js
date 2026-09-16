@@ -366,18 +366,6 @@
           state.currentPassword;
       }
 
-      // 3. Valida previamente a senha contra o validar.hash da conta (se existir)
-      const isCandidateValid = await GoogleDriveService.validatePasswordWithHash(drivePassword);
-      if (!isCandidateValid) {
-        console.warn(`[Drive] Senha incorreta ou ausente para a conta ${currentEmail}. Solicitando senha.`);
-        promptDrivePassword(currentEmail, 'Esta conta Google possui uma senha de criptografia diferente.');
-        return;
-      } else if (emailKey && drivePassword) {
-        localStorage.setItem(`wingene_drive_pass_${emailKey}`, drivePassword);
-        sessionStorage.setItem('wingene_drive_custom_pass', drivePassword);
-        localStorage.setItem('wingene_drive_custom_pass', drivePassword);
-      }
-
       const lastRemoteChangeStr = localStorage.getItem('wingene_last_remote_change');
       const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
@@ -1172,26 +1160,6 @@
     }
 
     try {
-      // 1. Validação aprofundada: testa validar.hash e, se falhar, testa direto no masterFile
-      const isValid = await GoogleDriveService.validatePasswordWithHash(pass);
-      if (!isValid) {
-        if (elements.modalDrivePasswordError) {
-          elements.modalDrivePasswordError.innerHTML =
-            'A senha informada não conseguiu decifrar os dados desta conta.<br>' +
-            '<span style="font-size: 0.8rem; font-weight: normal; color: #fecdd3; display: block; margin-top: 0.4rem; line-height: 1.4;">' +
-            '💡 <strong>Importante:</strong> A senha solicitada é a <strong>Senha de Backup</strong> configurada no celular em <em>Configurações &gt; Backup e bloqueio</em> (e não o PIN de desbloqueio do aparelho).' +
-            '</span>';
-          elements.modalDrivePasswordError.classList.remove('hidden');
-        }
-        // Exibe o diagnóstico técnico para dar transparência imediata
-        if (elements.drivePasswordDiagBox) {
-          elements.drivePasswordDiagBox.classList.remove('hidden');
-          renderDrivePasswordDiag();
-        }
-        return;
-      }
-
-      // 2. Senha válida! Salva para esta conta
       const currentEmail = GoogleDriveService.userEmail;
       if (currentEmail) {
         localStorage.setItem(`wingene_drive_pass_${currentEmail.trim().toLowerCase()}`, pass);
@@ -1203,11 +1171,11 @@
       }
 
       closeDrivePasswordModal();
-      showToast('Senha confirmada! Descriptografando diário...');
+      showToast('Descriptografando diário com a senha informada...');
       await syncWithGoogleDrive(false, true);
     } catch (e) {
       if (elements.modalDrivePasswordError) {
-        elements.modalDrivePasswordError.textContent = 'Erro ao validar senha: ' + e.message;
+        elements.modalDrivePasswordError.textContent = 'Erro: ' + e.message;
         elements.modalDrivePasswordError.classList.remove('hidden');
       }
     } finally {

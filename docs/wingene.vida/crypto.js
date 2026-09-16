@@ -157,21 +157,9 @@ const CryptoService = {
 
   // Descompactação ZLIB (inflate) nativa via DecompressionStream
   async zlibDecompress(uint8Array) {
-    const cleanBytes = uint8Array.slice();
-    try {
-      const stream = new Response(cleanBytes).body.pipeThrough(new DecompressionStream('deflate'));
-      const buf = await new Response(stream).arrayBuffer();
-      return new Uint8Array(buf);
-    } catch (err) {
-      // Fallback para deflate-raw caso o cabeçalho zlib seja ausente
-      try {
-        const streamRaw = new Response(cleanBytes).body.pipeThrough(new DecompressionStream('deflate-raw'));
-        const bufRaw = await new Response(streamRaw).arrayBuffer();
-        return new Uint8Array(bufRaw);
-      } catch (_) {
-        throw err;
-      }
-    }
+    const stream = new Response(uint8Array).body.pipeThrough(new DecompressionStream('deflate'));
+    const buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
   },
 
   // Adiciona padding PKCS7 a um Uint8Array (tamanho de bloco = 16 bytes)
@@ -183,17 +171,12 @@ const CryptoService = {
     return padded;
   },
 
-  // Remove padding PKCS7 com validação estrita de cada byte
+  // Remove padding PKCS7
   removePkcs7Padding(paddedBytes) {
     if (!paddedBytes || paddedBytes.length === 0) return paddedBytes;
     const padLen = paddedBytes[paddedBytes.length - 1];
     if (padLen < 1 || padLen > 16) return paddedBytes; // Sem padding válido
-    for (let i = paddedBytes.length - padLen; i < paddedBytes.length; i++) {
-      if (paddedBytes[i] !== padLen) {
-        return paddedBytes; // Não é PKCS7 autêntico, preserva os bytes
-      }
-    }
-    return paddedBytes.slice(0, paddedBytes.length - padLen);
+    return paddedBytes.subarray(0, paddedBytes.length - padLen);
   },
 
   // Criptografa objeto no formato do arquivo do Google Drive do app móvel
@@ -286,85 +269,32 @@ const CryptoService = {
       cipher
     );
 
-    const decryptedBytes = new Uint8Array(decryptedBuffer);
-    const unpadded = this.removePkcs7Padding(decryptedBytes);
+    const unpadded = this.removePkcs7Padding(new Uint8Array(decryptedBuffer));
     let jsonStr = '';
 
-    // 1. Tenta descompressão ZLIB nos bytes desempacotados
-    let decompressed = false;
+    // No formato do Flutter, os dados são sempre comprimidos com ZLIB (iniciando com 0x78)
     if (unpadded.length > 2 && unpadded[0] === 0x78) {
       try {
         const uncompressed = await this.zlibDecompress(unpadded);
         jsonStr = new TextDecoder().decode(uncompressed);
-        decompressed = true;
-      } catch (e1) {
-        console.warn('[Crypto] Falha zlib com unpadded, tentando com decryptedBytes original:', e1);
+      } catch (decompErr) {
+        throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
       }
-    }
-
-    // 2. Se falhou, tenta descompressão nos bytes diretos (sem unpadding)
-    if (!decompressed && decryptedBytes.length > 2 && decryptedBytes[0] === 0x78) {
-      try {
-        const uncompressed = await this.zlibDecompress(decryptedBytes);
-        jsonStr = new TextDecoder().decode(uncompressed);
-        decompressed = true;
-      } catch (e2) {
-        console.warn('[Crypto] Falha zlib com decryptedBytes original:', e2);
-      }
-    }
-
-    // 3. Se não for zlib ou se falhou, tenta ler diretamente como UTF-8 (fallback sem compressão)
-    if (!decompressed) {
-      try {
-        const directStr = new TextDecoder().decode(unpadded);
-        const trimmed = directStr.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-          jsonStr = trimmed;
-          decompressed = true;
-        }
-      } catch (_) {}
-    }
-
-    if (!decompressed || !jsonStr) {
-      const firstByteHex = unpadded.length > 0 ? '0x' + unpadded[0].toString(16) : 'vazio';
-      console.warn('[Crypto] Falha completa ao decodificar master. Primeiro byte:', firstByteHex);
-      throw new Error(`PASSWORD_INCORRECT: A senha não conseguiu decifrar os dados da nuvem (primeiro byte decifrado: ${firstByteHex}).`);
-    }
-
-    // Sanitiza BOM UTF-8 (\uFEFF), caracteres nulos ou de controle antes do JSON
-    let cleanStr = jsonStr.replace(/^[\uFEFF\x00-\x1F\s]+/, '').replace(/[\x00-\x1F\s]+$/, '');
-
-    // Se houver algum lixo residual inicial antes de { ou [, posiciona no início real do JSON
-    const firstBrace = cleanStr.indexOf('{');
-    const firstBracket = cleanStr.indexOf('[');
-    let startIdx = -1;
-    if (firstBrace !== -1 && firstBracket !== -1) {
-      startIdx = Math.min(firstBrace, firstBracket);
+    } else if (unpadded.length > 0 && (unpadded[0] === 0x7b || unpadded[0] === 0x5b)) {
+      jsonStr = new TextDecoder().decode(unpadded);
     } else {
-      startIdx = Math.max(firstBrace, firstBracket);
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
-    if (startIdx > 0 && startIdx < 30) {
-      cleanStr = cleanStr.slice(startIdx);
-    }
-
-    if (!cleanStr.startsWith('{') && !cleanStr.startsWith('[') && !cleanStr.startsWith('"')) {
-      const debugStart = JSON.stringify(cleanStr.slice(0, 30));
-      const charCodes = cleanStr.slice(0, 8).split('').map((c) => '0x' + c.charCodeAt(0).toString(16)).join(' ');
-      console.warn('[Crypto] Texto decifrado não inicia com JSON:', debugStart, 'CharCodes:', charCodes);
-      throw new Error(`PASSWORD_INCORRECT: O conteúdo decifrado da nuvem não inicia com JSON (Início: ${debugStart} | CharCodes: ${charCodes}).`);
+    const trimmed = jsonStr.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
     try {
-      let parsed = JSON.parse(cleanStr);
-      if (typeof parsed === 'string') {
-        // Trata eventual dupla serialização
-        parsed = JSON.parse(parsed);
-      }
-      return parsed;
+      return JSON.parse(trimmed);
     } catch (parseErr) {
-      console.warn('[Crypto] Erro no JSON.parse dos dados decifrados:', parseErr);
-      throw new Error(`CORRUPTED_DATA: Falha ao interpretar estrutura JSON (${parseErr.message}).`);
+      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
   },
 
