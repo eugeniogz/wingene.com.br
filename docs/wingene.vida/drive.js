@@ -159,11 +159,14 @@ const GoogleDriveService = {
     return this.userEmail;
   },
 
+  // Objeto de auditoria para diagnóstico em tempo real
+  lastValidationAudit: null,
+
   // Lista todos os arquivos na pasta privada appDataFolder
   async listAllAppDataFiles() {
     const token = await this.requestToken();
     const query = encodeURIComponent(`trashed = false and 'appDataFolder' in parents`);
-    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&fields=files(id,name,modifiedTime,size)&pageSize=1000`;
+    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&orderBy=modifiedTime%20desc&fields=files(id,name,modifiedTime,size)&pageSize=1000`;
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
@@ -183,29 +186,51 @@ const GoogleDriveService = {
     }
 
     const data = await res.json();
-    return data.files || [];
+    const files = data.files || [];
+    // Garante ordenação decrescente por modifiedTime
+    files.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
+    return files;
   },
 
   // Valida a senha contra validar.hash ou diretamente contra diario_sync_master.json
   async validatePasswordWithHash(password, validationFile = null) {
     if (!password || password.trim() === '') return false;
-    let file = validationFile;
-    let masterFile = null;
+
+    const audit = {
+      timestamp: new Date().toISOString(),
+      accountEmail: this.userEmail,
+      filesFound: [],
+      hashAttempts: [],
+      masterAttempts: [],
+      legacyAttempts: [],
+      result: false
+    };
+
+    let allFiles = [];
     try {
-      const allFiles = await this.listAllAppDataFiles();
-      if (!file) {
-        file = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
-      }
-      masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
+      allFiles = await this.listAllAppDataFiles();
+      audit.filesFound = allFiles.map((f) => ({
+        name: f.name,
+        id: f.id,
+        size: f.size,
+        modifiedTime: f.modifiedTime
+      }));
     } catch (e) {
       console.warn('[Drive] Erro ao listar arquivos na appDataFolder:', e);
+      audit.listError = e.message || String(e);
     }
 
-    // 1. Tenta validar com validar.hash se este existir
-    if (file && file.id) {
+    const validationFiles = allFiles.filter((f) => f.name === this.VALIDATION_FILENAME);
+    const masterFiles = allFiles.filter((f) => f.name === this.MASTER_FILENAME);
+    const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
+
+    const token = await this.requestToken().catch(() => null);
+
+    // 1. Tenta validar com validar.hash (se existirem)
+    for (const vFile of validationFiles) {
+      if (!token) break;
       try {
-        const token = await this.requestToken();
-        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${vFile.id}?alt=media`;
         const res = await fetch(downloadUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -236,24 +261,31 @@ const GoogleDriveService = {
             const unpadded = CryptoService.removePkcs7Padding(new Uint8Array(decryptedBuffer));
             const str = new TextDecoder().decode(unpadded);
             if (str === 'WINGENE_VIDA_VALIDATION') {
-              console.log('[Drive] Senha confirmada via validar.hash!');
+              console.log(`[Drive] Senha confirmada com sucesso via validar.hash (${vFile.id})!`);
+              audit.hashAttempts.push({ fileId: vFile.id, success: true, text: str });
+              audit.result = true;
+              this.lastValidationAudit = audit;
               return true;
             } else {
-              console.warn('[Drive] validar.hash decifrado mas texto não bateu:', str);
+              audit.hashAttempts.push({ fileId: vFile.id, success: false, decryptedText: str.slice(0, 30) });
             }
+          } else {
+            audit.hashAttempts.push({ fileId: vFile.id, success: false, error: 'Arquivo menor que 16 bytes' });
           }
+        } else {
+          audit.hashAttempts.push({ fileId: vFile.id, success: false, httpStatus: res.status });
         }
       } catch (err) {
-        console.warn('[Drive] Erro na validação de validar.hash:', err.message || err);
+        audit.hashAttempts.push({ fileId: vFile.id, success: false, error: err.message || String(err) });
       }
     }
 
     // 2. Se validar.hash não existir ou falhar, testa diretamente no diario_sync_master.json
-    if (masterFile && masterFile.id) {
-      console.log('[Drive] Testando senha diretamente contra diario_sync_master.json...');
+    for (const mFile of masterFiles) {
+      if (!token) break;
+      console.log(`[Drive] Testando senha diretamente contra diario_sync_master.json (${mFile.id})...`);
       try {
-        const token = await this.requestToken();
-        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${masterFile.id}?alt=media`;
+        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${mFile.id}?alt=media`;
         const res = await fetch(downloadUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -261,24 +293,76 @@ const GoogleDriveService = {
           const ab = await res.arrayBuffer();
           const parsed = await CryptoService.decryptDartFormat(ab, password);
           if (parsed && (Array.isArray(parsed) || parsed.registros || typeof parsed === 'object')) {
-            console.log('[Drive] diario_sync_master.json descriptografado com sucesso! A senha está correta.');
+            console.log(`[Drive] diario_sync_master.json (${mFile.id}) descriptografado com sucesso!`);
+            audit.masterAttempts.push({ fileId: mFile.id, success: true, recordCount: Array.isArray(parsed) ? parsed.length : (parsed.registros?.length || 'obj') });
             // Auto-recupera o validar.hash para as próximas validações
             this.createOrUpdateValidationFile(password).catch((e) => console.warn('[Drive] Falha ao recriar validar.hash:', e));
+            audit.result = true;
+            this.lastValidationAudit = audit;
             return true;
           }
         }
       } catch (masterErr) {
-        console.warn('[Drive] Teste no masterFile falhou:', masterErr.message || masterErr);
+        console.warn(`[Drive] Teste no masterFile (${mFile.id}) falhou:`, masterErr.message || masterErr);
+        audit.masterAttempts.push({ fileId: mFile.id, success: false, error: masterErr.message || String(masterErr) });
       }
     }
 
-    // 3. Se não houver nem arquivo de validação nem masterFile, aceita
-    if (!file && !masterFile) {
-      console.log('[Drive] Nenhum arquivo de dados ou validação encontrado na conta.');
+    // 3. Se não houver masterFile, tenta testar em um arquivo legado de registro
+    if (masterFiles.length === 0 && legacyFiles.length > 0 && token) {
+      const sampleLegacy = legacyFiles[0];
+      try {
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${sampleLegacy.id}?alt=media`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const ab = await res.arrayBuffer();
+          const parsed = await CryptoService.decryptDartFormat(ab, password);
+          if (parsed && (parsed.uuid || parsed.conteudo)) {
+            console.log(`[Drive] Arquivo legado (${sampleLegacy.name}) descriptografado com sucesso!`);
+            audit.legacyAttempts.push({ fileId: sampleLegacy.id, success: true });
+            this.createOrUpdateValidationFile(password).catch(() => {});
+            audit.result = true;
+            this.lastValidationAudit = audit;
+            return true;
+          }
+        }
+      } catch (legErr) {
+        audit.legacyAttempts.push({ fileId: sampleLegacy.id, success: false, error: legErr.message || String(legErr) });
+      }
+    }
+
+    // 4. Se a conta não tiver nenhum arquivo relevante salvo, aceita como válida para iniciar
+    if (validationFiles.length === 0 && masterFiles.length === 0 && legacyFiles.length === 0) {
+      console.log('[Drive] Nenhum arquivo de dados ou validação encontrado nesta conta.');
+      audit.result = true;
+      audit.isNewAccount = true;
+      this.lastValidationAudit = audit;
       return true;
     }
 
+    audit.result = false;
+    this.lastValidationAudit = audit;
     return false;
+  },
+
+  // Limpa todos os arquivos da pasta appDataFolder desta conta (Reset total da nuvem)
+  async clearAppDataFolder() {
+    const token = await this.requestToken();
+    const allFiles = await this.listAllAppDataFiles();
+    console.log(`[Drive] Limpando ${allFiles.length} arquivos da pasta privada appDataFolder...`);
+    for (const f of allFiles) {
+      try {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log(`[Drive] Arquivo removido: ${f.name} (${f.id})`);
+      } catch (e) {
+        console.warn(`[Drive] Falha ao remover ${f.name}:`, e);
+      }
+    }
+    return true;
   },
 
   // Cria ou atualiza o validar.hash para proteger a integridade da senha

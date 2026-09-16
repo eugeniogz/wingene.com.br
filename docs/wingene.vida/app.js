@@ -99,6 +99,9 @@
     inputModalDrivePassword: document.getElementById('inputModalDrivePassword'),
     btnToggleDrivePassword: document.getElementById('btnToggleDrivePassword'),
     modalDrivePasswordError: document.getElementById('modalDrivePasswordError'),
+    btnToggleDrivePasswordDiag: document.getElementById('btnToggleDrivePasswordDiag'),
+    drivePasswordDiagBox: document.getElementById('drivePasswordDiagBox'),
+    btnResetDriveAppData: document.getElementById('btnResetDriveAppData'),
     driveDiagDetails: document.getElementById('driveDiagDetails')
   };
 
@@ -1031,6 +1034,11 @@
   function promptDrivePassword(accountEmail = null, errorMessage = null) {
     if (!elements.drivePasswordModal) return;
 
+    // Se o modal de configurações estiver aberto, fecha-o para não sobrepor ou esconder
+    if (elements.settingsModal && !elements.settingsModal.classList.contains('hidden')) {
+      elements.settingsModal.classList.add('hidden');
+    }
+
     const email = accountEmail || GoogleDriveService.userEmail || localStorage.getItem('wingene_last_drive_email');
     if (elements.drivePasswordAccountNotice && elements.drivePasswordAccountEmail) {
       if (email) {
@@ -1059,6 +1067,11 @@
       elements.inputModalDrivePassword.value = '';
     }
 
+    if (elements.drivePasswordDiagBox) {
+      elements.drivePasswordDiagBox.classList.add('hidden');
+      elements.drivePasswordDiagBox.textContent = 'Carregando detalhes...';
+    }
+
     elements.drivePasswordModal.classList.remove('hidden');
     setTimeout(() => {
       elements.inputModalDrivePassword?.focus();
@@ -1068,6 +1081,78 @@
   function closeDrivePasswordModal() {
     if (elements.drivePasswordModal) {
       elements.drivePasswordModal.classList.add('hidden');
+    }
+  }
+
+  async function renderDrivePasswordDiag() {
+    if (!elements.drivePasswordDiagBox) return;
+    elements.drivePasswordDiagBox.textContent = 'Consultando arquivos no Google Drive...';
+    try {
+      const allFiles = await GoogleDriveService.listAllAppDataFiles();
+      const audit = GoogleDriveService.lastValidationAudit;
+
+      let text = `[Conta Conectada]: ${GoogleDriveService.userEmail || 'N/A'}\n`;
+      text += `[Arquivos na pasta privada appDataFolder (${allFiles.length})]:\n`;
+
+      if (allFiles.length === 0) {
+        text += '• Nenhum arquivo encontrado nesta conta Google.\n';
+      } else {
+        allFiles.forEach((f) => {
+          const modStr = f.modifiedTime ? new Date(f.modifiedTime).toLocaleString('pt-BR') : 'Data desconhecida';
+          text += `• ${f.name} (Tamanho: ${f.size || 0} bytes | Modificado: ${modStr})\n`;
+        });
+      }
+
+      if (audit) {
+        text += '\n[Último Teste de Senha]:\n';
+        if (audit.hashAttempts && audit.hashAttempts.length > 0) {
+          audit.hashAttempts.forEach((h, i) => {
+            text += `• Hash #${i + 1}: ${h.success ? 'SUCESSO' : 'FALHOU'}${h.error ? ' (' + h.error + ')' : ''}${h.decryptedText ? ' (Decifrou texto: "' + h.decryptedText + '")' : ''}\n`;
+          });
+        }
+        if (audit.masterAttempts && audit.masterAttempts.length > 0) {
+          audit.masterAttempts.forEach((m, i) => {
+            text += `• Master #${i + 1}: ${m.success ? 'SUCESSO (' + m.recordCount + ' registros)' : 'FALHOU'}${m.error ? ' (' + m.error + ')' : ''}\n`;
+          });
+        }
+      }
+
+      elements.drivePasswordDiagBox.textContent = text;
+    } catch (e) {
+      elements.drivePasswordDiagBox.textContent = `Erro ao consultar diagnóstico do Drive: ${e.message}`;
+    }
+  }
+
+  async function handleResetCloudAppData() {
+    const currentEmail = GoogleDriveService.userEmail || 'esta conta Google';
+    const confirmed = confirm(
+      `ATENÇÃO: Limpar nuvem da conta "${currentEmail}"?\n\n` +
+      `Isso excluirá os arquivos de backup e validação antigos salvos na pasta privada do Google Drive desta conta.\n\n` +
+      `Use isso caso a senha antiga esteja travando a sincronização.\n` +
+      `Os dados salvos no seu smartphone e localmente neste navegador NÃO serão excluídos.\n\n` +
+      `Deseja continuar?`
+    );
+    if (!confirmed) return;
+
+    try {
+      showToast('Limpando arquivos da pasta privada do Google Drive...');
+      await GoogleDriveService.clearAppDataFolder();
+      localStorage.removeItem('wingene_last_remote_change');
+      localStorage.removeItem('wingene_last_drive_sync');
+      if (elements.modalDrivePasswordError) {
+        elements.modalDrivePasswordError.classList.add('hidden');
+      }
+      closeDrivePasswordModal();
+      alert(
+        `✅ Pasta privada do Google Drive limpa com sucesso!\n\n` +
+        `Agora faça o seguinte:\n` +
+        `1. Abra o app Wingene Vida no seu celular;\n` +
+        `2. Verifique se o celular está logado na mesma conta e com sua senha de backup configurada;\n` +
+        `3. Toque em Sincronizar no celular para enviar a versão mais recente e criar uma nova chave na nuvem;\n` +
+        `4. Depois volte aqui e toque no botão de sincronizar do PWA.`
+      );
+    } catch (e) {
+      alert('Falha ao limpar nuvem: ' + e.message);
     }
   }
 
@@ -1097,6 +1182,11 @@
             '💡 <strong>Importante:</strong> A senha solicitada é a <strong>Senha de Backup</strong> configurada no celular em <em>Configurações &gt; Backup e bloqueio</em> (e não o PIN de desbloqueio do aparelho).' +
             '</span>';
           elements.modalDrivePasswordError.classList.remove('hidden');
+        }
+        // Exibe o diagnóstico técnico para dar transparência imediata
+        if (elements.drivePasswordDiagBox) {
+          elements.drivePasswordDiagBox.classList.remove('hidden');
+          renderDrivePasswordDiag();
         }
         return;
       }
@@ -1320,6 +1410,23 @@
             : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
         }
       });
+    }
+
+    if (elements.btnToggleDrivePasswordDiag) {
+      elements.btnToggleDrivePasswordDiag.addEventListener('click', () => {
+        if (!elements.drivePasswordDiagBox) return;
+        const isHidden = elements.drivePasswordDiagBox.classList.contains('hidden');
+        if (isHidden) {
+          elements.drivePasswordDiagBox.classList.remove('hidden');
+          renderDrivePasswordDiag();
+        } else {
+          elements.drivePasswordDiagBox.classList.add('hidden');
+        }
+      });
+    }
+
+    if (elements.btnResetDriveAppData) {
+      elements.btnResetDriveAppData.addEventListener('click', handleResetCloudAppData);
     }
 
     if (elements.btnSwitchAccountSettings) {

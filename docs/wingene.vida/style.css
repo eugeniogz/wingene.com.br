@@ -697,6 +697,10 @@ select:focus {
   transition: opacity var(--transition-fast);
 }
 
+#drivePasswordModal {
+  z-index: 1200 !important;
+}
+
 .modal-backdrop.hidden {
   display: none;
 }
