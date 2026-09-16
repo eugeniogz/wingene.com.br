@@ -89,6 +89,8 @@
     toastNotification: document.getElementById('toastNotification'),
 
     drivePasswordModal: document.getElementById('drivePasswordModal'),
+    drivePasswordAccountNotice: document.getElementById('drivePasswordAccountNotice'),
+    drivePasswordAccountEmail: document.getElementById('drivePasswordAccountEmail'),
     btnCloseDrivePasswordModal: document.getElementById('btnCloseDrivePasswordModal'),
     btnCancelDrivePasswordModal: document.getElementById('btnCancelDrivePasswordModal'),
     btnConfirmDrivePasswordModal: document.getElementById('btnConfirmDrivePasswordModal'),
@@ -299,11 +301,6 @@
       return;
     }
 
-    const drivePassword =
-      sessionStorage.getItem('wingene_drive_custom_pass') ||
-      localStorage.getItem('wingene_drive_custom_pass') ||
-      state.currentPassword;
-
     try {
       state.isSyncingDrive = true;
       elements.btnDriveSync.classList.add('syncing');
@@ -326,34 +323,58 @@
       const currentEmail = GoogleDriveService.userEmail;
       const lastDriveEmail = localStorage.getItem('wingene_last_drive_email');
 
+      // Se trocou de conta Google, limpa os dados locais imediatamente para não misturar diários
+      if (currentEmail && lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) {
+        console.log(`[Drive] Troca de conta detectada: de "${lastDriveEmail}" para "${currentEmail}". Limpando dados locais anteriores.`);
+        showToast(`Conta alterada para ${currentEmail}. Limpando dados locais...`);
+
+        // Limpa dados locais anteriores para evitar contaminação entre contas
+        state.vaultData = {
+          registros: [],
+          resumos_mensais: [],
+          insights: [],
+          propositos: []
+        };
+        await DBService.persistVault(state.vaultData, state.currentPassword);
+        localStorage.removeItem('wingene_last_remote_change');
+        localStorage.removeItem('wingene_last_drive_sync');
+        renderEntries();
+
+        // Força download limpo da nova conta
+        forceFullSync = true;
+      }
       if (currentEmail) {
-        if (lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) {
-          console.log(`[Drive] Troca de conta detectada: de "${lastDriveEmail}" para "${currentEmail}". Limpando dados locais anteriores.`);
-          showToast(`Conta alterada para ${currentEmail}. Limpando dados anteriores...`);
-
-          // Limpa dados locais anteriores para evitar contaminação entre contas
-          state.vaultData = {
-            registros: [],
-            resumos_mensais: [],
-            insights: [],
-            propositos: []
-          };
-          await DBService.persistVault(state.vaultData, state.currentPassword);
-          localStorage.removeItem('wingene_last_remote_change');
-          localStorage.removeItem('wingene_last_drive_sync');
-          renderEntries();
-
-          // Força download limpo da nova conta
-          forceFullSync = true;
-        }
         localStorage.setItem('wingene_last_drive_email', currentEmail);
+      }
+
+      // 2. Resolve a senha da conta Google atual
+      const emailKey = currentEmail ? currentEmail.trim().toLowerCase() : null;
+      let drivePassword = emailKey ? localStorage.getItem(`wingene_drive_pass_${emailKey}`) : null;
+
+      if (!drivePassword) {
+        drivePassword =
+          sessionStorage.getItem('wingene_drive_custom_pass') ||
+          localStorage.getItem('wingene_drive_custom_pass') ||
+          state.currentPassword;
+      }
+
+      // 3. Valida previamente a senha contra o validar.hash da conta (se existir)
+      const isCandidateValid = await GoogleDriveService.validatePasswordWithHash(drivePassword);
+      if (!isCandidateValid) {
+        console.warn(`[Drive] Senha incorreta ou ausente para a conta ${currentEmail}. Solicitando senha.`);
+        promptDrivePassword(currentEmail, 'Esta conta Google possui uma senha de criptografia diferente.');
+        return;
+      } else if (emailKey && drivePassword) {
+        localStorage.setItem(`wingene_drive_pass_${emailKey}`, drivePassword);
+        sessionStorage.setItem('wingene_drive_custom_pass', drivePassword);
+        localStorage.setItem('wingene_drive_custom_pass', drivePassword);
       }
 
       const lastRemoteChangeStr = localStorage.getItem('wingene_last_remote_change');
       const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
 
-      // 2. Baixa registros existentes no Drive com checagem de modificação
+      // 4. Baixa registros existentes no Drive com checagem de modificação
       const remoteRes = await GoogleDriveService.downloadMasterData(drivePassword, {
         onlyIfModifiedSince: forceFullSync ? null : lastRemoteChange
       });
@@ -456,7 +477,7 @@
 
       if (isPasswordError) {
         showToast('Senha de criptografia do Drive necessária.');
-        promptDrivePassword();
+        promptDrivePassword(GoogleDriveService.userEmail, 'Senha de criptografia incorreta para esta conta do Google Drive.');
       } else if (!silent) {
         alert('Erro ao sincronizar com o Google Drive: ' + err.message);
         showToast('Falha ao sincronizar com o Drive');
@@ -992,22 +1013,43 @@
       return;
     }
 
+    const currentEmail = GoogleDriveService.userEmail;
+    if (currentEmail) {
+      localStorage.setItem(`wingene_drive_pass_${currentEmail.trim().toLowerCase()}`, drivePass);
+    }
     sessionStorage.setItem('wingene_drive_custom_pass', drivePass);
     localStorage.setItem('wingene_drive_custom_pass', drivePass);
     showToast('Senha do Drive configurada!');
-    syncWithGoogleDrive(false);
+    syncWithGoogleDrive(false, true);
   }
 
-  function promptDrivePassword() {
+  function promptDrivePassword(accountEmail = null, errorMessage = null) {
     if (!elements.drivePasswordModal) return;
+
+    const email = accountEmail || GoogleDriveService.userEmail || localStorage.getItem('wingene_last_drive_email');
+    if (elements.drivePasswordAccountNotice && elements.drivePasswordAccountEmail) {
+      if (email) {
+        elements.drivePasswordAccountEmail.textContent = email;
+        elements.drivePasswordAccountNotice.classList.remove('hidden');
+      } else {
+        elements.drivePasswordAccountNotice.classList.add('hidden');
+      }
+    }
+
     if (elements.modalDrivePasswordError) {
-      elements.modalDrivePasswordError.classList.add('hidden');
-      elements.modalDrivePasswordError.textContent = '';
+      if (errorMessage) {
+        elements.modalDrivePasswordError.textContent = errorMessage;
+        elements.modalDrivePasswordError.classList.remove('hidden');
+      } else {
+        elements.modalDrivePasswordError.classList.add('hidden');
+        elements.modalDrivePasswordError.textContent = '';
+      }
     }
+
     if (elements.inputModalDrivePassword) {
-      const savedPass = sessionStorage.getItem('wingene_drive_custom_pass') || localStorage.getItem('wingene_drive_custom_pass') || '';
-      elements.inputModalDrivePassword.value = savedPass;
+      elements.inputModalDrivePassword.value = '';
     }
+
     elements.drivePasswordModal.classList.remove('hidden');
     setTimeout(() => {
       elements.inputModalDrivePassword?.focus();
@@ -1024,7 +1066,7 @@
     const pass = elements.inputModalDrivePassword ? elements.inputModalDrivePassword.value.trim() : '';
     if (!pass) {
       if (elements.modalDrivePasswordError) {
-        elements.modalDrivePasswordError.textContent = 'Por favor, digite a senha de backup do app móvel.';
+        elements.modalDrivePasswordError.textContent = 'Por favor, digite a senha de backup desta conta.';
         elements.modalDrivePasswordError.classList.remove('hidden');
       }
       return;
@@ -1032,21 +1074,37 @@
 
     if (elements.btnConfirmDrivePasswordModal) {
       elements.btnConfirmDrivePasswordModal.disabled = true;
-      elements.btnConfirmDrivePasswordModal.textContent = 'Verificando...';
+      elements.btnConfirmDrivePasswordModal.textContent = 'Verificando senha...';
     }
 
     try {
+      // 1. Testa a senha diretamente com validar.hash antes de fechar o modal
+      const isValid = await GoogleDriveService.validatePasswordWithHash(pass);
+      if (!isValid) {
+        if (elements.modalDrivePasswordError) {
+          elements.modalDrivePasswordError.textContent = 'Senha incorreta para os dados desta conta Google. Verifique a senha configurada no app do celular.';
+          elements.modalDrivePasswordError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // 2. Senha válida! Salva para esta conta
+      const currentEmail = GoogleDriveService.userEmail;
+      if (currentEmail) {
+        localStorage.setItem(`wingene_drive_pass_${currentEmail.trim().toLowerCase()}`, pass);
+      }
       sessionStorage.setItem('wingene_drive_custom_pass', pass);
       localStorage.setItem('wingene_drive_custom_pass', pass);
       if (elements.driveEncryptionPassword) {
         elements.driveEncryptionPassword.value = pass;
       }
+
       closeDrivePasswordModal();
-      showToast('Tentando descriptografar com a nova senha...');
-      await syncWithGoogleDrive(false);
+      showToast('Senha confirmada! Descriptografando diário...');
+      await syncWithGoogleDrive(false, true);
     } catch (e) {
       if (elements.modalDrivePasswordError) {
-        elements.modalDrivePasswordError.textContent = 'Senha incorreta para os dados do Drive. Tente novamente.';
+        elements.modalDrivePasswordError.textContent = 'Erro ao validar senha: ' + e.message;
         elements.modalDrivePasswordError.classList.remove('hidden');
       }
     } finally {
@@ -1113,6 +1171,7 @@
 
     elements.btnDisconnectDriveModal.addEventListener('click', () => {
       GoogleDriveService.signOut();
+      sessionStorage.removeItem('wingene_drive_custom_pass');
       updateDriveStatusUI();
       showToast('Desconectado do Google Drive.');
     });

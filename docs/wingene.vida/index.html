@@ -259,15 +259,18 @@
         </button>
       </div>
       <div class="modal-body">
+        <div id="drivePasswordAccountNotice" class="hidden" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.75rem; color: #38bdf8; font-size: 0.85rem;">
+          Conta Google: <strong id="drivePasswordAccountEmail" style="color: #fff;"></strong>
+        </div>
         <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 0.65rem; line-height: 1.45;">
           Os dados encontrados na sua pasta do Google Drive foram criptografados com a senha do aplicativo móvel <strong>Wingene Vida</strong>.
         </p>
         <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1rem; line-height: 1.4;">
-          Informe abaixo a senha de backup utilizada no app do celular para descriptografar e sincronizar seus registros:
+          Informe abaixo a senha de backup utilizada nesta conta no app do celular para descriptografar e sincronizar seus registros:
         </p>
         <div class="form-group">
           <label for="inputModalDrivePassword">Senha do App Móvel / Drive</label>
-          <input type="password" id="inputModalDrivePassword" placeholder="Digite a senha usada no app móvel..." autocomplete="current-password">
+          <input type="password" id="inputModalDrivePassword" placeholder="Digite a senha de backup..." autocomplete="current-password">
         </div>
         <div id="modalDrivePasswordError" class="error-banner hidden" style="margin-top: 0.5rem;"></div>
       </div>
