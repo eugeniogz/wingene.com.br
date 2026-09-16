@@ -151,14 +151,23 @@
   // ─── Notificação Toast Flutuante ──────────────────────────────────────────────
 
   let toastTimeout = null;
+  let toastHideTimeout = null;
   function showToast(message, duration = 3500) {
     if (!elements.toastNotification) return;
-    elements.toastNotification.textContent = message;
-    elements.toastNotification.classList.remove('hidden');
 
     if (toastTimeout) clearTimeout(toastTimeout);
+    if (toastHideTimeout) clearTimeout(toastHideTimeout);
+
+    elements.toastNotification.textContent = message;
+    elements.toastNotification.classList.remove('hidden');
+    elements.toastNotification.classList.remove('toast-hiding');
+
     toastTimeout = setTimeout(() => {
-      elements.toastNotification.classList.add('hidden');
+      elements.toastNotification.classList.add('toast-hiding');
+      toastHideTimeout = setTimeout(() => {
+        elements.toastNotification.classList.add('hidden');
+        elements.toastNotification.classList.remove('toast-hiding');
+      }, 300);
     }, duration);
   }
 
@@ -269,8 +278,9 @@
 
   function updateDriveStatusUI() {
     const connected = GoogleDriveService.isConnected();
-    const userEmail = GoogleDriveService.userEmail;
-    if (connected) {
+    const linked = GoogleDriveService.isLinked ? GoogleDriveService.isLinked() : false;
+    const userEmail = GoogleDriveService.userEmail || localStorage.getItem('wingene_drive_email');
+    if (connected || linked) {
       elements.btnDriveSync.classList.add('connected');
       elements.btnDriveSync.title = userEmail
         ? `Conectado (${userEmail}) • Clique para sincronizar agora`
@@ -780,8 +790,8 @@
       renderEntries();
       showToast('Entrada salva com sucesso!');
 
-      // 2. Se o Google Drive estiver conectado, salva automaticamente no Drive
-      if (GoogleDriveService.isConnected()) {
+      // 2. Se o Google Drive estiver conectado ou vinculado, salva automaticamente no Drive
+      if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
         syncWithGoogleDrive(true);
       }
     } catch (e) {
@@ -817,7 +827,7 @@
         await DBService.persistVault(state.vaultData, state.currentPassword);
         showToast('Entrada excluída.');
 
-        if (GoogleDriveService.isConnected()) {
+        if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
           syncWithGoogleDrive(true);
         }
       } catch (e) {
@@ -923,7 +933,7 @@
         alert(`✅ ${importedRecords.length} registros importados com sucesso!`);
         elements.settingsModal.classList.add('hidden');
 
-        if (GoogleDriveService.isConnected()) {
+        if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
           showToast('Sincronizando base completa com o Google Drive...');
           syncWithGoogleDrive(true);
         }
@@ -1223,9 +1233,9 @@
       elements.linkResetVault.addEventListener('click', handleResetVault);
     }
 
-    // Google Drive Sync - Se conectado, sincroniza direto; se desconectado, abre modal para conectar
+    // Google Drive Sync - Se conectado ou vinculado, sincroniza direto; se desconectado, abre modal para conectar
     elements.btnDriveSync.addEventListener('click', () => {
-      if (GoogleDriveService.isConnected()) {
+      if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
         syncWithGoogleDrive(false);
       } else {
         elements.settingsModal.classList.remove('hidden');

@@ -16,24 +16,31 @@ const GoogleDriveService = {
   tokenExpiresAt: 0,
   userEmail: null,
 
+  // Verifica se o usuário possui conta do Drive previamente vinculada
+  isLinked() {
+    return !!(this.userEmail || localStorage.getItem('wingene_drive_email'));
+  },
+
   // Inicializa o cliente GIS (Google Identity Services)
   init() {
     return new Promise((resolve) => {
-      const savedClientId = sessionStorage.getItem('wingene_drive_client_id');
+      const savedClientId = localStorage.getItem('wingene_drive_client_id');
       if (savedClientId !== this.CLIENT_ID) {
-        sessionStorage.removeItem('wingene_drive_token');
-        sessionStorage.removeItem('wingene_drive_token_exp');
-        sessionStorage.removeItem('wingene_drive_email');
-        sessionStorage.setItem('wingene_drive_client_id', this.CLIENT_ID);
+        localStorage.removeItem('wingene_drive_token');
+        localStorage.removeItem('wingene_drive_token_exp');
+        localStorage.removeItem('wingene_drive_email');
+        localStorage.setItem('wingene_drive_client_id', this.CLIENT_ID);
       }
 
-      const savedToken = sessionStorage.getItem('wingene_drive_token');
-      const savedExp = sessionStorage.getItem('wingene_drive_token_exp');
-      const savedEmail = sessionStorage.getItem('wingene_drive_email');
+      const savedToken = localStorage.getItem('wingene_drive_token');
+      const savedExp = localStorage.getItem('wingene_drive_token_exp');
+      const savedEmail = localStorage.getItem('wingene_drive_email');
 
       if (savedToken && savedExp && Number(savedExp) > Date.now()) {
         this.accessToken = savedToken;
         this.tokenExpiresAt = Number(savedExp);
+        this.userEmail = savedEmail;
+      } else if (savedEmail) {
         this.userEmail = savedEmail;
       }
 
@@ -47,9 +54,9 @@ const GoogleDriveService = {
               callback: async (tokenResponse) => {
                 if (tokenResponse && tokenResponse.access_token) {
                   this.accessToken = tokenResponse.access_token;
-                  this.tokenExpiresAt = Date.now() + (Number(tokenResponse.expires_in) - 60) * 1000;
-                  sessionStorage.setItem('wingene_drive_token', this.accessToken);
-                  sessionStorage.setItem('wingene_drive_token_exp', String(this.tokenExpiresAt));
+                  this.tokenExpiresAt = Date.now() + (Number(tokenResponse.expires_in || 3600) - 60) * 1000;
+                  localStorage.setItem('wingene_drive_token', this.accessToken);
+                  localStorage.setItem('wingene_drive_token_exp', String(this.tokenExpiresAt));
 
                   // Busca e-mail do usuário
                   await this.fetchUserEmail();
@@ -90,7 +97,7 @@ const GoogleDriveService = {
         const data = await res.json();
         this.userEmail = data.email || null;
         if (this.userEmail) {
-          sessionStorage.setItem('wingene_drive_email', this.userEmail);
+          localStorage.setItem('wingene_drive_email', this.userEmail);
         }
         return this.userEmail;
       }
@@ -132,7 +139,13 @@ const GoogleDriveService = {
 
       const promptOption = (options.forceSelect || this.needsAccountSelect) ? 'select_account' : '';
       this.needsAccountSelect = false;
-      this.tokenClient.requestAccessToken({ prompt: promptOption });
+
+      const emailHint = this.userEmail || localStorage.getItem('wingene_drive_email') || undefined;
+      const requestConfig = { prompt: promptOption };
+      if (promptOption !== 'select_account' && emailHint) {
+        requestConfig.hint = emailHint;
+      }
+      this.tokenClient.requestAccessToken(requestConfig);
     });
   },
 
@@ -146,9 +159,15 @@ const GoogleDriveService = {
     this.tokenExpiresAt = 0;
     this.userEmail = null;
     this.needsAccountSelect = true;
+    localStorage.removeItem('wingene_drive_token');
+    localStorage.removeItem('wingene_drive_token_exp');
+    localStorage.removeItem('wingene_drive_email');
+    localStorage.removeItem('wingene_last_drive_email');
+    localStorage.removeItem('wingene_drive_custom_pass');
     sessionStorage.removeItem('wingene_drive_token');
     sessionStorage.removeItem('wingene_drive_token_exp');
     sessionStorage.removeItem('wingene_drive_email');
+    sessionStorage.removeItem('wingene_drive_custom_pass');
   },
 
   // Força desconexão e abre o seletor de contas do Google explicitamente

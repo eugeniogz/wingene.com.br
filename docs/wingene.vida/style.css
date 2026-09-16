@@ -58,6 +58,10 @@ body {
 
 /* ─── Telas Principais (Lock Screen vs App Principal) ────────────────────────── */
 
+.hidden {
+  display: none !important;
+}
+
 .screen {
   opacity: 1;
   transition: opacity var(--transition-smooth);
@@ -891,7 +895,29 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  animation: slideUpFade 0.3s ease-out;
+  animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
+
+.toast-notice.toast-hiding {
+  opacity: 0;
+  transform: translate(-50%, 15px);
+}
+
+.toast-notice.hidden {
+  display: none !important;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 
