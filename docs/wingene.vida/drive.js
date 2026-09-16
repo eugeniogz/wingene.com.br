@@ -100,10 +100,12 @@ const GoogleDriveService = {
     return null;
   },
 
+  needsAccountSelect: false,
+
   // Solicita autorização e login via pop-up oficial do Google
-  requestToken() {
+  requestToken(options = {}) {
     return new Promise((resolve, reject) => {
-      if (this.isConnected()) {
+      if (this.isConnected() && !options.forceSelect) {
         resolve(this.accessToken);
         return;
       }
@@ -128,7 +130,9 @@ const GoogleDriveService = {
       window.addEventListener('drive-auth-success', successHandler);
       window.addEventListener('drive-auth-error', errorHandler);
 
-      this.tokenClient.requestAccessToken({ prompt: '' });
+      const promptOption = (options.forceSelect || this.needsAccountSelect) ? 'select_account' : '';
+      this.needsAccountSelect = false;
+      this.tokenClient.requestAccessToken({ prompt: promptOption });
     });
   },
 
@@ -141,6 +145,7 @@ const GoogleDriveService = {
     this.accessToken = null;
     this.tokenExpiresAt = 0;
     this.userEmail = null;
+    this.needsAccountSelect = true;
     sessionStorage.removeItem('wingene_drive_token');
     sessionStorage.removeItem('wingene_drive_token_exp');
     sessionStorage.removeItem('wingene_drive_email');

@@ -323,6 +323,32 @@
       await GoogleDriveService.fetchUserEmail();
       updateDriveStatusUI();
 
+      const currentEmail = GoogleDriveService.userEmail;
+      const lastDriveEmail = localStorage.getItem('wingene_last_drive_email');
+
+      if (currentEmail) {
+        if (lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) {
+          console.log(`[Drive] Troca de conta detectada: de "${lastDriveEmail}" para "${currentEmail}". Limpando dados locais anteriores.`);
+          showToast(`Conta alterada para ${currentEmail}. Limpando dados anteriores...`);
+
+          // Limpa dados locais anteriores para evitar contaminação entre contas
+          state.vaultData = {
+            registros: [],
+            resumos_mensais: [],
+            insights: [],
+            propositos: []
+          };
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+          localStorage.removeItem('wingene_last_remote_change');
+          localStorage.removeItem('wingene_last_drive_sync');
+          renderEntries();
+
+          // Força download limpo da nova conta
+          forceFullSync = true;
+        }
+        localStorage.setItem('wingene_last_drive_email', currentEmail);
+      }
+
       const lastRemoteChangeStr = localStorage.getItem('wingene_last_remote_change');
       const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
