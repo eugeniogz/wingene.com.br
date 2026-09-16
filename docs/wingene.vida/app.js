@@ -292,7 +292,7 @@
     }
   }
 
-  async function syncWithGoogleDrive(silent = false) {
+  async function syncWithGoogleDrive(silent = false, forceFullSync = false) {
     if (state.isSyncingDrive) return;
     if (!state.currentPassword) {
       if (!silent) alert('Por favor, desbloqueie o diário para sincronizar.');
@@ -315,7 +315,7 @@
       elements.btnSyncNowModal.textContent = 'Sincronizando...';
 
       if (!silent) {
-        showToast('Conectando ao Google Drive...');
+        showToast('Verificando alterações no Drive...');
       }
 
       // 1. Garante autenticação e obtém e-mail da conta conectada
@@ -323,11 +323,22 @@
       await GoogleDriveService.fetchUserEmail();
       updateDriveStatusUI();
 
-      // 2. Baixa registros existentes no Drive
-      const remoteRes = await GoogleDriveService.downloadMasterData(drivePassword);
-      let mergedCount = 0;
+      const lastRemoteChangeStr = localStorage.getItem('wingene_last_remote_change');
+      const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
+      const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
 
-      if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
+      // 2. Baixa registros existentes no Drive com checagem de modificação
+      const remoteRes = await GoogleDriveService.downloadMasterData(drivePassword, {
+        onlyIfModifiedSince: forceFullSync ? null : lastRemoteChange
+      });
+
+      let mergedCount = 0;
+      let remoteChanged = false;
+
+      if (remoteRes.unchanged) {
+        console.log('[Drive] Master remoto inalterado desde o último sincronismo.');
+      } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
+        remoteChanged = true;
         const localMap = new Map();
         (state.vaultData.registros || []).forEach((r) => localMap.set(r.uuid, r));
 
@@ -365,15 +376,31 @@
         }
       }
 
-      // 3. Faz upload se houver novos registros locais ou base mesclada
-      const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
-      if (state.vaultData.registros && state.vaultData.registros.length > 0 && (localHasUnsynced || remoteRes.fileFound)) {
-        await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
+      // 3. Upload inteligente: só faz upload se houver locais pendentes, registros mesclados ou nuvem sem master
+      const needsUpload = localHasUnsynced || mergedCount > 0 || !remoteRes.fileFound;
+
+      if (needsUpload && state.vaultData.registros && state.vaultData.registros.length > 0) {
+        const uploadResult = await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
         state.vaultData.registros.forEach((r) => (r.sincronizado = 1));
         await DBService.persistVault(state.vaultData, state.currentPassword);
-        showToast(`✅ ${state.vaultData.registros.length} registros salvos no Google Drive!`);
-      } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
-        showToast(`✅ ${remoteRes.records.length} registros carregados do Google Drive!`);
+
+        const newModTime = (uploadResult && uploadResult.modifiedTime) || new Date().toISOString();
+        localStorage.setItem('wingene_last_remote_change', newModTime);
+
+        if (mergedCount > 0) {
+          showToast(`✅ Sincronizado! ${mergedCount} novos registros mesclados.`);
+        } else {
+          showToast(`✅ ${state.vaultData.registros.length} registros salvos no Google Drive!`);
+        }
+      } else if (remoteChanged) {
+        if (remoteRes.modifiedTime) {
+          localStorage.setItem('wingene_last_remote_change', remoteRes.modifiedTime);
+        }
+        showToast(`✅ ${remoteRes.records.length} registros atualizados da nuvem!`);
+      } else if (remoteRes.unchanged && !localHasUnsynced) {
+        if (!silent) {
+          showToast('✅ Tudo atualizado! Nenhuma alteração pendente.');
+        }
       }
 
       // 4. Atualiza informações de diagnóstico na tela

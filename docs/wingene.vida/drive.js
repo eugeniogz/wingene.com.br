@@ -297,10 +297,11 @@ const GoogleDriveService = {
   },
 
   // Baixa e descriptografa os registros do Drive
-  async downloadMasterData(password) {
+  async downloadMasterData(password, options = {}) {
     const allFiles = await this.listAllAppDataFiles();
     allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
     const masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
+    const timestampFile = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME);
     const validationFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
     const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
 
@@ -309,6 +310,27 @@ const GoogleDriveService = {
       const isValid = await this.validatePasswordWithHash(password, validationFile);
       if (!isValid) {
         throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
+      }
+    }
+
+    // CHECK DE TIMESTAMP: Se foi passado onlyIfModifiedSince, verifica se o master ou timestamp foram alterados
+    if (options.onlyIfModifiedSince && masterFile && masterFile.modifiedTime) {
+      const lastKnown = new Date(options.onlyIfModifiedSince).getTime();
+      const masterMod = new Date(masterFile.modifiedTime).getTime();
+      const tsMod = timestampFile && timestampFile.modifiedTime ? new Date(timestampFile.modifiedTime).getTime() : 0;
+      const latestRemote = Math.max(masterMod, tsMod);
+
+      // Tolerância de 2 segundos (idêntica ao Flutter) para evitar falsos positivos
+      if (latestRemote <= lastKnown + 2000) {
+        console.log(`[Drive] Master remoto inalterado (Remoto: ${new Date(latestRemote).toISOString()} <= Local: ${new Date(lastKnown).toISOString()}). Pulando download.`);
+        return {
+          fileFound: true,
+          unchanged: true,
+          modifiedTime: masterFile.modifiedTime,
+          records: null,
+          source: 'cache',
+          filesInDrive: allFiles.map((f) => f.name)
+        };
       }
     }
 
@@ -380,6 +402,8 @@ const GoogleDriveService = {
     if (masterFile || legacyFiles.length > 0) {
       return {
         fileFound: true,
+        unchanged: false,
+        modifiedTime: masterFile ? masterFile.modifiedTime : null,
         source: source,
         fileInfo: masterFile,
         fileSizeBytes: masterBufferLength || (masterFile ? masterFile.size : 0),
@@ -391,29 +415,30 @@ const GoogleDriveService = {
     // 3. Nenhum arquivo de dados encontrado
     return {
       fileFound: false,
+      unchanged: false,
       source: 'none',
-      filesInDrive: allFiles.map((f) => f.name),
-      records: []
+      records: [],
+      filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`)
     };
   },
 
-  // Faz upload e sincroniza os registros no arquivo mestre do Google Drive
+  // Faz upload consolidado dos registros para o Drive
   async uploadMasterData(records, password) {
     const token = await this.requestToken();
+    const encoder = new TextEncoder();
 
-    const payloadList = records.map((r) => {
-      const copy = { ...r };
-      delete copy.id;
-      return copy;
-    });
+    // 1. Gera o JSON criptografado no formato oficial Dart/Flutter
+    const jsonStr = JSON.stringify({ registros: records });
+    const encryptedBytes = await CryptoService.encryptDartFormat(jsonStr, password);
 
-    const encryptedBytes = await CryptoService.encryptDartFormat(payloadList, password);
+    // 2. Busca se já existe um arquivo mestre
     const allFiles = await this.listAllAppDataFiles();
     allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
-    const existingFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
+    const masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
 
-    if (existingFile && existingFile.id) {
-      const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`;
+    if (masterFile && masterFile.id) {
+      // Atualiza arquivo existente via PATCH direto
+      const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${masterFile.id}?uploadType=media`;
       const res = await fetch(updateUrl, {
         method: 'PATCH',
         headers: {
@@ -425,16 +450,16 @@ const GoogleDriveService = {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(`Falha no upload para o Drive: ${errData?.error?.message || res.status}`);
+        throw new Error(`Falha ao atualizar arquivo no Drive: ${errData?.error?.message || res.status}`);
       }
     } else {
-      const boundary = '-------wingene_drive_multipart_' + Math.random().toString(36).substring(2);
+      // Cria novo arquivo com metadata multipart/related
+      const boundary = '-------wingene_boundary_' + Math.random().toString(36).substring(2);
       const metadata = JSON.stringify({
         name: this.MASTER_FILENAME,
         parents: ['appDataFolder']
       });
 
-      const encoder = new TextEncoder();
       const p1 = encoder.encode(
         `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
       );
@@ -467,14 +492,14 @@ const GoogleDriveService = {
 
     // Grava o arquivo de validação de senha e o timestamp
     await this.createOrUpdateValidationFile(password);
-    await this.updateSyncTimestamp(token);
+    const newTimestamp = await this.updateSyncTimestamp(token);
 
-    return true;
+    return { success: true, modifiedTime: newTimestamp };
   },
 
   async updateSyncTimestamp(token) {
+    const nowIso = new Date().toISOString();
     try {
-      const nowIso = new Date().toISOString();
       const allFiles = await this.listAllAppDataFiles();
       allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
       const existing = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME);
