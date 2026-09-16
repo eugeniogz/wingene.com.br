@@ -331,17 +331,40 @@ const CryptoService = {
       throw new Error(`PASSWORD_INCORRECT: A senha não conseguiu decifrar os dados da nuvem (primeiro byte decifrado: ${firstByteHex}).`);
     }
 
-    const trimmed = jsonStr.trim();
-    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-      console.warn('[Crypto] Texto decifrado não é JSON válido:', trimmed.slice(0, 50));
-      throw new Error('PASSWORD_INCORRECT: O conteúdo decifrado da nuvem não é um JSON válido.');
+    // Sanitiza BOM UTF-8 (\uFEFF), caracteres nulos ou de controle antes do JSON
+    let cleanStr = jsonStr.replace(/^[\uFEFF\x00-\x1F\s]+/, '').replace(/[\x00-\x1F\s]+$/, '');
+
+    // Se houver algum lixo residual inicial antes de { ou [, posiciona no início real do JSON
+    const firstBrace = cleanStr.indexOf('{');
+    const firstBracket = cleanStr.indexOf('[');
+    let startIdx = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) {
+      startIdx = Math.min(firstBrace, firstBracket);
+    } else {
+      startIdx = Math.max(firstBrace, firstBracket);
+    }
+
+    if (startIdx > 0 && startIdx < 30) {
+      cleanStr = cleanStr.slice(startIdx);
+    }
+
+    if (!cleanStr.startsWith('{') && !cleanStr.startsWith('[') && !cleanStr.startsWith('"')) {
+      const debugStart = JSON.stringify(cleanStr.slice(0, 30));
+      const charCodes = cleanStr.slice(0, 8).split('').map((c) => '0x' + c.charCodeAt(0).toString(16)).join(' ');
+      console.warn('[Crypto] Texto decifrado não inicia com JSON:', debugStart, 'CharCodes:', charCodes);
+      throw new Error(`PASSWORD_INCORRECT: O conteúdo decifrado da nuvem não inicia com JSON (Início: ${debugStart} | CharCodes: ${charCodes}).`);
     }
 
     try {
-      return JSON.parse(trimmed);
+      let parsed = JSON.parse(cleanStr);
+      if (typeof parsed === 'string') {
+        // Trata eventual dupla serialização
+        parsed = JSON.parse(parsed);
+      }
+      return parsed;
     } catch (parseErr) {
       console.warn('[Crypto] Erro no JSON.parse dos dados decifrados:', parseErr);
-      throw new Error('CORRUPTED_DATA: Falha ao interpretar estrutura JSON dos registros da nuvem.');
+      throw new Error(`CORRUPTED_DATA: Falha ao interpretar estrutura JSON (${parseErr.message}).`);
     }
   },
 
