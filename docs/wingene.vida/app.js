@@ -264,7 +264,10 @@
     const userEmail = GoogleDriveService.userEmail;
     if (connected) {
       elements.btnDriveSync.classList.add('connected');
-      elements.driveSyncText.textContent = userEmail ? userEmail.split('@')[0] : 'Drive Conectado';
+      elements.btnDriveSync.title = userEmail
+        ? `Conectado (${userEmail}) • Clique para sincronizar agora`
+        : 'Clique para sincronizar agora com o Google Drive';
+      elements.driveSyncText.textContent = userEmail ? userEmail.split('@')[0] : 'Sincronizar';
       elements.driveStatusBadge.textContent = userEmail ? `Conectado (${userEmail})` : 'Conectado';
       elements.driveStatusBadge.style.color = '#34d399';
       elements.btnConnectDriveModal.classList.add('hidden');
@@ -272,6 +275,7 @@
       elements.btnSyncNowModal.disabled = false;
     } else {
       elements.btnDriveSync.classList.remove('connected');
+      elements.btnDriveSync.title = 'Clique para conectar e sincronizar com o Google Drive';
       elements.driveSyncText.textContent = 'Conectar Drive';
       elements.driveStatusBadge.textContent = 'Desconectado';
       elements.driveStatusBadge.style.color = '#94a3b8';
@@ -302,7 +306,11 @@
 
     try {
       state.isSyncingDrive = true;
+      elements.btnDriveSync.classList.add('syncing');
       elements.driveSyncIcon.classList.add('spin-icon');
+      if (elements.driveSyncText) {
+        elements.driveSyncText.textContent = 'Sincronizando...';
+      }
       elements.btnSyncNowModal.disabled = true;
       elements.btnSyncNowModal.textContent = 'Sincronizando...';
 
@@ -402,7 +410,9 @@
       }
     } finally {
       state.isSyncingDrive = false;
+      elements.btnDriveSync.classList.remove('syncing');
       elements.driveSyncIcon.classList.remove('spin-icon');
+      updateDriveStatusUI();
       elements.btnSyncNowModal.disabled = false;
       elements.btnSyncNowModal.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
@@ -1031,9 +1041,13 @@
       elements.linkResetVault.addEventListener('click', handleResetVault);
     }
 
-    // Google Drive Sync - Sincroniza diretamente ao clicar
+    // Google Drive Sync - Se conectado, sincroniza direto; se desconectado, abre modal para conectar
     elements.btnDriveSync.addEventListener('click', () => {
-      syncWithGoogleDrive(false);
+      if (GoogleDriveService.isConnected()) {
+        syncWithGoogleDrive(false);
+      } else {
+        elements.settingsModal.classList.remove('hidden');
+      }
     });
 
     elements.btnConnectDriveModal.addEventListener('click', () => {

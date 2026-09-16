@@ -840,6 +840,23 @@ select:focus {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
   border-color: rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#btnDriveSync.connected:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+#btnDriveSync.connected:active {
+  transform: scale(0.97);
+}
+
+#btnDriveSync.syncing {
+  pointer-events: none;
+  opacity: 0.85;
 }
 
 .spin-icon {
