@@ -473,7 +473,7 @@
 
       if (isPasswordError) {
         showToast('Senha de criptografia do Drive necessária.');
-        promptDrivePassword(GoogleDriveService.userEmail, 'Senha de criptografia incorreta para esta conta do Google Drive.');
+        promptDrivePassword(GoogleDriveService.userEmail, err.message || 'Senha de criptografia incorreta para esta conta do Google Drive.');
       } else if (!silent) {
         alert('Erro ao sincronizar com o Google Drive: ' + err.message);
         showToast('Falha ao sincronizar com o Drive');

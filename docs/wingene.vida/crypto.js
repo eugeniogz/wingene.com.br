@@ -181,7 +181,7 @@ const CryptoService = {
 
   // Criptografa objeto no formato do arquivo do Google Drive do app móvel
   async encryptDartFormat(dataObj, password) {
-    const jsonStr = JSON.stringify(dataObj);
+    const jsonStr = typeof dataObj === 'string' ? dataObj : JSON.stringify(dataObj);
     const encoder = new TextEncoder();
     const rawBytes = encoder.encode(jsonStr);
 
@@ -286,13 +286,21 @@ const CryptoService = {
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
-    const trimmed = jsonStr.trim();
-    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    let clean = jsonStr.trim();
+    if (clean.charCodeAt(0) === 0xFEFF) {
+      clean = clean.slice(1).trim();
+    }
+
+    if (!clean.startsWith('{') && !clean.startsWith('[') && !clean.startsWith('"')) {
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }
 
     try {
-      return JSON.parse(trimmed);
+      let parsed = JSON.parse(clean);
+      if (typeof parsed === 'string') {
+        parsed = JSON.parse(parsed);
+      }
+      return parsed;
     } catch (parseErr) {
       throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
     }

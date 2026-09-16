@@ -207,22 +207,27 @@ const GoogleDriveService = {
     };
 
     let allFiles = [];
-    try {
-      allFiles = await this.listAllAppDataFiles();
-      audit.filesFound = allFiles.map((f) => ({
-        name: f.name,
-        id: f.id,
-        size: f.size,
-        modifiedTime: f.modifiedTime
-      }));
-    } catch (e) {
-      console.warn('[Drive] Erro ao listar arquivos na appDataFolder:', e);
-      audit.listError = e.message || String(e);
-    }
+    let validationFiles = validationFile ? [validationFile] : [];
+    let masterFiles = [];
+    let legacyFiles = [];
 
-    const validationFiles = allFiles.filter((f) => f.name === this.VALIDATION_FILENAME);
-    const masterFiles = allFiles.filter((f) => f.name === this.MASTER_FILENAME);
-    const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
+    if (!validationFile) {
+      try {
+        allFiles = await this.listAllAppDataFiles();
+        audit.filesFound = allFiles.map((f) => ({
+          name: f.name,
+          id: f.id,
+          size: f.size,
+          modifiedTime: f.modifiedTime
+        }));
+        validationFiles = allFiles.filter((f) => f.name === this.VALIDATION_FILENAME);
+        masterFiles = allFiles.filter((f) => f.name === this.MASTER_FILENAME);
+        legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
+      } catch (e) {
+        console.warn('[Drive] Erro ao listar arquivos na appDataFolder:', e);
+        audit.listError = e.message || String(e);
+      }
+    }
 
     const token = await this.requestToken().catch(() => null);
 
@@ -580,8 +585,8 @@ const GoogleDriveService = {
     const token = await this.requestToken();
     const encoder = new TextEncoder();
 
-    // 1. Gera o JSON criptografado no formato oficial Dart/Flutter
-    const jsonStr = JSON.stringify({ registros: records });
+    // 1. Gera o JSON criptografado no formato oficial Dart/Flutter (Lista de registros)
+    const jsonStr = JSON.stringify(records);
     const encryptedBytes = await CryptoService.encryptDartFormat(jsonStr, password);
 
     // 2. Busca se já existe um arquivo mestre
