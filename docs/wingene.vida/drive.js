@@ -151,6 +151,14 @@ const GoogleDriveService = {
     sessionStorage.removeItem('wingene_drive_email');
   },
 
+  // Força desconexão e abre o seletor de contas do Google explicitamente
+  async switchAccount() {
+    this.signOut();
+    await this.requestToken({ forceSelect: true });
+    await this.fetchUserEmail();
+    return this.userEmail;
+  },
+
   // Lista todos os arquivos na pasta privada appDataFolder
   async listAllAppDataFiles() {
     const token = await this.requestToken();

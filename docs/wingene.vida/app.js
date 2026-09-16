@@ -84,6 +84,7 @@
     driveStatusBadge: document.getElementById('driveStatusBadge'),
     btnConnectDriveModal: document.getElementById('btnConnectDriveModal'),
     btnSyncNowModal: document.getElementById('btnSyncNowModal'),
+    btnSwitchAccountSettings: document.getElementById('btnSwitchAccountSettings'),
     btnDisconnectDriveModal: document.getElementById('btnDisconnectDriveModal'),
     driveLastSyncTime: document.getElementById('driveLastSyncTime'),
     toastNotification: document.getElementById('toastNotification'),
@@ -91,6 +92,7 @@
     drivePasswordModal: document.getElementById('drivePasswordModal'),
     drivePasswordAccountNotice: document.getElementById('drivePasswordAccountNotice'),
     drivePasswordAccountEmail: document.getElementById('drivePasswordAccountEmail'),
+    btnSwitchAccountInPasswordModal: document.getElementById('btnSwitchAccountInPasswordModal'),
     btnCloseDrivePasswordModal: document.getElementById('btnCloseDrivePasswordModal'),
     btnCancelDrivePasswordModal: document.getElementById('btnCancelDrivePasswordModal'),
     btnConfirmDrivePasswordModal: document.getElementById('btnConfirmDrivePasswordModal'),
@@ -275,6 +277,7 @@
       elements.driveStatusBadge.style.color = '#34d399';
       elements.btnConnectDriveModal.classList.add('hidden');
       elements.btnDisconnectDriveModal.classList.remove('hidden');
+      if (elements.btnSwitchAccountSettings) elements.btnSwitchAccountSettings.classList.remove('hidden');
       elements.btnSyncNowModal.disabled = false;
     } else {
       elements.btnDriveSync.classList.remove('connected');
@@ -284,6 +287,7 @@
       elements.driveStatusBadge.style.color = '#94a3b8';
       elements.btnConnectDriveModal.classList.remove('hidden');
       elements.btnDisconnectDriveModal.classList.add('hidden');
+      if (elements.btnSwitchAccountSettings) elements.btnSwitchAccountSettings.classList.add('hidden');
       elements.btnSyncNowModal.disabled = true;
     }
 
@@ -1316,6 +1320,54 @@
             : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
         }
       });
+    }
+
+    if (elements.btnSwitchAccountSettings) {
+      elements.btnSwitchAccountSettings.addEventListener('click', handleSwitchDriveAccount);
+    }
+    if (elements.btnSwitchAccountInPasswordModal) {
+      elements.btnSwitchAccountInPasswordModal.addEventListener('click', handleSwitchDriveAccount);
+    }
+  }
+
+  async function handleSwitchDriveAccount() {
+    try {
+      showToast('Abrindo seletor de contas do Google...');
+      await GoogleDriveService.switchAccount();
+      const newEmail = GoogleDriveService.userEmail;
+      updateDriveStatusUI();
+
+      if (newEmail) {
+        showToast(`Conectado à conta: ${newEmail}`);
+
+        // Se trocou de conta, limpa os dados locais imediatamente para não misturar diários
+        const lastDriveEmail = localStorage.getItem('wingene_last_drive_email');
+        if (lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== newEmail.trim().toLowerCase()) {
+          state.vaultData = {
+            registros: [],
+            resumos_mensais: [],
+            insights: [],
+            propositos: []
+          };
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+          localStorage.removeItem('wingene_last_remote_change');
+          localStorage.removeItem('wingene_last_drive_sync');
+          renderEntries();
+        }
+        localStorage.setItem('wingene_last_drive_email', newEmail);
+
+        if (elements.drivePasswordAccountEmail) {
+          elements.drivePasswordAccountEmail.textContent = newEmail;
+        }
+        if (elements.modalDrivePasswordError) {
+          elements.modalDrivePasswordError.classList.add('hidden');
+        }
+
+        // Inicia sincronização com a nova conta
+        await syncWithGoogleDrive(false, true);
+      }
+    } catch (e) {
+      console.warn('Troca de conta cancelada ou falhou:', e);
     }
   }
 
