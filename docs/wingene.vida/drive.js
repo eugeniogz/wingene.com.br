@@ -5,7 +5,7 @@
  */
 
 const GoogleDriveService = {
-  CLIENT_ID: '866070306664-c4t0598uonqfurjr86qvhjtmp0mu3pau.apps.googleusercontent.com',
+  CLIENT_ID: '97862926817-cfc6qmu5fm8e3pqtou7ra7c7pl394mb6.apps.googleusercontent.com',
   SCOPES: 'https://www.googleapis.com/auth/drive.appdata email profile',
   MASTER_FILENAME: 'diario_sync_master.json',
   TIMESTAMP_FILENAME: 'sync_timestamp.txt',
@@ -19,6 +19,14 @@ const GoogleDriveService = {
   // Inicializa o cliente GIS (Google Identity Services)
   init() {
     return new Promise((resolve) => {
+      const savedClientId = sessionStorage.getItem('wingene_drive_client_id');
+      if (savedClientId !== this.CLIENT_ID) {
+        sessionStorage.removeItem('wingene_drive_token');
+        sessionStorage.removeItem('wingene_drive_token_exp');
+        sessionStorage.removeItem('wingene_drive_email');
+        sessionStorage.setItem('wingene_drive_client_id', this.CLIENT_ID);
+      }
+
       const savedToken = sessionStorage.getItem('wingene_drive_token');
       const savedExp = sessionStorage.getItem('wingene_drive_token_exp');
       const savedEmail = sessionStorage.getItem('wingene_drive_email');
