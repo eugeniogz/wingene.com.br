@@ -157,9 +157,21 @@ const CryptoService = {
 
   // Descompactação ZLIB (inflate) nativa via DecompressionStream
   async zlibDecompress(uint8Array) {
-    const stream = new Response(uint8Array).body.pipeThrough(new DecompressionStream('deflate'));
-    const buf = await new Response(stream).arrayBuffer();
-    return new Uint8Array(buf);
+    const cleanBytes = uint8Array.slice();
+    try {
+      const stream = new Response(cleanBytes).body.pipeThrough(new DecompressionStream('deflate'));
+      const buf = await new Response(stream).arrayBuffer();
+      return new Uint8Array(buf);
+    } catch (err) {
+      // Fallback para deflate-raw caso o cabeçalho zlib seja ausente
+      try {
+        const streamRaw = new Response(cleanBytes).body.pipeThrough(new DecompressionStream('deflate-raw'));
+        const bufRaw = await new Response(streamRaw).arrayBuffer();
+        return new Uint8Array(bufRaw);
+      } catch (_) {
+        throw err;
+      }
+    }
   },
 
   // Adiciona padding PKCS7 a um Uint8Array (tamanho de bloco = 16 bytes)
@@ -171,12 +183,17 @@ const CryptoService = {
     return padded;
   },
 
-  // Remove padding PKCS7
+  // Remove padding PKCS7 com validação estrita de cada byte
   removePkcs7Padding(paddedBytes) {
     if (!paddedBytes || paddedBytes.length === 0) return paddedBytes;
     const padLen = paddedBytes[paddedBytes.length - 1];
     if (padLen < 1 || padLen > 16) return paddedBytes; // Sem padding válido
-    return paddedBytes.subarray(0, paddedBytes.length - padLen);
+    for (let i = paddedBytes.length - padLen; i < paddedBytes.length; i++) {
+      if (paddedBytes[i] !== padLen) {
+        return paddedBytes; // Não é PKCS7 autêntico, preserva os bytes
+      }
+    }
+    return paddedBytes.slice(0, paddedBytes.length - padLen);
   },
 
   // Criptografa objeto no formato do arquivo do Google Drive do app móvel
@@ -269,36 +286,62 @@ const CryptoService = {
       cipher
     );
 
-    const unpadded = this.removePkcs7Padding(new Uint8Array(decryptedBuffer));
+    const decryptedBytes = new Uint8Array(decryptedBuffer);
+    const unpadded = this.removePkcs7Padding(decryptedBytes);
     let jsonStr = '';
 
-    // No formato do Flutter, os dados são sempre comprimidos com ZLIB (iniciando com 0x78)
+    // 1. Tenta descompressão ZLIB nos bytes desempacotados
+    let decompressed = false;
     if (unpadded.length > 2 && unpadded[0] === 0x78) {
       try {
         const uncompressed = await this.zlibDecompress(unpadded);
         jsonStr = new TextDecoder().decode(uncompressed);
-      } catch (decompErr) {
-        console.warn('[Crypto] Falha ao descompactar ZLIB com a senha informada:', decompErr);
-        throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+        decompressed = true;
+      } catch (e1) {
+        console.warn('[Crypto] Falha zlib com unpadded, tentando com decryptedBytes original:', e1);
       }
-    } else if (unpadded.length > 0 && (unpadded[0] === 0x7b || unpadded[0] === 0x5b)) {
-      jsonStr = new TextDecoder().decode(unpadded);
-    } else {
-      console.warn('[Crypto] Cabeçalho inesperado após decifrar. Primeiro byte:', unpadded.length > 0 ? '0x' + unpadded[0].toString(16) : 'vazio');
-      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+    }
+
+    // 2. Se falhou, tenta descompressão nos bytes diretos (sem unpadding)
+    if (!decompressed && decryptedBytes.length > 2 && decryptedBytes[0] === 0x78) {
+      try {
+        const uncompressed = await this.zlibDecompress(decryptedBytes);
+        jsonStr = new TextDecoder().decode(uncompressed);
+        decompressed = true;
+      } catch (e2) {
+        console.warn('[Crypto] Falha zlib com decryptedBytes original:', e2);
+      }
+    }
+
+    // 3. Se não for zlib ou se falhou, tenta ler diretamente como UTF-8 (fallback sem compressão)
+    if (!decompressed) {
+      try {
+        const directStr = new TextDecoder().decode(unpadded);
+        const trimmed = directStr.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          jsonStr = trimmed;
+          decompressed = true;
+        }
+      } catch (_) {}
+    }
+
+    if (!decompressed || !jsonStr) {
+      const firstByteHex = unpadded.length > 0 ? '0x' + unpadded[0].toString(16) : 'vazio';
+      console.warn('[Crypto] Falha completa ao decodificar master. Primeiro byte:', firstByteHex);
+      throw new Error(`PASSWORD_INCORRECT: A senha não conseguiu decifrar os dados da nuvem (primeiro byte decifrado: ${firstByteHex}).`);
     }
 
     const trimmed = jsonStr.trim();
     if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-      console.warn('[Crypto] Texto decifrado não é JSON válido:', trimmed.slice(0, 40));
-      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+      console.warn('[Crypto] Texto decifrado não é JSON válido:', trimmed.slice(0, 50));
+      throw new Error('PASSWORD_INCORRECT: O conteúdo decifrado da nuvem não é um JSON válido.');
     }
 
     try {
       return JSON.parse(trimmed);
     } catch (parseErr) {
-      console.warn('[Crypto] Erro de JSON.parse:', parseErr);
-      throw new Error('PASSWORD_INCORRECT: A senha informada não conseguiu decifrar os dados do Google Drive.');
+      console.warn('[Crypto] Erro no JSON.parse dos dados decifrados:', parseErr);
+      throw new Error('CORRUPTED_DATA: Falha ao interpretar estrutura JSON dos registros da nuvem.');
     }
   },
 

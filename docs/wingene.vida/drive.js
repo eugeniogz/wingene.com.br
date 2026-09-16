@@ -264,8 +264,6 @@ const GoogleDriveService = {
               console.log(`[Drive] Senha confirmada com sucesso via validar.hash (${vFile.id})!`);
               audit.hashAttempts.push({ fileId: vFile.id, success: true, text: str });
               audit.result = true;
-              this.lastValidationAudit = audit;
-              return true;
             } else {
               audit.hashAttempts.push({ fileId: vFile.id, success: false, decryptedText: str.slice(0, 30) });
             }
@@ -337,6 +335,11 @@ const GoogleDriveService = {
       console.log('[Drive] Nenhum arquivo de dados ou validação encontrado nesta conta.');
       audit.result = true;
       audit.isNewAccount = true;
+      this.lastValidationAudit = audit;
+      return true;
+    }
+
+    if (audit.result === true) {
       this.lastValidationAudit = audit;
       return true;
     }
