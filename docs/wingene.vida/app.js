@@ -1031,13 +1031,9 @@
       elements.linkResetVault.addEventListener('click', handleResetVault);
     }
 
-    // Google Drive Sync
+    // Google Drive Sync - Sincroniza diretamente ao clicar
     elements.btnDriveSync.addEventListener('click', () => {
-      if (!GoogleDriveService.isConnected()) {
-        syncWithGoogleDrive(false);
-      } else {
-        elements.settingsModal.classList.remove('hidden');
-      }
+      syncWithGoogleDrive(false);
     });
 
     elements.btnConnectDriveModal.addEventListener('click', () => {
