@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhyNot 🔔🧠 | Triagem Inteligente de Notificações com IA</title>
+  <meta name="description" content="WhyNot analisa, filtra e prioriza suas notificações Android em tempo real com Google Gemini AI. Notificações críticas alertam imediatamente; ruído e spam são silenciados.">
+  <meta name="keywords" content="WhyNot, notificações inteligentes, triagem de notificações, inteligência artificial, Google Gemini, produtividade Android, foco">
+  
+  <!-- Open Graph / Redes Sociais -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="WhyNot - Triagem Inteligente de Notificações com IA">
+  <meta property="og:description" content="Filtre o ruído e priorize o que realmente importa no seu smartphone com Google Gemini AI.">
+  <meta property="og:image" content="assets/icon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #08080b;
+      --bg-surface: rgba(18, 17, 26, 0.75);
+      --bg-card: rgba(26, 25, 38, 0.65);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(245, 158, 11, 0.4);
+      --accent-gold: #f59e0b;
+      --accent-gold-light: #fef08a;
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.3);
+      --accent-purple: #8b5cf6;
+      --accent-red: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-subtle: #6b7280;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --max-width: 1200px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 20% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 25%, rgba(245, 158, 11, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 50% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+    }
+
+    /* Container */
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header & Nav */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(8, 8, 11, 0.82);
+      border-bottom: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+    }
+
+    .nav-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 76px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px var(--accent-emerald-glow);
+    }
+
+    .brand-text {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-btn {
+      background: linear-gradient(135deg, var(--accent-gold) 0%, #d97706 100%);
+      color: #000;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-size: 0.92rem;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 100px 0 70px;
+      text-align: center;
+      position: relative;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent-emerald);
+      margin-bottom: 24px;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -1.2px;
+      margin-bottom: 24px;
+      max-width: 920px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-title span.highlight-gold {
+      background: linear-gradient(135deg, #fef08a 0%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-title span.highlight-emerald {
+      background: linear-gradient(135deg, #6ee7b7 0%, var(--accent-emerald) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin: 0 auto 36px;
+      font-weight: 400;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%);
+      color: #ffffff;
+      padding: 14px 30px;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 14px 26px;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.25s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* Live Triage Simulation Showcase */
+    .triage-showcase {
+      margin-top: 60px;
+      padding: 32px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      text-align: left;
+    }
+
+    .column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .column-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-notif {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card-notif:hover {
+      transform: translateY(-2px);
+    }
+
+    .card-notif.urgent {
+      border-left: 4px solid var(--accent-red);
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    .card-notif.high {
+      border-left: 4px solid var(--accent-gold);
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .card-notif.muted {
+      border-left: 4px solid var(--text-subtle);
+      opacity: 0.65;
+    }
+
+    .notif-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .app-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .tag-urgent {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-ai-score {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .notif-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .notif-body {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+    }
+
+    .ai-action-summary {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      font-size: 0.82rem;
+      color: #a7f3d0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Section Titles */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .section-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 28px;
+    }
+
+    .feature-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .feature-icon.emerald {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .feature-icon.purple {
+      background: rgba(139, 92, 246, 0.12);
+      color: var(--accent-purple);
+      border-color: rgba(139, 92, 246, 0.25);
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .feature-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* Privacy Highlight Banner */
+    .privacy-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 12, 20, 0.9) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 24px;
+      padding: 48px;
+      margin: 40px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .privacy-banner-text {
+      max-width: 680px;
+    }
+
+    .privacy-banner-title {
+      font-family: var(--font-display);
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+
+    /* FAQ Section */
+    .faq-grid {
+      max-width: 840px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .faq-question {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-answer {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 12px;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      background: #040406;
+      padding: 60px 0 30px;
+      margin-top: 80px;
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-col {
+      max-width: 320px;
+    }
+
+    .footer-col h4 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      margin-bottom: 16px;
+      color: var(--text-main);
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-gold);
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: var(--text-subtle);
+    }
+
+    @media (max-width: 868px) {
+      .hero-title { font-size: 2.5rem; }
+      .showcase-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <div class="container nav-content">
+      <a href="index.html" class="brand">
+        <img src="assets/icon.svg" alt="WhyNot Logo" class="brand-logo">
+        <span class="brand-text">WhyNot</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Recursos</a></li>
+        <li><a href="#how-it-works">Como Funciona</a></li>
+        <li><a href="#security">Segurança & IA</a></li>
+        <li><a href="#faq">Dúvidas</a></li>
+        <li><a href="privacy.html">Privacidade</a></li>
+      </ul>
+
+      <a href="privacy.html" class="nav-btn">Política de Privacidade</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="container">
+    <section class="hero">
+      <div class="badge-pill">
+        <span class="badge-dot"></span>
+        Triagem em Tempo Real com Google Gemini IA
+      </div>
+      
+      <h1 class="hero-title">
+        Menos ruído, mais foco.<br>
+        Suas notificações filtradas com <span class="highlight-gold">Inteligência Executiva</span>.
+      </h1>
+
+      <p class="hero-subtitle">
+        O WhyNot intercepta, analisa e prioriza os alertas do seu Android. Códigos de segurança, bancos e urgências tocam na hora — promoções e distrações são silenciadas e consolidadas em resumos diários.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#features" class="btn-primary">
+          <span>Explorar Funcionalidades</span>
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+        <a href="privacy.html" class="btn-secondary">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span>Política de Privacidade</span>
+        </a>
+      </div>
+
+      <!-- Live Triage Showcase -->
+      <div class="triage-showcase" id="how-it-works">
+        <div class="showcase-grid">
+          <!-- Coluna Sem WhyNot -->
+          <div>
+            <div class="column-header">
+              <div class="column-title" style="color: #f87171;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Sem WhyNot (Sobrecarga de Ruído)
+              </div>
+              <span style="font-size: 0.8rem; color: var(--text-subtle);">Caos & Distração</span>
+            </div>
+
+            <div class="card-notif muted">
+              <div class="notif-top">
+                <span class="app-badge">🛍️ App de Compras • Agora</span>
+                <span style="color: var(--text-subtle); font-size: 0.72rem;">Promoção</span>
+              </div>
+              <div class="notif-title">Cupom de 10% expira em 2 horas!</div>
+              <div class="notif-body">Aproveite as ofertas exclusivas da semana antes que acabe o estoque...</div>
+            </div>
+
+            <div class="card-notif muted">
+              <div class="notif-top">
+                <span class="app-badge">🍔 Delivery • Há 5 min</span>
+                <span style="color: var(--text-subtle); font-size: 0.72rem;">Marketing</span>
+              </div>
+              <div class="notif-title">Bateu aquela fominha? Peça agora!</div>
+              <div class="notif-body">Frete grátis para restaurantes selecionados perto de você.</div>
+            </div>
+
+            <div class="card-notif muted">
+              <div class="notif-top">
+                <span class="app-badge">💬 Grupo Social • Há 8 min</span>
+                <span style="color: var(--text-subtle); font-size: 0.72rem;">Chat</span>
+              </div>
+              <div class="notif-title">Futebol de Sexta: 42 novas mensagens</div>
+              <div class="notif-body">Quem vai levar o refrigerante? Veja os comentários...</div>
+            </div>
+          </div>
+
+          <!-- Coluna Com WhyNot -->
+          <div>
+            <div class="column-header">
+              <div class="column-title" style="color: var(--accent-emerald);">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Com WhyNot (Triagem por IA Gemini)
+              </div>
+              <span style="font-size: 0.8rem; color: #34d399;">Foco & Alerta Imediato</span>
+            </div>
+
+            <div class="card-notif urgent">
+              <div class="notif-top">
+                <span class="app-badge">🏦 Banco Inter • Urgente</span>
+                <span class="tag-urgent">ALERTA CRÍTICO</span>
+                <span class="tag-ai-score">98% IA</span>
+              </div>
+              <div class="notif-title">🔑 Código de autorização Pix: 849201</div>
+              <div class="notif-body">Se você não solicitou este acesso, bloqueie imediatamente sua conta no app.</div>
+              <div class="ai-action-summary">
+                🧠 <strong>Ação de IA:</strong> Notificação disparada com som e vibração prioritária (Bypass DND ativo).
+              </div>
+            </div>
+
+            <div class="card-notif high">
+              <div class="notif-top">
+                <span class="app-badge">💼 Slack • Trabalho</span>
+                <span style="color: var(--accent-gold); font-size: 0.72rem; font-weight: bold;">PRIORITÁRIA</span>
+                <span class="tag-ai-score">89% IA</span>
+              </div>
+              <div class="notif-title">Reunião de Diretoria antecipada para 14:00</div>
+              <div class="notif-body">Link da sala virtual atualizado no Google Meet com nova pauta urgente.</div>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.07); border: 1px dashed rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 14px 16px; font-size: 0.86rem; color: #a7f3d0;">
+              ✨ <strong>13 notificações rotineiras e de marketing silenciadas</strong> e armazenadas para o seu <em>Executive Digest</em> das 18h.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+      <div class="section-header">
+        <span class="section-tag">Engenharia de Notificações</span>
+        <h2 class="section-title">Tecnologia desenvolvida para preservar sua atenção</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon emerald">🧠</div>
+          <h3 class="feature-title">Triagem Semântica com Gemini AI</h3>
+          <p class="feature-desc">
+            Classificação instantânea de cada notificação em níveis (Urgente, Alta, Média, Baixa, Spam). A IA compreende o contexto do texto, identificando códigos 2FA, compras suspeitas, entregas e emergências familiares.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🚨</div>
+          <h3 class="feature-title">Alertas Prioritários com Bypass DND</h3>
+          <p class="feature-desc">
+            Defina canais com som e vibração de alta urgência configuráveis para que notificações críticas cheguem até você mesmo quando o smartphone estiver no modo Não Perturbe (com sua autorização explícita).
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon purple">📊</div>
+          <h3 class="feature-title">Executive Digest Consolidado</h3>
+          <p class="feature-desc">
+            Em vez de dezenas de bipes ao longo do dia, receba sumários executivos diários que agrupam promoções, mensagens casuais e atualizações em uma leitura rápida de 1 minuto.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3 class="feature-title">Whitelist & Controle por App</h3>
+          <p class="feature-desc">
+            Controle absoluto: escolha quais aplicativos devem passar diretamente sem serem filtrados, silencie pacotes de spam e proteja apps de mensagens sensíveis com listas de confiança locais.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon emerald">⚡</div>
+          <h3 class="feature-title">Motor Heurístico Offline</h3>
+          <p class="feature-desc">
+            Sem conexão? Sem problemas. O WhyNot conta com um mecanismo local de regras heurísticas que continua avaliando palavras-chave de segurança e emergência diretamente no chip do dispositivo.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon purple">🔒</div>
+          <h3 class="feature-title">Privacidade em Primeiro Lugar</h3>
+          <p class="feature-desc">
+            Nenhuma informação pessoal é vendida para anunciantes. As chaves de IA são protegidas em nuvem via Cloud Functions com autenticação Firebase JWT, sem expor credenciais no aplicativo.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy Highlight Banner -->
+    <section class="privacy-banner" id="security">
+      <div class="privacy-banner-text">
+        <h3 class="privacy-banner-title">Compromisso Ético com seus Dados</h3>
+        <p style="color: #d1fae5; font-size: 1rem; line-height: 1.6;">
+          Suas notificações são processadas com criptografia em trânsito (HTTPS / TLS 1.3). O WhyNot não armazena senhas, dados de cartão de crédito nem comercializa seus hábitos de uso. Saiba exatamente como protegemos suas informações em conformidade com a LGPD e Google Play.
+        </p>
+      </div>
+      <a href="privacy.html" class="btn-primary" style="background: #ffffff; color: #047857; font-weight: 800;">
+        Ler Política de Privacidade Completa
+      </a>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="section" id="faq">
+      <div class="section-header">
+        <span class="section-tag">Transparência</span>
+        <h2 class="section-title">Perguntas Frequentes</h2>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-question">
+            Por que o WhyNot precisa da permissão de Acesso a Notificações?
+          </div>
+          <div class="faq-answer">
+            O Android exige a permissão especial <code>NotificationListenerService</code> para que o aplicativo possa ler os títulos e textos das notificações recebidas. Sem ela, é tecnicamente impossível detectar notificações prioritárias ou silenciar ruídos indesejados. O WhyNot utiliza essa permissão exclusivamente para triagem e sumários.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            O WhyNot lê ou armazena minhas mensagens pessoais?
+          </div>
+          <div class="faq-answer">
+            Não. O aplicativo lê unicamente o conteúdo textual presente no resumo da notificação do sistema para calcular o grau de urgência semântica. O WhyNot não acessa o histórico interno dos seus mensageiros nem armazena conversas confidenciais.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            Posso usar o aplicativo sem internet?
+          </div>
+          <div class="faq-answer">
+            Sim! O WhyNot possui um motor de regras heurísticas offline. Nas configurações do aplicativo, você pode optar por utilizar exclusivamente a triagem local no aparelho sem enviar dados para a nuvem.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            Como faço para excluir meus dados ou desinstalar?
+          </div>
+          <div class="faq-answer">
+            Você pode limpar todo o histórico local a qualquer momento na tela de Configurações do WhyNot. Para revogar permissões, basta desativar o serviço nas configurações do Android ou desinstalar o app normalmente. Para solicitar a exclusão de qualquer dado vinculado ao seu login Google, basta enviar um e-mail para <code>eugeniog@gmail.com</code>.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-content">
+      <div class="footer-col">
+        <div class="brand" style="margin-bottom: 14px;">
+          <img src="assets/icon.svg" alt="WhyNot Logo" class="brand-logo" style="width: 32px; height: 32px;">
+          <span class="brand-text" style="font-size: 1.25rem;">WhyNot</span>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;">
+          Assistente inteligente para Android que filtra o ruído e garante que você nunca perca o que é realmente urgente.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Navegação</h4>
+        <ul class="footer-links">
+          <li><a href="#features">Recursos</a></li>
+          <li><a href="#how-it-works">Como Funciona</a></li>
+          <li><a href="#security">Segurança & IA</a></li>
+          <li><a href="#faq">Perguntas Frequentes</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal & Conformidade</h4>
+        <ul class="footer-links">
+          <li><a href="privacy.html">Política de Privacidade (LGPD/GDPR)</a></li>
+          <li><a href="mailto:eugeniog@gmail.com">Contato do Desenvolvedor</a></li>
+          <li><span style="color: var(--text-subtle); font-size: 0.85rem;">Package: br.com.wingene.whynot</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="container footer-bottom">
+      <div>
+        &copy; 2026 WhyNot • Wingene Tecnologia. Desenvolvido por José Eugênio Gonçalves. Todos os direitos reservados.
+      </div>
+      <div>
+        Proteção e Inteligência de Notificações
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

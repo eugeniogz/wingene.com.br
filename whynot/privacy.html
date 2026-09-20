@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade | WhyNot</title>
+  <meta name="description" content="Política de Privacidade e Proteção de Dados do aplicativo WhyNot (br.com.wingene.whynot). Transparência total sobre permissões de notificações e uso de IA.">
+  
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Política de Privacidade - WhyNot">
+  <meta property="og:description" content="Saiba como o WhyNot protege suas informações e gerencia permissões de notificações no Android.">
+  <meta property="og:image" content="assets/icon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="icon" type="image/png" href="assets/icon.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #08080b;
+      --bg-surface: rgba(18, 17, 26, 0.85);
+      --bg-card: rgba(26, 25, 38, 0.7);
+      --border-color: rgba(255, 255, 255, 0.09);
+      --accent-gold: #f59e0b;
+      --accent-emerald: #10b981;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-subtle: #6b7280;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --max-width: 900px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.7;
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 90% 20%, rgba(245, 158, 11, 0.05) 0%, transparent 45%);
+    }
+
+    .container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(8, 8, 11, 0.88);
+      border-bottom: 1px solid var(--border-color);
+      padding: 18px 0;
+    }
+
+    .nav-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .brand-text {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent-gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Content Area */
+    .privacy-content {
+      padding: 60px 0 80px;
+    }
+
+    .doc-header {
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .doc-tag {
+      display: inline-block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: 2.7rem;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      margin-bottom: 16px;
+      line-height: 1.2;
+    }
+
+    .doc-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      font-size: 0.88rem;
+      color: var(--text-subtle);
+    }
+
+    .doc-meta span strong {
+      color: var(--text-muted);
+    }
+
+    /* Policy Sections */
+    .policy-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 32px;
+      margin-bottom: 28px;
+      backdrop-filter: blur(8px);
+    }
+
+    .policy-section h2 {
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .policy-section h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #e5e7eb;
+      margin: 22px 0 10px;
+    }
+
+    .policy-section p {
+      color: #d1d5db;
+      font-size: 0.98rem;
+      margin-bottom: 14px;
+    }
+
+    .policy-section p:last-child {
+      margin-bottom: 0;
+    }
+
+    .policy-section ul, .policy-section ol {
+      margin: 12px 0 16px 24px;
+      color: #d1d5db;
+      font-size: 0.96rem;
+    }
+
+    .policy-section li {
+      margin-bottom: 8px;
+    }
+
+    .highlight-box {
+      background: rgba(16, 185, 129, 0.08);
+      border-left: 4px solid var(--accent-emerald);
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 18px 0;
+      font-size: 0.93rem;
+      color: #a7f3d0;
+    }
+
+    .warning-box {
+      background: rgba(245, 158, 11, 0.08);
+      border-left: 4px solid var(--accent-gold);
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 18px 0;
+      font-size: 0.93rem;
+      color: #fde68a;
+    }
+
+    code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--accent-gold);
+      font-family: monospace;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      background: #040406;
+      padding: 40px 0;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--text-subtle);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <div class="container nav-content">
+      <a href="index.html" class="brand">
+        <img src="assets/icon.svg" alt="WhyNot Logo" class="brand-logo">
+        <span class="brand-text">WhyNot</span>
+      </a>
+
+      <a href="index.html" class="back-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>Voltar à Página Inicial</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Document Body -->
+  <main class="container privacy-content">
+    <div class="doc-header">
+      <span class="doc-tag">Conformidade Legal & Transparência</span>
+      <h1 class="doc-title">Política de Privacidade</h1>
+      <div class="doc-meta">
+        <span><strong>Aplicativo:</strong> WhyNot</span>
+        <span><strong>Identificador (Package):</strong> br.com.wingene.whynot</span>
+        <span><strong>Data de Vigência:</strong> 20 de Setembro de 2026</span>
+        <span><strong>Versão:</strong> 1.0.8</span>
+      </div>
+    </div>
+
+    <!-- Seção 1: Apresentação e Controlador -->
+    <section class="policy-section">
+      <h2>1. Identificação do Controlador e Escopo</h2>
+      <p>
+        Esta Política de Privacidade descreve de forma clara e transparente como o aplicativo móvel <strong>WhyNot</strong> ("Nós", "Nosso" ou "Aplicativo"), de titularidade de <strong>José Eugênio Gonçalves</strong> (Wingene Tecnologia), coleta, processa, utiliza e protege os dados dos usuários ("Você").
+      </p>
+      <p>
+        O WhyNot é uma ferramenta de produtividade projetada para realizar a <strong>triagem semântica inteligente, filtragem de ruído e alerta de alta prioridade de notificações</strong> no sistema operacional Android.
+      </p>
+      <div class="highlight-box">
+        <strong>Contato do Encarregado de Dados (DPO / Suporte):</strong><br>
+        Para qualquer solicitação, esclarecimento ou requisição de exclusão de dados pessoais, entre em contato através do e-mail: <code>eugeniog@gmail.com</code>.
+      </div>
+    </section>
+
+    <!-- Seção 2: Permissões Especiais do Android e Justificativa -->
+    <section class="policy-section">
+      <h2>2. Permissões Solicitadas e Justificativas de Uso</h2>
+      <p>
+        Para desempenhar sua função essencial de assistência de foco e segurança, o WhyNot solicita permissões específicas no Android. Essas permissões são operadas estritamente com o seu consentimento prévio:
+      </p>
+
+      <h3>A. Acesso a Notificações (<code>BIND_NOTIFICATION_LISTENER_SERVICE</code>)</h3>
+      <p>
+        <strong>Finalidade Exclusiva:</strong> Permite ao aplicativo ler o conteúdo das notificações ativas emitidas por outros aplicativos instalados no seu aparelho (como título, corpo da mensagem, nome do aplicativo remetente e carimbo de data/hora).
+      </p>
+      <p>
+        <strong>Como é utilizado:</strong> Essa leitura serve unicamente para que o motor de inteligência artificial ou motor heurístico analise a urgência da mensagem (ex: diferenciar uma mensagem de segurança com código 2FA de uma propaganda promocional) e gerar sumários executivos diários.
+      </p>
+
+      <h3>B. Exibição de Notificações (<code>POST_NOTIFICATIONS</code>)</h3>
+      <p>
+        Permite ao WhyNot emitir os <strong>Alertas de Prioridade Crítica</strong> (heads-up alerts) quando um evento de extrema urgência for detectado, bem como notificar sobre o status do monitoramento e os resumos agendados (Digest).
+      </p>
+
+      <h3>C. Serviço em Primeiro Plano (<code>FOREGROUND_SERVICE</code> e <code>SPECIAL_USE</code>)</h3>
+      <p>
+        Para garantir que o serviço de monitoramento não seja finalizado abruptamente pelo gerenciamento de bateria do Android, o aplicativo mantém um serviço em segundo plano com uma notificação informativa persistente na barra de status (subtipo declarado: <code>notification_monitoring_and_triage</code>).
+      </p>
+
+      <h3>D. Acesso à Política de Não Perturbe (<code>ACCESS_NOTIFICATION_POLICY</code>)</h3>
+      <p>
+        <strong>Recurso Opcional:</strong> Caso você decida ativar expressamente nas Configurações o recurso "Bypass de DND para Alertas Urgentes", o aplicativo poderá emitir som ou vibração diferenciados para alertas de segurança máxima (ex: alertas de fraude bancária ou emergências) mesmo quando o dispositivo estiver com o modo Não Perturbe ativado.
+      </p>
+
+      <h3>E. Isenção de Otimização de Bateria (<code>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</code>)</h3>
+      <p>
+        Garante a continuidade da análise em tempo real em dispositivos com personalizações agressivas de energia (como Samsung One UI, Xiaomi MIUI, etc.).
+      </p>
+    </section>
+
+    <!-- Seção 3: Tratamento de Dados e Inteligência Artificial -->
+    <section class="policy-section">
+      <h2>3. Processamento por Inteligência Artificial (Google Gemini)</h2>
+      <p>
+        O WhyNot oferece dois métodos de processamento para a triagem de notificações:
+      </p>
+
+      <h3>A. Modo Nuvem com Google Gemini 1.5 Flash</h3>
+      <p>
+        Quando conectado à internet e com a IA em nuvem ativada, os trechos textuais da notificação recebida (título e corpo) são transmitidos via conexão segura e criptografada (HTTPS / TLS 1.3) para as nossas <em>Cloud Functions</em> hospedadas no <strong>Google Cloud Platform / Firebase</strong> (projeto <code>whynot-ia</code>).
+      </p>
+      <ul>
+        <li>O modelo Google Gemini recebe o texto de forma isolada e stateless para retornar exclusivamente: categoria, pontuação de urgência (0 a 1) e uma frase de resumo executivo.</li>
+        <li><strong>Nenhuma notificação é utilizada para treinamento público de modelos de inteligência artificial</strong>.</li>
+        <li>As chaves de API do Google Gemini ficam blindadas no servidor em nuvem e nunca são expostas no código do aplicativo instalado no seu celular.</li>
+      </ul>
+
+      <h3>B. Modo Heurístico Local (100% Offline)</h3>
+      <p>
+        O usuário pode optar, a qualquer momento nas Configurações do WhyNot, por desativar o processamento em nuvem. Nesse modo, a triagem é executada exclusivamente no processador do seu aparelho por meio de regras heurísticas e expressões regulares locais, sem qualquer tráfego de dados para a internet.
+      </p>
+    </section>
+
+    <!-- Seção 4: Autenticação Google e Contas -->
+    <section class="policy-section">
+      <h2>4. Autenticação com Conta Google (Google Sign-In)</h2>
+      <p>
+        O aplicativo disponibiliza login seguro através do <strong>Google Sign-In</strong> e <strong>Firebase Authentication</strong>.
+      </p>
+      <ul>
+        <li><strong>Dados coletados no login:</strong> Nome de exibição, endereço de e-mail e identificador único de usuário (UID).</li>
+        <li><strong>Finalidade:</strong> Identificar a sessão ativa, sincronizar de forma segura preferências de configuração do usuário no Cloud Firestore e autenticar chamadas às funções de triagem na nuvem via tokens JWT criptografados.</li>
+        <li><strong>Senhas:</strong> O WhyNot <strong>não possui acesso nem armazena</strong> senhas da sua conta Google. Toda a autenticação é gerida diretamente pelos serviços do Google Play Services.</li>
+      </ul>
+    </section>
+
+    <!-- Seção 5: Não Comercialização de Dados -->
+    <section class="policy-section">
+      <h2>5. Não Comercialização e Não Compartilhamento de Dados</h2>
+      <div class="warning-box">
+        <strong>Compromisso Inegociável:</strong> O WhyNot <strong>NÃO</strong> vende, aluga, comercializa ou transfere seus dados pessoais, hábitos de navegação ou conteúdo de notificações para empresas de publicidade, corretores de dados (data brokers) ou quaisquer terceiros com fins lucrativos.
+      </div>
+      <p>
+        O compartilhamento de dados ocorre exclusivamente com os provedores de infraestrutura essenciais para o funcionamento do app contratados pelo desenvolvedor:
+      </p>
+      <ul>
+        <li><strong>Google Cloud Platform & Firebase:</strong> Para hospedagem de back-end, autenticação e computação em nuvem segura.</li>
+      </ul>
+    </section>
+
+    <!-- Seção 6: Retenção, Controle e Exclusão de Dados -->
+    <section class="policy-section">
+      <h2>6. Retenção, Limpeza e Exclusão de Dados</h2>
+      <p>
+        Você tem controle total sobre os seus dados no WhyNot:
+      </p>
+      <ul>
+        <li><strong>Histórico no Dispositivo:</strong> O histórico de notificações triadas é armazenado no banco de dados local do seu smartphone. Você pode limpá-lo a qualquer momento tocando em <em>"Limpar Histórico"</em> na tela de Configurações do app.</li>
+        <li><strong>Listas de Whitelist / Exclusão:</strong> Você pode configurar quais aplicativos nunca devem ter suas notificações analisadas ou armazenadas.</li>
+        <li><strong>Exclusão Total de Conta e Dados:</strong> Para revogar o acesso do Google Sign-In e solicitar a exclusão de qualquer dado eventualmente salvo em nossos servidores Firebase, você pode:
+          <ol style="margin-left: 20px; margin-top: 8px;">
+            <li>Clicar em <em>"Sign Out"</em> nas configurações do aplicativo.</li>
+            <li>Enviar um e-mail com o assunto <em>"Exclusão de Dados - WhyNot"</em> para <code>eugeniog@gmail.com</code> a partir do endereço de e-mail cadastrado. Todos os registros associados ao seu UID serão eliminados permanentemente no prazo de até 5 (cinco) dias úteis.</li>
+          </ol>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Seção 7: Direitos do Titular (LGPD / GDPR) -->
+    <section class="policy-section">
+      <h2>7. Seus Direitos (LGPD & GDPR)</h2>
+      <p>
+        Em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - LGPD) e normas internacionais como o GDPR, garantimos a você os seguintes direitos:
+      </p>
+      <ul>
+        <li>Confirmação da existência de tratamento dos seus dados.</li>
+        <li>Acesso aos dados coletados e facilidade para sua correção ou atualização.</li>
+        <li>Anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade.</li>
+        <li>Revogação imediata do consentimento através da desativação das permissões nas configurações do Android ou desinstalação do aplicativo.</li>
+      </ul>
+    </section>
+
+    <!-- Seção 8: Segurança da Informação -->
+    <section class="policy-section">
+      <h2>8. Segurança da Informação</h2>
+      <p>
+        Adotamos medidas técnicas e administrativas aptas a proteger seus dados contra acessos não autorizados e situações acidentais ou ilícitas de destruição, perda ou alteração:
+      </p>
+      <ul>
+        <li>Criptografia de ponta a ponta em trânsito com TLS 1.3 / HTTPS.</li>
+        <li>Proteção das chaves mestras e credenciais sensíveis via Google Secret Manager.</li>
+        <li>Regras de segurança rigorosas no Cloud Firestore, impedindo que um usuário acesse qualquer registro que não seja de sua própria titularidade.</li>
+      </ul>
+    </section>
+
+    <!-- Seção 9: Atualizações desta Política -->
+    <section class="policy-section">
+      <h2>9. Alterações e Atualizações</h2>
+      <p>
+        Esta Política de Privacidade poderá ser atualizada periodicamente para refletir evoluções funcionais no aplicativo ou alterações na legislação aplicável. Qualquer alteração substancial será informada mediante atualização da data de vigência neste documento e, quando cabível, por meio de aviso no próprio aplicativo.
+      </p>
+      <p style="margin-top: 14px;">
+        Recomendamos a leitura periódica desta página para manter-se informado sobre as nossas práticas de privacidade.
+      </p>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 WhyNot • Wingene Tecnologia. Desenvolvido por José Eugênio Gonçalves.</p>
+      <p style="margin-top: 6px;">Contato: <a href="mailto:eugeniog@gmail.com" style="color: var(--accent-gold); text-decoration: none;">eugeniog@gmail.com</a> | Pacote: <code>br.com.wingene.whynot</code></p>
+    </div>
+  </footer>
+
+</body>
+</html>
