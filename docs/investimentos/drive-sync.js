@@ -4,18 +4,70 @@
  * Inclui renovação automática e transparente de token sem desconectar o usuário.
  */
 
+// Constantes e chaves de storage isoladas para o Winvest
+const WINVEST_DEFAULT_CLIENT_ID = '568890387136-7633o3djo84878srldube4rca4hg1r3h.apps.googleusercontent.com';
+const WINGENE_VIDA_CLIENT_ID = '97862926817-cfc6qmu5fm8e3pqtou7ra7c7pl394mb6.apps.googleusercontent.com';
+
+const WINVEST_STORAGE_KEYS = {
+  CLIENT_ID: 'winvest_drive_client_id',
+  ACCESS_TOKEN: 'winvest_drive_access_token',
+  TOKEN_EXPIRES_AT: 'winvest_drive_token_expires_at',
+  USER: 'winvest_drive_user',
+  FILE_ID: 'winvest_drive_file_id'
+};
+
+// Saneamento e migração de chaves antigas compartilhadas
+(function sanitizeWinvestStorage() {
+  try {
+    const legacyClientId = localStorage.getItem('wingene_drive_client_id');
+    const currentClientId = localStorage.getItem(WINVEST_STORAGE_KEYS.CLIENT_ID);
+
+    // Se o Winvest foi contaminado pelo client ID do Wingene Vida, limpa
+    if (currentClientId === WINGENE_VIDA_CLIENT_ID) {
+      localStorage.removeItem(WINVEST_STORAGE_KEYS.CLIENT_ID);
+    }
+    if (legacyClientId === WINGENE_VIDA_CLIENT_ID) {
+      localStorage.removeItem('wingene_drive_client_id');
+    }
+
+    // Se não há client_id específico do Winvest salvo, mas há um legado válido (e que não seja do Wingene Vida)
+    if (!localStorage.getItem(WINVEST_STORAGE_KEYS.CLIENT_ID) && legacyClientId && legacyClientId !== WINGENE_VIDA_CLIENT_ID) {
+      localStorage.setItem(WINVEST_STORAGE_KEYS.CLIENT_ID, legacyClientId);
+    }
+
+    // Migração de tokens legados apenas se não vierem de login do Wingene Vida
+    const isContaminatedByVida = legacyClientId === WINGENE_VIDA_CLIENT_ID;
+    if (!localStorage.getItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN) && !isContaminatedByVida) {
+      const legToken = localStorage.getItem('wingene_drive_access_token');
+      const legExp = localStorage.getItem('wingene_drive_token_expires_at');
+      const legUser = localStorage.getItem('wingene_drive_user');
+      const legFileId = localStorage.getItem('wingene_drive_file_id');
+      if (legToken) localStorage.setItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN, legToken);
+      if (legExp) localStorage.setItem(WINVEST_STORAGE_KEYS.TOKEN_EXPIRES_AT, legExp);
+      if (legUser) localStorage.setItem(WINVEST_STORAGE_KEYS.USER, legUser);
+      if (legFileId) localStorage.setItem(WINVEST_STORAGE_KEYS.FILE_ID, legFileId);
+    }
+  } catch (e) {
+    console.warn('Erro na higienização de storage do Winvest:', e);
+  }
+})();
+
 const DRIVE_CONFIG = {
-  // CLIENT_ID configurável via UI ou constante
-  CLIENT_ID: localStorage.getItem('wingene_drive_client_id') || '568890387136-7633o3djo84878srldube4rca4hg1r3h.apps.googleusercontent.com',
+  // CLIENT_ID isolado do Winvest
+  CLIENT_ID: (function() {
+    const saved = localStorage.getItem(WINVEST_STORAGE_KEYS.CLIENT_ID);
+    if (saved && saved !== WINGENE_VIDA_CLIENT_ID) return saved;
+    return WINVEST_DEFAULT_CLIENT_ID;
+  })(),
   SCOPES: 'openid profile email https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
   FILE_NAME: 'wingene_investimentos_data.json'
 };
 
 let tokenClient = null;
-let accessToken = localStorage.getItem('wingene_drive_access_token') || null;
-let tokenExpiresAt = parseInt(localStorage.getItem('wingene_drive_token_expires_at') || '0', 10);
-let googleUser = JSON.parse(localStorage.getItem('wingene_drive_user') || 'null');
-let driveFileId = localStorage.getItem('wingene_drive_file_id') || null;
+let accessToken = localStorage.getItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN) || null;
+let tokenExpiresAt = parseInt(localStorage.getItem(WINVEST_STORAGE_KEYS.TOKEN_EXPIRES_AT) || '0', 10);
+let googleUser = JSON.parse(localStorage.getItem(WINVEST_STORAGE_KEYS.USER) || 'null');
+let driveFileId = localStorage.getItem(WINVEST_STORAGE_KEYS.FILE_ID) || null;
 let refreshPromise = null;
 let isSilentRefreshActive = false;
 let silentRefreshResolvers = [];
@@ -141,9 +193,9 @@ function isDriveTokenValid() {
  * Inicializa o token client do Google Identity Services
  */
 function initGoogleAuth(clientId = null) {
-  if (clientId) {
+  if (clientId && clientId !== WINGENE_VIDA_CLIENT_ID) {
     DRIVE_CONFIG.CLIENT_ID = clientId;
-    localStorage.setItem('wingene_drive_client_id', clientId);
+    localStorage.setItem(WINVEST_STORAGE_KEYS.CLIENT_ID, clientId);
   }
 
   renderUserProfileUI();
@@ -183,8 +235,8 @@ function initGoogleAuth(clientId = null) {
       const expiresIn = parseInt(tokenResponse.expires_in || '3600', 10);
       tokenExpiresAt = Date.now() + Math.max(expiresIn - 300, 60) * 1000;
 
-      localStorage.setItem('wingene_drive_access_token', accessToken);
-      localStorage.setItem('wingene_drive_token_expires_at', tokenExpiresAt.toString());
+      localStorage.setItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      localStorage.setItem(WINVEST_STORAGE_KEYS.TOKEN_EXPIRES_AT, tokenExpiresAt.toString());
 
       // Notificar quem estava esperando o token renovar
       const resolvers = silentRefreshResolvers.splice(0, silentRefreshResolvers.length);
@@ -300,13 +352,13 @@ async function fetchGoogleUserInfo(isRetry = false) {
     });
     if (res.ok) {
       googleUser = await res.json();
-      localStorage.setItem('wingene_drive_user', JSON.stringify(googleUser));
+      localStorage.setItem(WINVEST_STORAGE_KEYS.USER, JSON.stringify(googleUser));
       renderUserProfileUI();
     } else if (res.status === 401 && !isRetry) {
       await handleGoogleAuthError(401, () => fetchGoogleUserInfo(true));
     } else {
       googleUser = null;
-      localStorage.removeItem('wingene_drive_user');
+      localStorage.removeItem(WINVEST_STORAGE_KEYS.USER);
       renderUserProfileUI();
     }
   } catch (err) {
@@ -342,7 +394,7 @@ async function findDriveFile(isRetry = false) {
       const data = await res.json();
       if (data.files && data.files.length > 0) {
         driveFileId = data.files[0].id;
-        localStorage.setItem('wingene_drive_file_id', driveFileId);
+        localStorage.setItem(WINVEST_STORAGE_KEYS.FILE_ID, driveFileId);
         return driveFileId;
       }
     } else if (res.status === 401 && !isRetry) {
@@ -465,7 +517,7 @@ async function saveToDrive(appData, isRetry = false) {
       if (res.ok) {
         const createdFile = await res.json();
         driveFileId = createdFile.id;
-        localStorage.setItem('wingene_drive_file_id', driveFileId);
+        localStorage.setItem(WINVEST_STORAGE_KEYS.FILE_ID, driveFileId);
         updateDriveUIStatus('Salvo no Google Drive!', false, true);
         return true;
       } else if (res.status === 401 && !isRetry) {
@@ -502,8 +554,8 @@ async function handleGoogleAuthError(status, retryFn = null) {
 
     accessToken = null;
     tokenExpiresAt = 0;
-    localStorage.removeItem('wingene_drive_access_token');
-    localStorage.removeItem('wingene_drive_token_expires_at');
+    localStorage.removeItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(WINVEST_STORAGE_KEYS.TOKEN_EXPIRES_AT);
     renderUserProfileUI();
     updateDriveUIStatus('Sessão expirada (Clique para reconectar)', true);
     showToast('Sua sessão do Google Drive expirou. Clique em "Conectar Drive" para renovar o acesso.', 'warning');
@@ -618,6 +670,11 @@ function logoutGoogleDrive() {
   googleUser = null;
   driveFileId = null;
   tokenExpiresAt = 0;
+  localStorage.removeItem(WINVEST_STORAGE_KEYS.ACCESS_TOKEN);
+  localStorage.removeItem(WINVEST_STORAGE_KEYS.TOKEN_EXPIRES_AT);
+  localStorage.removeItem(WINVEST_STORAGE_KEYS.USER);
+  localStorage.removeItem(WINVEST_STORAGE_KEYS.FILE_ID);
+  // Limpeza de chaves legadas para higiene
   localStorage.removeItem('wingene_drive_access_token');
   localStorage.removeItem('wingene_drive_token_expires_at');
   localStorage.removeItem('wingene_drive_user');

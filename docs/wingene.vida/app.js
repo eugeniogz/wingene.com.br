@@ -276,10 +276,26 @@
 
   // ─── Sincronização com Google Drive ───────────────────────────────────────────
 
+  const VIDA_STORAGE_KEYS = (window.GoogleDriveService && window.GoogleDriveService.STORAGE_KEYS) || {
+    CLIENT_ID: 'wingene_vida_drive_client_id',
+    TOKEN: 'wingene_vida_drive_token',
+    TOKEN_EXP: 'wingene_vida_drive_token_exp',
+    EMAIL: 'wingene_vida_drive_email',
+    LAST_EMAIL: 'wingene_vida_last_drive_email',
+    CUSTOM_PASS: 'wingene_vida_drive_custom_pass',
+    LAST_SYNC: 'wingene_vida_last_drive_sync',
+    LAST_REMOTE_CHANGE: 'wingene_vida_last_remote_change',
+    passKey: (email) => `wingene_vida_drive_pass_${email ? email.trim().toLowerCase() : ''}`
+  };
+
+  function getVidaItem(key, legacyKey) {
+    return localStorage.getItem(key) || (legacyKey ? localStorage.getItem(legacyKey) : null);
+  }
+
   function updateDriveStatusUI() {
     const connected = GoogleDriveService.isConnected();
     const linked = GoogleDriveService.isLinked ? GoogleDriveService.isLinked() : false;
-    const userEmail = GoogleDriveService.userEmail || localStorage.getItem('wingene_drive_email');
+    const userEmail = GoogleDriveService.userEmail || getVidaItem(VIDA_STORAGE_KEYS.EMAIL, 'wingene_drive_email');
     if (connected || linked) {
       elements.btnDriveSync.classList.add('connected');
       elements.btnDriveSync.title = userEmail
@@ -304,7 +320,7 @@
       elements.btnSyncNowModal.disabled = true;
     }
 
-    const lastSync = localStorage.getItem('wingene_last_drive_sync');
+    const lastSync = getVidaItem(VIDA_STORAGE_KEYS.LAST_SYNC, 'wingene_last_drive_sync');
     if (lastSync) {
       elements.driveLastSyncTime.textContent = `Última sincronização: ${new Date(lastSync).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
     } else {
@@ -339,7 +355,7 @@
       updateDriveStatusUI();
 
       const currentEmail = GoogleDriveService.userEmail;
-      const lastDriveEmail = localStorage.getItem('wingene_last_drive_email');
+      const lastDriveEmail = getVidaItem(VIDA_STORAGE_KEYS.LAST_EMAIL, 'wingene_last_drive_email');
 
       // Se trocou de conta Google, limpa os dados locais imediatamente para não misturar diários
       if (currentEmail && lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) {
@@ -354,6 +370,8 @@
           propositos: []
         };
         await DBService.persistVault(state.vaultData, state.currentPassword);
+        localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+        localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
         localStorage.removeItem('wingene_last_remote_change');
         localStorage.removeItem('wingene_last_drive_sync');
         renderEntries();
@@ -362,21 +380,22 @@
         forceFullSync = true;
       }
       if (currentEmail) {
-        localStorage.setItem('wingene_last_drive_email', currentEmail);
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_EMAIL, currentEmail);
       }
 
       // 2. Resolve a senha da conta Google atual
       const emailKey = currentEmail ? currentEmail.trim().toLowerCase() : null;
-      let drivePassword = emailKey ? localStorage.getItem(`wingene_drive_pass_${emailKey}`) : null;
+      let drivePassword = emailKey ? getVidaItem(VIDA_STORAGE_KEYS.passKey(emailKey), `wingene_drive_pass_${emailKey}`) : null;
 
       if (!drivePassword) {
         drivePassword =
+          sessionStorage.getItem(VIDA_STORAGE_KEYS.CUSTOM_PASS) ||
           sessionStorage.getItem('wingene_drive_custom_pass') ||
-          localStorage.getItem('wingene_drive_custom_pass') ||
+          getVidaItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, 'wingene_drive_custom_pass') ||
           state.currentPassword;
       }
 
-      const lastRemoteChangeStr = localStorage.getItem('wingene_last_remote_change');
+      const lastRemoteChangeStr = getVidaItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, 'wingene_last_remote_change');
       const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
       const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
 
@@ -438,7 +457,7 @@
         await DBService.persistVault(state.vaultData, state.currentPassword);
 
         const newModTime = (uploadResult && uploadResult.modifiedTime) || new Date().toISOString();
-        localStorage.setItem('wingene_last_remote_change', newModTime);
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, newModTime);
 
         if (mergedCount > 0) {
           showToast(`✅ Sincronizado! ${mergedCount} novos registros mesclados.`);
@@ -447,7 +466,7 @@
         }
       } else if (remoteChanged) {
         if (remoteRes.modifiedTime) {
-          localStorage.setItem('wingene_last_remote_change', remoteRes.modifiedTime);
+          localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, remoteRes.modifiedTime);
         }
         showToast(`✅ ${remoteRes.records.length} registros atualizados da nuvem!`);
       } else if (remoteRes.unchanged && !localHasUnsynced) {
@@ -469,7 +488,7 @@
       }
 
       const now = new Date();
-      localStorage.setItem('wingene_last_drive_sync', now.toISOString());
+      localStorage.setItem(VIDA_STORAGE_KEYS.LAST_SYNC, now.toISOString());
       updateDriveStatusUI();
     } catch (err) {
       console.error('Erro na sincronização com o Drive:', err);
@@ -1021,10 +1040,10 @@
 
     const currentEmail = GoogleDriveService.userEmail;
     if (currentEmail) {
-      localStorage.setItem(`wingene_drive_pass_${currentEmail.trim().toLowerCase()}`, drivePass);
+      localStorage.setItem(VIDA_STORAGE_KEYS.passKey(currentEmail), drivePass);
     }
-    sessionStorage.setItem('wingene_drive_custom_pass', drivePass);
-    localStorage.setItem('wingene_drive_custom_pass', drivePass);
+    sessionStorage.setItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, drivePass);
+    localStorage.setItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, drivePass);
     showToast('Senha do Drive configurada!');
     syncWithGoogleDrive(false, true);
   }
@@ -1037,7 +1056,7 @@
       elements.settingsModal.classList.add('hidden');
     }
 
-    const email = accountEmail || GoogleDriveService.userEmail || localStorage.getItem('wingene_last_drive_email');
+    const email = accountEmail || GoogleDriveService.userEmail || getVidaItem(VIDA_STORAGE_KEYS.LAST_EMAIL, 'wingene_last_drive_email');
     if (elements.drivePasswordAccountNotice && elements.drivePasswordAccountEmail) {
       if (email) {
         elements.drivePasswordAccountEmail.textContent = email;
@@ -1135,6 +1154,8 @@
     try {
       showToast('Limpando arquivos da pasta privada do Google Drive...');
       await GoogleDriveService.clearAppDataFolder();
+      localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+      localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
       localStorage.removeItem('wingene_last_remote_change');
       localStorage.removeItem('wingene_last_drive_sync');
       if (elements.modalDrivePasswordError) {
@@ -1172,10 +1193,10 @@
     try {
       const currentEmail = GoogleDriveService.userEmail;
       if (currentEmail) {
-        localStorage.setItem(`wingene_drive_pass_${currentEmail.trim().toLowerCase()}`, pass);
+        localStorage.setItem(VIDA_STORAGE_KEYS.passKey(currentEmail), pass);
       }
-      sessionStorage.setItem('wingene_drive_custom_pass', pass);
-      localStorage.setItem('wingene_drive_custom_pass', pass);
+      sessionStorage.setItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, pass);
+      localStorage.setItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, pass);
       if (elements.driveEncryptionPassword) {
         elements.driveEncryptionPassword.value = pass;
       }
@@ -1208,7 +1229,9 @@
     try {
       await DBService.resetVault();
       CryptoService.clearSavedPassword();
+      localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
       localStorage.removeItem('wingene_last_drive_sync');
+      sessionStorage.removeItem(VIDA_STORAGE_KEYS.CUSTOM_PASS);
       sessionStorage.removeItem('wingene_drive_custom_pass');
       alert('Cofre local redefinido com sucesso.');
       location.reload();
@@ -1252,6 +1275,7 @@
 
     elements.btnDisconnectDriveModal.addEventListener('click', () => {
       GoogleDriveService.signOut();
+      sessionStorage.removeItem(VIDA_STORAGE_KEYS.CUSTOM_PASS);
       sessionStorage.removeItem('wingene_drive_custom_pass');
       updateDriveStatusUI();
       showToast('Desconectado do Google Drive.');
@@ -1326,7 +1350,9 @@
     // Configurações & Backup
     elements.btnSettings.addEventListener('click', () => {
       updateDriveStatusUI();
-      const customDrivePass = sessionStorage.getItem('wingene_drive_custom_pass') || localStorage.getItem('wingene_drive_custom_pass');
+      const customDrivePass = sessionStorage.getItem(VIDA_STORAGE_KEYS.CUSTOM_PASS) ||
+        sessionStorage.getItem('wingene_drive_custom_pass') ||
+        getVidaItem(VIDA_STORAGE_KEYS.CUSTOM_PASS, 'wingene_drive_custom_pass');
       if (customDrivePass && elements.driveEncryptionPassword) {
         elements.driveEncryptionPassword.value = customDrivePass;
       }
@@ -1426,7 +1452,7 @@
         showToast(`Conectado à conta: ${newEmail}`);
 
         // Se trocou de conta, limpa os dados locais imediatamente para não misturar diários
-        const lastDriveEmail = localStorage.getItem('wingene_last_drive_email');
+        const lastDriveEmail = getVidaItem(VIDA_STORAGE_KEYS.LAST_EMAIL, 'wingene_last_drive_email');
         if (lastDriveEmail && lastDriveEmail.trim().toLowerCase() !== newEmail.trim().toLowerCase()) {
           state.vaultData = {
             registros: [],
@@ -1435,11 +1461,13 @@
             propositos: []
           };
           await DBService.persistVault(state.vaultData, state.currentPassword);
+          localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+          localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
           localStorage.removeItem('wingene_last_remote_change');
           localStorage.removeItem('wingene_last_drive_sync');
           renderEntries();
         }
-        localStorage.setItem('wingene_last_drive_email', newEmail);
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_EMAIL, newEmail);
 
         if (elements.drivePasswordAccountEmail) {
           elements.drivePasswordAccountEmail.textContent = newEmail;

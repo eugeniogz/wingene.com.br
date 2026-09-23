@@ -11,6 +11,18 @@ const GoogleDriveService = {
   TIMESTAMP_FILENAME: 'sync_timestamp.txt',
   VALIDATION_FILENAME: 'validar.hash',
 
+  STORAGE_KEYS: {
+    CLIENT_ID: 'wingene_vida_drive_client_id',
+    TOKEN: 'wingene_vida_drive_token',
+    TOKEN_EXP: 'wingene_vida_drive_token_exp',
+    EMAIL: 'wingene_vida_drive_email',
+    LAST_EMAIL: 'wingene_vida_last_drive_email',
+    CUSTOM_PASS: 'wingene_vida_drive_custom_pass',
+    LAST_SYNC: 'wingene_vida_last_drive_sync',
+    LAST_REMOTE_CHANGE: 'wingene_vida_last_remote_change',
+    passKey: (email) => `wingene_vida_drive_pass_${email ? email.trim().toLowerCase() : ''}`
+  },
+
   tokenClient: null,
   accessToken: null,
   tokenExpiresAt: 0,
@@ -18,23 +30,41 @@ const GoogleDriveService = {
 
   // Verifica se o usuário possui conta do Drive previamente vinculada
   isLinked() {
-    return !!(this.userEmail || localStorage.getItem('wingene_drive_email'));
+    return !!(this.userEmail || localStorage.getItem(this.STORAGE_KEYS.EMAIL) || localStorage.getItem('wingene_drive_email'));
   },
 
   // Inicializa o cliente GIS (Google Identity Services)
   init() {
     return new Promise((resolve) => {
-      const savedClientId = localStorage.getItem('wingene_drive_client_id');
-      if (savedClientId !== this.CLIENT_ID) {
-        localStorage.removeItem('wingene_drive_token');
-        localStorage.removeItem('wingene_drive_token_exp');
-        localStorage.removeItem('wingene_drive_email');
-        localStorage.setItem('wingene_drive_client_id', this.CLIENT_ID);
+      // Limpeza de chave legada compartilhada para evitar colisão com o Winvest
+      try {
+        const legacyAmbiguousClientId = localStorage.getItem('wingene_drive_client_id');
+        if (legacyAmbiguousClientId) {
+          localStorage.removeItem('wingene_drive_client_id');
+        }
+      } catch (_) {}
+
+      // Migração de chaves legadas para o namespace isolado se ainda não existirem
+      if (!localStorage.getItem(this.STORAGE_KEYS.TOKEN)) {
+        const legToken = localStorage.getItem('wingene_drive_token');
+        const legExp = localStorage.getItem('wingene_drive_token_exp');
+        const legEmail = localStorage.getItem('wingene_drive_email');
+        if (legToken) localStorage.setItem(this.STORAGE_KEYS.TOKEN, legToken);
+        if (legExp) localStorage.setItem(this.STORAGE_KEYS.TOKEN_EXP, legExp);
+        if (legEmail) localStorage.setItem(this.STORAGE_KEYS.EMAIL, legEmail);
       }
 
-      const savedToken = localStorage.getItem('wingene_drive_token');
-      const savedExp = localStorage.getItem('wingene_drive_token_exp');
-      const savedEmail = localStorage.getItem('wingene_drive_email');
+      const savedClientId = localStorage.getItem(this.STORAGE_KEYS.CLIENT_ID);
+      if (savedClientId !== this.CLIENT_ID) {
+        localStorage.removeItem(this.STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(this.STORAGE_KEYS.TOKEN_EXP);
+        localStorage.removeItem(this.STORAGE_KEYS.EMAIL);
+        localStorage.setItem(this.STORAGE_KEYS.CLIENT_ID, this.CLIENT_ID);
+      }
+
+      const savedToken = localStorage.getItem(this.STORAGE_KEYS.TOKEN) || localStorage.getItem('wingene_drive_token');
+      const savedExp = localStorage.getItem(this.STORAGE_KEYS.TOKEN_EXP) || localStorage.getItem('wingene_drive_token_exp');
+      const savedEmail = localStorage.getItem(this.STORAGE_KEYS.EMAIL) || localStorage.getItem('wingene_drive_email');
 
       if (savedToken && savedExp && Number(savedExp) > Date.now()) {
         this.accessToken = savedToken;
@@ -55,8 +85,8 @@ const GoogleDriveService = {
                 if (tokenResponse && tokenResponse.access_token) {
                   this.accessToken = tokenResponse.access_token;
                   this.tokenExpiresAt = Date.now() + (Number(tokenResponse.expires_in || 3600) - 60) * 1000;
-                  localStorage.setItem('wingene_drive_token', this.accessToken);
-                  localStorage.setItem('wingene_drive_token_exp', String(this.tokenExpiresAt));
+                  localStorage.setItem(this.STORAGE_KEYS.TOKEN, this.accessToken);
+                  localStorage.setItem(this.STORAGE_KEYS.TOKEN_EXP, String(this.tokenExpiresAt));
 
                   // Busca e-mail do usuário
                   await this.fetchUserEmail();
@@ -97,7 +127,7 @@ const GoogleDriveService = {
         const data = await res.json();
         this.userEmail = data.email || null;
         if (this.userEmail) {
-          localStorage.setItem('wingene_drive_email', this.userEmail);
+          localStorage.setItem(this.STORAGE_KEYS.EMAIL, this.userEmail);
         }
         return this.userEmail;
       }
@@ -140,7 +170,7 @@ const GoogleDriveService = {
       const promptOption = (options.forceSelect || this.needsAccountSelect) ? 'select_account' : '';
       this.needsAccountSelect = false;
 
-      const emailHint = this.userEmail || localStorage.getItem('wingene_drive_email') || undefined;
+      const emailHint = this.userEmail || localStorage.getItem(this.STORAGE_KEYS.EMAIL) || localStorage.getItem('wingene_drive_email') || undefined;
       const requestConfig = { prompt: promptOption };
       if (promptOption !== 'select_account' && emailHint) {
         requestConfig.hint = emailHint;
@@ -159,6 +189,16 @@ const GoogleDriveService = {
     this.tokenExpiresAt = 0;
     this.userEmail = null;
     this.needsAccountSelect = true;
+    localStorage.removeItem(this.STORAGE_KEYS.TOKEN);
+    localStorage.removeItem(this.STORAGE_KEYS.TOKEN_EXP);
+    localStorage.removeItem(this.STORAGE_KEYS.EMAIL);
+    localStorage.removeItem(this.STORAGE_KEYS.LAST_EMAIL);
+    localStorage.removeItem(this.STORAGE_KEYS.CUSTOM_PASS);
+    sessionStorage.removeItem(this.STORAGE_KEYS.TOKEN);
+    sessionStorage.removeItem(this.STORAGE_KEYS.TOKEN_EXP);
+    sessionStorage.removeItem(this.STORAGE_KEYS.EMAIL);
+    sessionStorage.removeItem(this.STORAGE_KEYS.CUSTOM_PASS);
+    // Limpeza de chaves legadas
     localStorage.removeItem('wingene_drive_token');
     localStorage.removeItem('wingene_drive_token_exp');
     localStorage.removeItem('wingene_drive_email');
