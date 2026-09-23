@@ -920,4 +920,75 @@ select:focus {
   }
 }
 
+/* ─── Propósitos no PWA (Seletor & Badges) ────────────────────────────────── */
+
+.label-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.btn-text-action {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.btn-text-action:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
+}
+
+.proposito-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proposito-badge svg {
+  flex-shrink: 0;
+}
+
+.proposito-badge.pilar-v {
+  background: var(--pilar-v-bg);
+  color: var(--pilar-v);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.proposito-badge.pilar-i {
+  background: var(--pilar-i-bg);
+  color: var(--pilar-i);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.proposito-badge.pilar-d {
+  background: var(--pilar-d-bg);
+  color: var(--pilar-d);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.proposito-badge.pilar-a {
+  background: var(--pilar-a-bg);
+  color: var(--pilar-a);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+
 

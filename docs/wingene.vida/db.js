@@ -73,6 +73,9 @@ const DBService = {
     if (!decrypted.registros) {
       decrypted.registros = Array.isArray(decrypted) ? decrypted : [];
     }
+    if (!Array.isArray(decrypted.propositos)) {
+      decrypted.propositos = [];
+    }
     return decrypted;
   },
 
@@ -125,23 +128,30 @@ const DBService = {
       sincronizado: raw.sincronizado || 0,
       deletado: raw.deletado || 0,
       insightId: raw.insightId || null,
-      propositoUuid: raw.propositoUuid || null,
+      propositoUuid: raw.propositoUuid || raw.proposito_uuid || null,
+      proposito_uuid: raw.proposito_uuid || raw.propositoUuid || null,
       propositoAvaliado: raw.propositoAvaliado || 0
     };
   },
 
-  // Importa registros de um backup em JSON
+  // Importa registros e propósitos de um backup em JSON
   importBackupData(jsonContent) {
     let list = [];
+    let propositos = [];
     if (Array.isArray(jsonContent)) {
       list = jsonContent;
     } else if (jsonContent && jsonContent.registros && Array.isArray(jsonContent.registros)) {
       list = jsonContent.registros;
+      if (Array.isArray(jsonContent.propositos)) {
+        propositos = jsonContent.propositos;
+      }
     } else {
       throw new Error('Formato de backup inválido. Esperava uma lista de registros.');
     }
 
-    return list.map((item) => this.normalizeRecord(item));
+    const records = list.map((item) => this.normalizeRecord(item));
+    records.propositos = propositos;
+    return records;
   }
 };
 

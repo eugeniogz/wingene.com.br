@@ -206,6 +206,16 @@
           <input type="text" id="entryCategoria" placeholder="Ex: V0, I1, D2, A1">
         </div>
 
+        <div class="form-group">
+          <div class="label-with-action">
+            <label for="entryProposito">Propósito Vinculado (opcional)</label>
+            <button type="button" class="btn-text-action" id="btnOpenNewPropositoModal" title="Cadastrar novo propósito">+ Novo Propósito</button>
+          </div>
+          <select id="entryProposito">
+            <option value="">(Nenhum propósito selecionado)</option>
+          </select>
+        </div>
+
         <div id="modalAiPreviewBox" class="ai-insight-box hidden">
           <div class="ai-header">
             <span class="ai-badge">Insight da IA (Preservado)</span>
@@ -219,6 +229,62 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btnCancelEntryModal">Cancelar</button>
         <button type="button" class="btn btn-primary" id="btnSaveEntry">Salvar Entrada</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL DE CADASTRO RÁPIDO DE PROPÓSITO
+       ======================================================================== -->
+  <div id="quickPropositoModal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          Novo Propósito
+        </h3>
+        <button type="button" class="btn-icon" id="btnCloseQuickPropositoModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="quickPropositoForm" class="modal-body" onsubmit="return false;">
+        <div class="form-group">
+          <label for="newPropositoTitulo">Título do Propósito</label>
+          <input type="text" id="newPropositoTitulo" placeholder="Ex: Praticar presença com a família" required>
+        </div>
+
+        <div class="form-group">
+          <label>Eixo Principal (Método VIDA)</label>
+          <div class="pilar-selector" id="newPropositoEixoSelector">
+            <div class="pilar-option opt-v selected" data-eixo="V">
+              <span class="letter">V</span>
+              <span class="name">Valores</span>
+            </div>
+            <div class="pilar-option opt-i" data-eixo="I">
+              <span class="letter">I</span>
+              <span class="name">mperfeições</span>
+            </div>
+            <div class="pilar-option opt-d" data-eixo="D">
+              <span class="letter">D</span>
+              <span class="name">Decisões</span>
+            </div>
+            <div class="pilar-option opt-a" data-eixo="A">
+              <span class="letter">A</span>
+              <span class="name">Atenção</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="newPropositoDescricao">Descrição ou Intenção (opcional)</label>
+          <textarea id="newPropositoDescricao" rows="2" placeholder="Qual o impacto e significado deste propósito?"></textarea>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelQuickProposito">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveQuickProposito">Criar Propósito</button>
       </div>
     </div>
   </div>

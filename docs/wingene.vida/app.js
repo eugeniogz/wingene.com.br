@@ -58,12 +58,22 @@
     entryImpactoDisplay: document.getElementById('entryImpactoDisplay'),
     entryTags: document.getElementById('entryTags'),
     entryCategoria: document.getElementById('entryCategoria'),
+    entryProposito: document.getElementById('entryProposito'),
+    btnOpenNewPropositoModal: document.getElementById('btnOpenNewPropositoModal'),
     modalAiPreviewBox: document.getElementById('modalAiPreviewBox'),
     modalAiPreviewComment: document.getElementById('modalAiPreviewComment'),
     modalAiPreviewKeyword: document.getElementById('modalAiPreviewKeyword'),
     btnCancelEntryModal: document.getElementById('btnCancelEntryModal'),
     btnCloseEntryModal: document.getElementById('btnCloseEntryModal'),
     btnSaveEntry: document.getElementById('btnSaveEntry'),
+
+    quickPropositoModal: document.getElementById('quickPropositoModal'),
+    btnCloseQuickPropositoModal: document.getElementById('btnCloseQuickPropositoModal'),
+    btnCancelQuickProposito: document.getElementById('btnCancelQuickProposito'),
+    btnSaveQuickProposito: document.getElementById('btnSaveQuickProposito'),
+    newPropositoTitulo: document.getElementById('newPropositoTitulo'),
+    newPropositoEixoSelector: document.getElementById('newPropositoEixoSelector'),
+    newPropositoDescricao: document.getElementById('newPropositoDescricao'),
 
     deleteModal: document.getElementById('deleteModal'),
     btnCancelDelete: document.getElementById('btnCancelDelete'),
@@ -475,6 +485,41 @@
         }
       }
 
+      // Sincronização de Propósitos com a Nuvem (propositos_backup.json)
+      try {
+        const remoteProps = await GoogleDriveService.downloadPropositos(drivePassword);
+        let propChanged = false;
+        if (remoteProps && remoteProps.length > 0) {
+          const propMap = new Map();
+          (state.vaultData.propositos || []).forEach((p) => {
+            if (p && p.uuid) propMap.set(p.uuid, p);
+          });
+          remoteProps.forEach((rp) => {
+            if (rp && rp.uuid) {
+              if (!propMap.has(rp.uuid)) {
+                propMap.set(rp.uuid, rp);
+                propChanged = true;
+              } else {
+                const localP = propMap.get(rp.uuid);
+                propMap.set(rp.uuid, { ...localP, ...rp });
+              }
+            }
+          });
+          state.vaultData.propositos = Array.from(propMap.values());
+        }
+
+        const localHasUnsyncedProps = (state.vaultData.propositos || []).some((p) => p.sincronizado === 0);
+        if (localHasUnsyncedProps || propChanged) {
+          if (state.vaultData.propositos && state.vaultData.propositos.length > 0) {
+            await GoogleDriveService.uploadPropositos(state.vaultData.propositos, drivePassword);
+            state.vaultData.propositos.forEach((p) => (p.sincronizado = 1));
+          }
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+        }
+      } catch (propErr) {
+        console.warn('[Drive] Aviso na sincronização de propósitos:', propErr);
+      }
+
       // 4. Atualiza informações de diagnóstico na tela
       if (elements.driveDiagDetails) {
         const driveFiles = await GoogleDriveService.listAllAppDataFiles().catch(() => []);
@@ -580,6 +625,12 @@
 
     elements.emptyState.classList.add('hidden');
 
+    const propositos = state.vaultData.propositos || [];
+    const propositosMap = new Map();
+    propositos.forEach((p) => {
+      if (p && p.uuid) propositosMap.set(p.uuid, p);
+    });
+
     const html = entries.map((entry) => {
       const pilarClass = `pilar-${(entry.pilar || 'V').toLowerCase()}`;
       const pilarNome = {
@@ -622,6 +673,20 @@
         .map((t) => `<span class="tag-chip">#${escapeHtml(t)}</span>`)
         .join('');
 
+      // Propósito associado
+      const propUuid = entry.propositoUuid || entry.proposito_uuid;
+      const prop = propUuid ? propositosMap.get(propUuid) : null;
+      let propositoHtml = '';
+      if (prop) {
+        const eixoClass = `pilar-${(prop.eixo || 'v').toLowerCase()}`;
+        propositoHtml = `
+          <span class="proposito-badge ${eixoClass}" title="Propósito: ${escapeHtml(prop.titulo)}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            ${escapeHtml(prop.titulo)}
+          </span>
+        `;
+      }
+
       // Bloco de Resultados da IA (Somente Leitura)
       let aiHtml = '';
       const hasAi = entry.comentarioVida && entry.comentarioVida.trim().length > 0;
@@ -649,6 +714,7 @@
               <span class="pilar-badge ${pilarClass}">${escapeHtml(pilarNome)}</span>
               <span class="impacto-badge ${impactoClass}">Impacto ${impactoText}</span>
               ${entry.categoria ? `<span class="tag-chip" style="font-weight:700;">${escapeHtml(entry.categoria)}</span>` : ''}
+              ${propositoHtml}
             </div>
             <time class="entry-date">${dateDisplay}</time>
           </header>
@@ -676,6 +742,99 @@
     elements.entriesList.innerHTML = html;
   }
 
+  // ─── Propósitos no PWA ────────────────────────────────────────────────────────
+
+  function populatePropositoSelect(selectedUuid = null) {
+    if (!elements.entryProposito) return;
+    const propositos = state.vaultData.propositos || [];
+    // Filtra não deletados
+    const disponiveis = propositos.filter((p) => p && p.deletado !== 1);
+
+    let html = '<option value="">(Nenhum propósito selecionado)</option>';
+    disponiveis.forEach((p) => {
+      const eixo = (p.eixo || 'V').toUpperCase();
+      const isSel = selectedUuid && String(p.uuid) === String(selectedUuid) ? 'selected' : '';
+      html += `<option value="${escapeHtml(p.uuid)}" ${isSel}>[${eixo}] ${escapeHtml(p.titulo)}</option>`;
+    });
+
+    elements.entryProposito.innerHTML = html;
+    if (selectedUuid) {
+      elements.entryProposito.value = selectedUuid;
+    }
+  }
+
+  function openQuickPropositoModal() {
+    if (!elements.quickPropositoModal) return;
+    if (elements.newPropositoTitulo) elements.newPropositoTitulo.value = '';
+    if (elements.newPropositoDescricao) elements.newPropositoDescricao.value = '';
+
+    // Sugere o mesmo pilar atualmente selecionado no modal de entrada
+    const selectedOption = elements.modalPilarSelector.querySelector('.pilar-option.selected');
+    const pilar = selectedOption ? selectedOption.dataset.pilar : 'V';
+    selectEixoInPropositoModal(pilar);
+
+    elements.quickPropositoModal.classList.remove('hidden');
+    if (elements.newPropositoTitulo) elements.newPropositoTitulo.focus();
+  }
+
+  function closeQuickPropositoModal() {
+    if (!elements.quickPropositoModal) return;
+    elements.quickPropositoModal.classList.add('hidden');
+  }
+
+  function selectEixoInPropositoModal(eixoLetter) {
+    if (!elements.newPropositoEixoSelector) return;
+    elements.newPropositoEixoSelector.querySelectorAll('.pilar-option').forEach((opt) => {
+      if (opt.dataset.eixo === eixoLetter) {
+        opt.classList.add('selected');
+      } else {
+        opt.classList.remove('selected');
+      }
+    });
+  }
+
+  async function saveQuickProposito() {
+    if (!elements.newPropositoTitulo) return;
+    const titulo = elements.newPropositoTitulo.value.trim();
+    if (!titulo) {
+      alert('Por favor, informe o título do propósito.');
+      elements.newPropositoTitulo.focus();
+      return;
+    }
+
+    const desc = elements.newPropositoDescricao ? elements.newPropositoDescricao.value.trim() : '';
+    const selEixo = elements.newPropositoEixoSelector ? elements.newPropositoEixoSelector.querySelector('.pilar-option.selected') : null;
+    const eixo = selEixo ? selEixo.dataset.eixo : 'V';
+
+    const novoProp = {
+      id: null,
+      uuid: DBService.generateUUID(),
+      titulo: titulo,
+      descricao: desc,
+      eixo: eixo,
+      categoriaCodigo: '',
+      dataCriacao: new Date().toISOString(),
+      justificativaIA: '',
+      progresso: 0,
+      status: 0,
+      sincronizado: 0,
+      deletado: 0
+    };
+
+    state.vaultData.propositos = state.vaultData.propositos || [];
+    state.vaultData.propositos.push(novoProp);
+
+    await DBService.persistVault(state.vaultData, state.currentPassword);
+    populatePropositoSelect(novoProp.uuid);
+    closeQuickPropositoModal();
+    showToast(`Propósito "${titulo}" criado e selecionado!`);
+
+    // Sincroniza em segundo plano se conectado ao Google Drive
+    if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
+      syncWithGoogleDrive(false);
+    }
+  }
+
   // ─── CRUD de Entradas ─────────────────────────────────────────────────────────
 
   function openNewEntryModal() {
@@ -696,6 +855,7 @@
 
     elements.entryTags.value = '';
     elements.entryCategoria.value = '';
+    populatePropositoSelect(null);
     elements.modalAiPreviewBox.classList.add('hidden');
 
     elements.entryModal.classList.remove('hidden');
@@ -727,6 +887,7 @@
 
     elements.entryTags.value = entry.tags || '';
     elements.entryCategoria.value = entry.categoria || '';
+    populatePropositoSelect(entry.propositoUuid || entry.proposito_uuid || null);
 
     if (entry.comentarioVida && entry.comentarioVida.trim()) {
       elements.modalAiPreviewComment.textContent = `"${entry.comentarioVida}"`;
@@ -759,6 +920,7 @@
     const impacto = parseInt(elements.entryImpacto.value, 10) || 0;
     const tags = elements.entryTags.value.trim();
     const categoria = elements.entryCategoria.value.trim();
+    const propositoUuid = elements.entryProposito && elements.entryProposito.value ? elements.entryProposito.value.trim() : null;
     const nowIso = new Date().toISOString();
 
     if (state.editingUuid) {
@@ -776,6 +938,8 @@
           impactos: String(impacto),
           tags,
           categoria,
+          propositoUuid: propositoUuid || null,
+          proposito_uuid: propositoUuid || null,
           lastModified: nowIso,
           versao: (existing.versao || 1) + 1,
           sincronizado: 0
@@ -792,6 +956,8 @@
         impactos: String(impacto),
         tags,
         categoria,
+        propositoUuid: propositoUuid || null,
+        proposito_uuid: propositoUuid || null,
         lastModified: nowIso,
         versao: 1,
         sincronizado: 0
@@ -946,6 +1112,18 @@
         });
 
         state.vaultData.registros = Array.from(existingMap.values());
+
+        if (importedRecords.propositos && importedRecords.propositos.length > 0) {
+          const propMap = new Map();
+          (state.vaultData.propositos || []).forEach((p) => {
+            if (p && p.uuid) propMap.set(p.uuid, p);
+          });
+          importedRecords.propositos.forEach((p) => {
+            if (p && p.uuid) propMap.set(p.uuid, p);
+          });
+          state.vaultData.propositos = Array.from(propMap.values());
+        }
+
         await DBService.persistVault(state.vaultData, state.currentPassword);
 
         renderEntries();
@@ -1326,6 +1504,28 @@
     elements.entryImpacto.addEventListener('input', (e) => {
       updateImpactoDisplay(parseInt(e.target.value, 10));
     });
+
+    // Modal de Cadastro Rápido de Propósito
+    if (elements.btnOpenNewPropositoModal) {
+      elements.btnOpenNewPropositoModal.addEventListener('click', openQuickPropositoModal);
+    }
+    if (elements.btnCloseQuickPropositoModal) {
+      elements.btnCloseQuickPropositoModal.addEventListener('click', closeQuickPropositoModal);
+    }
+    if (elements.btnCancelQuickProposito) {
+      elements.btnCancelQuickProposito.addEventListener('click', closeQuickPropositoModal);
+    }
+    if (elements.btnSaveQuickProposito) {
+      elements.btnSaveQuickProposito.addEventListener('click', saveQuickProposito);
+    }
+    if (elements.newPropositoEixoSelector) {
+      elements.newPropositoEixoSelector.addEventListener('click', (e) => {
+        const opt = e.target.closest('.pilar-option');
+        if (opt && opt.dataset.eixo) {
+          selectEixoInPropositoModal(opt.dataset.eixo);
+        }
+      });
+    }
 
     // Delegação de cliques na lista de entradas
     elements.entriesList.addEventListener('click', (e) => {

@@ -10,6 +10,7 @@ const GoogleDriveService = {
   MASTER_FILENAME: 'diario_sync_master.json',
   TIMESTAMP_FILENAME: 'sync_timestamp.txt',
   VALIDATION_FILENAME: 'validar.hash',
+  PROPOSITOS_FILENAME: 'propositos_backup.json',
 
   STORAGE_KEYS: {
     CLIENT_ID: 'wingene_vida_drive_client_id',
@@ -769,7 +770,7 @@ const GoogleDriveService = {
   async cleanupDuplicates(token) {
     try {
       const allFiles = await this.listAllAppDataFiles();
-      const targetNames = [this.MASTER_FILENAME, this.TIMESTAMP_FILENAME, this.VALIDATION_FILENAME];
+      const targetNames = [this.MASTER_FILENAME, this.TIMESTAMP_FILENAME, this.VALIDATION_FILENAME, this.PROPOSITOS_FILENAME];
 
       for (const name of targetNames) {
         const matching = allFiles.filter((f) => f.name === name);
@@ -787,6 +788,83 @@ const GoogleDriveService = {
       }
     } catch (e) {
       console.warn('[Drive] Aviso ao limpar duplicatas:', e);
+    }
+  },
+
+  // Baixa e descriptografa propósitos da nuvem (propositos_backup.json)
+  async downloadPropositos(password) {
+    try {
+      const allFiles = await this.listAllAppDataFiles();
+      const propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME);
+      if (!propFile || !propFile.id) return [];
+
+      const token = await this.requestToken();
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${propFile.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return [];
+
+      const arrayBuffer = await res.arrayBuffer();
+      const rawData = await CryptoService.decryptDartFormat(arrayBuffer, password);
+      if (Array.isArray(rawData)) {
+        return rawData;
+      }
+      return [];
+    } catch (e) {
+      console.warn('[Drive] Aviso ao baixar propósitos:', e);
+      return [];
+    }
+  },
+
+  // Faz upload criptografado da lista de propósitos para a nuvem
+  async uploadPropositos(propositos, password) {
+    try {
+      if (!propositos || !Array.isArray(propositos)) return;
+      const token = await this.requestToken();
+      const encoder = new TextEncoder();
+      const jsonStr = JSON.stringify(propositos);
+      const encryptedBytes = await CryptoService.encryptDartFormat(jsonStr, password);
+
+      const allFiles = await this.listAllAppDataFiles();
+      const propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME);
+
+      if (propFile && propFile.id) {
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${propFile.id}?uploadType=media`, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/octet-stream'
+          },
+          body: encryptedBytes
+        });
+      } else {
+        const boundary = '-------wingene_propositos_' + Math.random().toString(36).substring(2);
+        const metadata = JSON.stringify({
+          name: this.PROPOSITOS_FILENAME,
+          parents: ['appDataFolder']
+        });
+        const p1 = encoder.encode(
+          `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\n`
+        );
+        const p2 = encryptedBytes;
+        const p3 = encoder.encode(`\r\n--${boundary}--`);
+
+        const combined = new Uint8Array(p1.length + p2.length + p3.length);
+        combined.set(p1, 0);
+        combined.set(p2, p1.length);
+        combined.set(p3, p1.length + p2.length);
+
+        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': `multipart/related; boundary=${boundary}`
+          },
+          body: combined
+        });
+      }
+    } catch (e) {
+      console.warn('[Drive] Falha ao enviar propósitos:', e);
     }
   }
 };
