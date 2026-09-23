@@ -942,7 +942,8 @@
           proposito_uuid: propositoUuid || null,
           lastModified: nowIso,
           versao: (existing.versao || 1) + 1,
-          sincronizado: 0
+          sincronizado: 0,
+          origem: existing.origem || 'pwa'
         };
       }
     } else {
@@ -960,7 +961,8 @@
         proposito_uuid: propositoUuid || null,
         lastModified: nowIso,
         versao: 1,
-        sincronizado: 0
+        sincronizado: 0,
+        origem: 'pwa'
       });
       state.vaultData.registros.unshift(newEntry);
     }

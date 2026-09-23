@@ -130,7 +130,8 @@ const DBService = {
       insightId: raw.insightId || null,
       propositoUuid: raw.propositoUuid || raw.proposito_uuid || null,
       proposito_uuid: raw.proposito_uuid || raw.propositoUuid || null,
-      propositoAvaliado: raw.propositoAvaliado || 0
+      propositoAvaliado: raw.propositoAvaliado || 0,
+      origem: raw.origem || null
     };
   },
 
