@@ -112,7 +112,15 @@
     btnToggleDrivePasswordDiag: document.getElementById('btnToggleDrivePasswordDiag'),
     drivePasswordDiagBox: document.getElementById('drivePasswordDiagBox'),
     btnResetDriveAppData: document.getElementById('btnResetDriveAppData'),
-    driveDiagDetails: document.getElementById('driveDiagDetails')
+    driveDiagDetails: document.getElementById('driveDiagDetails'),
+
+    // Modal de Conflito Inicial
+    syncConflictModal: document.getElementById('syncConflictModal'),
+    btnCloseSyncConflictModal: document.getElementById('btnCloseSyncConflictModal'),
+    btnCancelSyncConflictModal: document.getElementById('btnCancelSyncConflictModal'),
+    btnMergeSyncConflictModal: document.getElementById('btnMergeSyncConflictModal'),
+    btnReplaceSyncConflictModal: document.getElementById('btnReplaceSyncConflictModal'),
+    syncConflictDescription: document.getElementById('syncConflictDescription')
   };
 
   // ─── Inicialização ────────────────────────────────────────────────────────────
@@ -338,6 +346,44 @@
     }
   }
 
+  function promptInitialSyncConflict(localCount, remoteCount) {
+    return new Promise((resolve) => {
+      const descEl = elements.syncConflictDescription;
+      if (descEl) {
+        descEl.innerHTML = `Identificamos <strong>${localCount} anotaç${localCount === 1 ? 'ão' : 'ões'}</strong> salva${localCount === 1 ? '' : 's'} neste navegador e <strong>${remoteCount} anotaç${remoteCount === 1 ? 'ão' : 'ões'}</strong> na sua conta do Google Drive.<br><br>Como deseja prosseguir com a sincronização inicial?`;
+      }
+      elements.syncConflictModal.classList.remove('hidden');
+
+      const cleanup = () => {
+        elements.syncConflictModal.classList.add('hidden');
+        elements.btnMergeSyncConflictModal.removeEventListener('click', onMerge);
+        elements.btnReplaceSyncConflictModal.removeEventListener('click', onReplace);
+        elements.btnCancelSyncConflictModal.removeEventListener('click', onCancel);
+        elements.btnCloseSyncConflictModal.removeEventListener('click', onCancel);
+      };
+
+      const onMerge = () => {
+        cleanup();
+        resolve('merge');
+      };
+
+      const onReplace = () => {
+        cleanup();
+        resolve('replace');
+      };
+
+      const onCancel = () => {
+        cleanup();
+        resolve('cancel');
+      };
+
+      elements.btnMergeSyncConflictModal.addEventListener('click', onMerge);
+      elements.btnReplaceSyncConflictModal.addEventListener('click', onReplace);
+      elements.btnCancelSyncConflictModal.addEventListener('click', onCancel);
+      elements.btnCloseSyncConflictModal.addEventListener('click', onCancel);
+    });
+  }
+
   async function syncWithGoogleDrive(silent = false, forceFullSync = false) {
     if (state.isSyncingDrive) return;
     if (!state.currentPassword) {
@@ -416,34 +462,68 @@
 
       let mergedCount = 0;
       let remoteChanged = false;
+      let syncAction = 'merge';
 
       if (remoteRes.unchanged) {
         console.log('[Drive] Master remoto inalterado desde o último sincronismo.');
       } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
         remoteChanged = true;
-        const localMap = new Map();
-        (state.vaultData.registros || []).forEach((r) => localMap.set(r.uuid, r));
+        const localRecords = state.vaultData.registros || [];
+        const localCount = localRecords.length;
+        const remoteCount = remoteRes.records.length;
+        const lastDriveSync = getVidaItem(VIDA_STORAGE_KEYS.LAST_SYNC, 'wingene_last_drive_sync');
 
-        remoteRes.records.forEach((remoteRecord) => {
-          const normRemote = DBService.normalizeRecord(remoteRecord);
-          const localRecord = localMap.get(normRemote.uuid);
+        // Se for a primeira sincronização deste navegador (sem histórico de sync prévio)
+        // e houver anotações locais já existentes no cofre:
+        if (!lastDriveSync && localCount > 0) {
+          // Verifica se há registros locais exclusivos que não constam na nuvem
+          const remoteUuidSet = new Set(remoteRes.records.map((r) => r.uuid));
+          const hasLocalUnique = localRecords.some((r) => !remoteUuidSet.has(r.uuid));
 
-          if (!localRecord) {
-            localMap.set(normRemote.uuid, normRemote);
-            mergedCount++;
-          } else {
-            const localVer = localRecord.versao || 1;
-            const remoteVer = normRemote.versao || 1;
-            if (remoteVer > localVer) {
-              localMap.set(normRemote.uuid, normRemote);
-              mergedCount++;
+          if (hasLocalUnique) {
+            syncAction = await promptInitialSyncConflict(localCount, remoteCount);
+            if (syncAction === 'cancel') {
+              showToast('Sincronização cancelada.');
+              return;
             }
           }
-        });
+        }
 
-        state.vaultData.registros = Array.from(localMap.values());
-        await DBService.persistVault(state.vaultData, state.currentPassword);
-        renderEntries();
+        if (syncAction === 'replace') {
+          // Substitui todos os registros locais pelos remotos (zerando os locais anteriores)
+          const normalized = remoteRes.records.map((r) => DBService.normalizeRecord(r));
+          normalized.forEach((r) => (r.sincronizado = 1));
+          state.vaultData.registros = normalized;
+          state.vaultData.propositos = [];
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+          renderEntries();
+          showToast(`✅ Dados locais zerados. ${normalized.length} registros baixados do Drive.`);
+        } else {
+          // Ação 'merge': mesclagem inteligente
+          const localMap = new Map();
+          localRecords.forEach((r) => localMap.set(r.uuid, r));
+
+          remoteRes.records.forEach((remoteRecord) => {
+            const normRemote = DBService.normalizeRecord(remoteRecord);
+            const localRecord = localMap.get(normRemote.uuid);
+
+            if (!localRecord) {
+              localMap.set(normRemote.uuid, normRemote);
+              mergedCount++;
+            } else {
+              const localVer = localRecord.versao || 1;
+              const remoteVer = normRemote.versao || 1;
+              if (remoteVer > localVer) {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+              }
+            }
+          });
+
+          state.vaultData.registros = Array.from(localMap.values());
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+          renderEntries();
+        }
       } else if (remoteRes.fileFound && (!remoteRes.records || remoteRes.records.length === 0)) {
         const filesList = (remoteRes.filesInDrive || []).join(', ');
         if (!silent) {
@@ -458,8 +538,10 @@
         }
       }
 
-      // 3. Upload inteligente: só faz upload se houver locais pendentes, registros mesclados ou nuvem sem master
-      const needsUpload = localHasUnsynced || mergedCount > 0 || !remoteRes.fileFound;
+      // 3. Upload inteligente: só faz upload se for ação de merge e houver locais pendentes, registros mesclados ou nuvem sem master
+      const needsUpload =
+        syncAction === 'merge' &&
+        (localHasUnsynced || mergedCount > 0 || !remoteRes.fileFound);
 
       if (needsUpload && state.vaultData.registros && state.vaultData.registros.length > 0) {
         const uploadResult = await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
@@ -478,7 +560,9 @@
         if (remoteRes.modifiedTime) {
           localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, remoteRes.modifiedTime);
         }
-        showToast(`✅ ${remoteRes.records.length} registros atualizados da nuvem!`);
+        if (syncAction !== 'replace') {
+          showToast(`✅ ${remoteRes.records.length} registros atualizados da nuvem!`);
+        }
       } else if (remoteRes.unchanged && !localHasUnsynced) {
         if (!silent) {
           showToast('✅ Tudo atualizado! Nenhuma alteração pendente.');

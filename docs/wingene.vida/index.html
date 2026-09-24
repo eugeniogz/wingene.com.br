@@ -367,6 +367,49 @@
   </div>
 
   <!-- ========================================================================
+       MODAL DE RESOLUÇÃO DE SINCRONIZAÇÃO INICIAL (MESCLAR OU SUBSTITUIR)
+       ======================================================================== -->
+  <div id="syncConflictModal" class="modal-backdrop hidden">
+    <div class="modal-dialog" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.05rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          Sincronização Inicial
+        </h3>
+        <button type="button" class="btn-icon" id="btnCloseSyncConflictModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="syncConflictDescription" style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.9rem; line-height: 1.5;">
+          Identificamos anotações salvas neste navegador e registros existentes na sua conta do Google Drive.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 0.5rem;">
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+            <strong style="color: #38bdf8; font-size: 0.88rem; display: block; margin-bottom: 0.25rem;">Opção 1: Mesclar Tudo</strong>
+            <span style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.4; display: block;">
+              Junta as anotações deste navegador com as do Google Drive. Recomendado caso tenha escrito registros reais offline.
+            </span>
+          </div>
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+            <strong style="color: #fb7185; font-size: 0.88rem; display: block; margin-bottom: 0.25rem;">Opção 2: Substituir pelos da Nuvem (Zerar Locais)</strong>
+            <span style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.4; display: block;">
+              Descarta as anotações deste navegador e baixa exclusivamente o diário da nuvem. Recomendado se você estava experimentando dados de teste ou mock.
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" id="btnCancelSyncConflictModal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnReplaceSyncConflictModal">Zerar & Baixar Nuvem</button>
+        <button type="button" class="btn btn-primary" id="btnMergeSyncConflictModal">Mesclar Tudo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
        MODAL DE CONFIGURAÇÕES E BACKUP
        ======================================================================== -->
   <div id="settingsModal" class="modal-backdrop hidden">
