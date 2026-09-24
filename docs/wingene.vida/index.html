@@ -180,30 +180,34 @@
 
         <div class="form-group">
           <label for="entryConteudo">O que aconteceu? (Conteúdo da entrada)</label>
-          <textarea id="entryConteudo" rows="4" placeholder="Descreva sua experiência, sentimento, observação ou atitude..." required></textarea>
+          <textarea id="entryConteudo" rows="6" placeholder="Descreva sua experiência, sentimento, observação ou atitude..." required></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="entryData">Data e Hora</label>
-          <input type="datetime-local" id="entryData" required>
-        </div>
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label for="entryData">Data e Hora</label>
+            <input type="datetime-local" id="entryData" required>
+          </div>
 
-        <div class="form-group">
-          <label for="entryImpacto">Impacto na Vida (-5 a +5)</label>
-          <div class="impacto-range-wrap">
-            <input type="range" id="entryImpacto" min="-5" max="5" step="1" value="0">
-            <div id="entryImpactoDisplay" class="impacto-val-display">0</div>
+          <div class="form-group">
+            <label for="entryImpacto">Impacto na Vida (-5 a +5)</label>
+            <div class="impacto-range-wrap">
+              <input type="range" id="entryImpacto" min="-5" max="5" step="1" value="0">
+              <div id="entryImpactoDisplay" class="impacto-val-display">0</div>
+            </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="entryTags">Tags (separadas por vírgula)</label>
-          <input type="text" id="entryTags" placeholder="Ex: Trabalho, Família, Hábito, Presença">
-        </div>
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label for="entryTags">Tags (separadas por vírgula)</label>
+            <input type="text" id="entryTags" placeholder="Ex: Trabalho, Família, Hábito, Presença">
+          </div>
 
-        <div class="form-group">
-          <label for="entryCategoria">Categoria / Código (opcional)</label>
-          <input type="text" id="entryCategoria" placeholder="Ex: V0, I1, D2, A1">
+          <div class="form-group">
+            <label for="entryCategoria">Categoria / Código (opcional)</label>
+            <input type="text" id="entryCategoria" placeholder="Ex: V0, I1, D2, A1">
+          </div>
         </div>
 
         <div class="form-group">
