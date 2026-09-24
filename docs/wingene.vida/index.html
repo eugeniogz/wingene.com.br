@@ -144,63 +144,130 @@
   <!-- ========================================================================
        MODAL DE CRIAÇÃO / EDIÇÃO DE ENTRADA
        ======================================================================== -->
-  <div id="entryModal" class="modal-backdrop hidden">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h3 id="modalEntryTitle">Nova Entrada no Diário</h3>
-        <button type="button" class="btn-icon" id="btnCloseEntryModal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  <!-- ========================================================================
+       TELA / PÁGINA DE TELA CHEIA DE CRIAÇÃO E EDIÇÃO DE ENTRADA
+       ======================================================================== -->
+  <div id="entryModal" class="fullscreen-editor-screen hidden">
+    <!-- Header do Editor em Tela Cheia -->
+    <header class="editor-header">
+      <div class="editor-header-left">
+        <button type="button" class="btn-icon" id="btnCloseEntryModal" title="Voltar para a lista">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
+        <div class="editor-title-wrap">
+          <h2 id="modalEntryTitle">Nova Entrada</h2>
+          <span class="editor-subtitle">Método VIDA</span>
+        </div>
       </div>
 
-      <form id="entryForm" class="modal-body" onsubmit="return false;">
-        <input type="hidden" id="entryUuid">
+      <div class="editor-header-right">
+        <!-- Botão Minimalista para Outras Opções (Impacto, Tags, Categoria, IA) -->
+        <button type="button" id="btnToggleExtraOptions" class="btn btn-secondary btn-sm btn-extra-options" title="Mais opções: Impacto, Tags, Categoria, IA">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          <span class="btn-text">Mais Opções</span>
+          <span id="extraOptionsIndicator" class="extra-options-badge hidden"></span>
+        </button>
 
-        <div class="form-group">
-          <label>Pilar Principal (Método VIDA)</label>
-          <div class="pilar-selector" id="modalPilarSelector">
-            <div class="pilar-option opt-v selected" data-pilar="V">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnCancelEntryModal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm btn-save-entry" id="btnSaveEntry">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 13 4 4L19 7"/></svg>
+          <span>Salvar</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Barra de Contexto Imediata: Pilar VIDA, Data/Hora e Propósito -->
+    <div class="editor-context-bar">
+      <div class="editor-context-inner">
+        <!-- Seletor de Pilar VIDA Compacto -->
+        <div class="editor-context-group">
+          <span class="context-group-label">Pilar</span>
+          <div class="pilar-selector pilar-selector-compact" id="modalPilarSelector">
+            <div class="pilar-option opt-v selected" data-pilar="V" title="Valores">
               <span class="letter">V</span>
               <span class="name">Valores</span>
             </div>
-            <div class="pilar-option opt-i" data-pilar="I">
+            <div class="pilar-option opt-i" data-pilar="I" title="Imperfeições">
               <span class="letter">I</span>
               <span class="name">mperfeições</span>
             </div>
-            <div class="pilar-option opt-d" data-pilar="D">
+            <div class="pilar-option opt-d" data-pilar="D" title="Decisões">
               <span class="letter">D</span>
               <span class="name">Decisões</span>
             </div>
-            <div class="pilar-option opt-a" data-pilar="A">
+            <div class="pilar-option opt-a" data-pilar="A" title="Atenção">
               <span class="letter">A</span>
               <span class="name">Atenção</span>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="entryConteudo">O que aconteceu? (Conteúdo da entrada)</label>
-          <textarea id="entryConteudo" rows="6" placeholder="Descreva sua experiência, sentimento, observação ou atitude..." required></textarea>
+        <div class="editor-context-divider"></div>
+
+        <!-- Data e Hora -->
+        <div class="editor-context-group editor-date-group">
+          <label for="entryData" class="context-group-label">Data & Hora</label>
+          <div class="editor-input-wrapper">
+            <input type="datetime-local" id="entryData" class="editor-inline-input" required>
+          </div>
         </div>
 
-        <div class="form-row-2col">
-          <div class="form-group">
-            <label for="entryData">Data e Hora</label>
-            <input type="datetime-local" id="entryData" required>
-          </div>
+        <div class="editor-context-divider"></div>
 
+        <!-- Propósito Vinculado -->
+        <div class="editor-context-group editor-proposito-group">
+          <div class="label-with-action">
+            <label for="entryProposito" class="context-group-label">Propósito</label>
+            <button type="button" class="btn-text-action" id="btnOpenNewPropositoModal" title="Cadastrar novo propósito">+ Novo</button>
+          </div>
+          <div class="editor-input-wrapper">
+            <select id="entryProposito" class="editor-inline-input">
+              <option value="">(Nenhum propósito)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Área Principal de Escrita (Aproveitamento Máximo do Espaço) -->
+    <div class="editor-workspace">
+      <form id="entryForm" class="editor-main-form" onsubmit="return false;">
+        <input type="hidden" id="entryUuid">
+
+        <div class="editor-textarea-container">
+          <textarea id="entryConteudo" placeholder="Escreva o que aconteceu, suas decisões, sentimentos ou percepções de hoje..." required></textarea>
+        </div>
+
+        <!-- Rodapé do editor com contagem de palavras/caracteres -->
+        <div class="editor-wordcount-bar">
+          <span id="editorWordCount">0 palavras • 0 caracteres</span>
+        </div>
+      </form>
+
+      <!-- Painel Retrátil / Drawer de Outras Opções (Impacto, Tags, Categoria, IA) -->
+      <aside id="editorExtraOptionsDrawer" class="editor-drawer hidden">
+        <div class="editor-drawer-header">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Outras Opções
+          </h4>
+          <button type="button" class="btn-icon" id="btnCloseExtraOptionsDrawer" title="Fechar opções adicionais">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="editor-drawer-body">
           <div class="form-group">
             <label for="entryImpacto">Impacto na Vida (-5 a +5)</label>
             <div class="impacto-range-wrap">
               <input type="range" id="entryImpacto" min="-5" max="5" step="1" value="0">
               <div id="entryImpactoDisplay" class="impacto-val-display">0</div>
             </div>
+            <small style="color: var(--text-muted); font-size: 0.76rem;">Avalie a intensidade do impacto deste momento no seu dia.</small>
           </div>
-        </div>
 
-        <div class="form-row-2col">
           <div class="form-group">
-            <label for="entryTags">Tags (separadas por vírgula)</label>
+            <label for="entryTags">Tags (palavras-chave)</label>
             <input type="text" id="entryTags" placeholder="Ex: Trabalho, Família, Hábito, Presença">
           </div>
 
@@ -208,32 +275,24 @@
             <label for="entryCategoria">Categoria / Código (opcional)</label>
             <input type="text" id="entryCategoria" placeholder="Ex: V0, I1, D2, A1">
           </div>
-        </div>
 
-        <div class="form-group">
-          <div class="label-with-action">
-            <label for="entryProposito">Propósito Vinculado (opcional)</label>
-            <button type="button" class="btn-text-action" id="btnOpenNewPropositoModal" title="Cadastrar novo propósito">+ Novo Propósito</button>
+          <div id="modalAiPreviewBox" class="ai-insight-box hidden">
+            <div class="ai-header">
+              <span class="ai-badge">Insight da IA (Preservado)</span>
+              <span class="ai-badge-readonly">Somente-leitura</span>
+            </div>
+            <p id="modalAiPreviewComment" class="ai-comment"></p>
+            <span id="modalAiPreviewKeyword" class="ai-keyword-tag"></span>
           </div>
-          <select id="entryProposito">
-            <option value="">(Nenhum propósito selecionado)</option>
-          </select>
         </div>
 
-        <div id="modalAiPreviewBox" class="ai-insight-box hidden">
-          <div class="ai-header">
-            <span class="ai-badge">Insight da IA (Preservado)</span>
-            <span class="ai-badge-readonly">Somente-leitura</span>
-          </div>
-          <p id="modalAiPreviewComment" class="ai-comment"></p>
-          <span id="modalAiPreviewKeyword" class="ai-keyword-tag"></span>
+        <div class="editor-drawer-footer">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnDoneExtraOptions" style="width: 100%;">Concluir Opções</button>
         </div>
-      </form>
+      </aside>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnCancelEntryModal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btnSaveEntry">Salvar Entrada</button>
-      </div>
+      <!-- Backdrop para o Drawer no Mobile -->
+      <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     </div>
   </div>
 

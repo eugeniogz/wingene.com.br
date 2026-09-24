@@ -67,6 +67,15 @@
     btnCloseEntryModal: document.getElementById('btnCloseEntryModal'),
     btnSaveEntry: document.getElementById('btnSaveEntry'),
 
+    // Editor em Tela Cheia
+    btnToggleExtraOptions: document.getElementById('btnToggleExtraOptions'),
+    extraOptionsIndicator: document.getElementById('extraOptionsIndicator'),
+    editorExtraOptionsDrawer: document.getElementById('editorExtraOptionsDrawer'),
+    btnCloseExtraOptionsDrawer: document.getElementById('btnCloseExtraOptionsDrawer'),
+    btnDoneExtraOptions: document.getElementById('btnDoneExtraOptions'),
+    drawerBackdrop: document.getElementById('drawerBackdrop'),
+    editorWordCount: document.getElementById('editorWordCount'),
+
     quickPropositoModal: document.getElementById('quickPropositoModal'),
     btnCloseQuickPropositoModal: document.getElementById('btnCloseQuickPropositoModal'),
     btnCancelQuickProposito: document.getElementById('btnCancelQuickProposito'),
@@ -919,11 +928,57 @@
     }
   }
 
-  // ─── CRUD de Entradas ─────────────────────────────────────────────────────────
+  // ─── CRUD de Entradas (Editor em Tela Cheia) ─────────────────────────────────
+
+  function updateEditorWordCount() {
+    if (!elements.editorWordCount || !elements.entryConteudo) return;
+    const text = elements.entryConteudo.value.trim();
+    const chars = text.length;
+    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    elements.editorWordCount.textContent = `${words} palavra${words === 1 ? '' : 's'} • ${chars} caractere${chars === 1 ? '' : 's'}`;
+  }
+
+  function updateExtraOptionsIndicator() {
+    if (!elements.extraOptionsIndicator) return;
+    const imp = elements.entryImpacto ? elements.entryImpacto.value : '0';
+    const tags = elements.entryTags ? elements.entryTags.value.trim() : '';
+    const cat = elements.entryCategoria ? elements.entryCategoria.value.trim() : '';
+    const hasAi = elements.modalAiPreviewBox && !elements.modalAiPreviewBox.classList.contains('hidden');
+    const hasExtra = imp !== '0' || tags !== '' || cat !== '' || hasAi;
+    elements.extraOptionsIndicator.classList.toggle('hidden', !hasExtra);
+  }
+
+  function openExtraOptionsDrawer() {
+    if (elements.editorExtraOptionsDrawer) {
+      elements.editorExtraOptionsDrawer.classList.remove('hidden');
+    }
+    if (elements.drawerBackdrop) {
+      elements.drawerBackdrop.classList.remove('hidden');
+    }
+  }
+
+  function closeExtraOptionsDrawer() {
+    if (elements.editorExtraOptionsDrawer) {
+      elements.editorExtraOptionsDrawer.classList.add('hidden');
+    }
+    if (elements.drawerBackdrop) {
+      elements.drawerBackdrop.classList.add('hidden');
+    }
+  }
+
+  function toggleExtraOptionsDrawer() {
+    if (!elements.editorExtraOptionsDrawer) return;
+    const isHidden = elements.editorExtraOptionsDrawer.classList.contains('hidden');
+    if (isHidden) {
+      openExtraOptionsDrawer();
+    } else {
+      closeExtraOptionsDrawer();
+    }
+  }
 
   function openNewEntryModal() {
     state.editingUuid = null;
-    elements.modalEntryTitle.textContent = 'Nova Entrada no Diário';
+    elements.modalEntryTitle.textContent = 'Nova Entrada';
     elements.entryUuid.value = '';
     elements.entryConteudo.value = '';
 
@@ -941,6 +996,10 @@
     elements.entryCategoria.value = '';
     populatePropositoSelect(null);
     elements.modalAiPreviewBox.classList.add('hidden');
+
+    closeExtraOptionsDrawer();
+    updateExtraOptionsIndicator();
+    updateEditorWordCount();
 
     elements.entryModal.classList.remove('hidden');
     elements.entryConteudo.focus();
@@ -981,11 +1040,16 @@
       elements.modalAiPreviewBox.classList.add('hidden');
     }
 
+    closeExtraOptionsDrawer();
+    updateExtraOptionsIndicator();
+    updateEditorWordCount();
+
     elements.entryModal.classList.remove('hidden');
     elements.entryConteudo.focus();
   }
 
   function closeEntryModal() {
+    closeExtraOptionsDrawer();
     elements.entryModal.classList.add('hidden');
     state.editingUuid = null;
   }
@@ -1131,6 +1195,7 @@
     } else {
       elements.entryImpactoDisplay.style.color = 'var(--text-secondary)';
     }
+    updateExtraOptionsIndicator();
   }
 
   // ─── Importação / Exportação de Backups ───────────────────────────────────────
@@ -1590,6 +1655,29 @@
     elements.entryImpacto.addEventListener('input', (e) => {
       updateImpactoDisplay(parseInt(e.target.value, 10));
     });
+
+    // Editor em Tela Cheia - Drawer de Outras Opções e Word Count
+    if (elements.btnToggleExtraOptions) {
+      elements.btnToggleExtraOptions.addEventListener('click', toggleExtraOptionsDrawer);
+    }
+    if (elements.btnCloseExtraOptionsDrawer) {
+      elements.btnCloseExtraOptionsDrawer.addEventListener('click', closeExtraOptionsDrawer);
+    }
+    if (elements.btnDoneExtraOptions) {
+      elements.btnDoneExtraOptions.addEventListener('click', closeExtraOptionsDrawer);
+    }
+    if (elements.drawerBackdrop) {
+      elements.drawerBackdrop.addEventListener('click', closeExtraOptionsDrawer);
+    }
+    if (elements.entryConteudo) {
+      elements.entryConteudo.addEventListener('input', updateEditorWordCount);
+    }
+    if (elements.entryTags) {
+      elements.entryTags.addEventListener('input', updateExtraOptionsIndicator);
+    }
+    if (elements.entryCategoria) {
+      elements.entryCategoria.addEventListener('input', updateExtraOptionsIndicator);
+    }
 
     // Modal de Cadastro Rápido de Propósito
     if (elements.btnOpenNewPropositoModal) {
