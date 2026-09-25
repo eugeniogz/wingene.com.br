@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingene-investimentos-v2.9.4';
+const CACHE_NAME = 'wingene-investimentos-v2.9.5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -16,8 +16,11 @@ const ASSETS_TO_CACHE = [
   './apple-touch-icon.png',
   './favicon-32x32.png',
   './favicon-16x16.png',
+  './favicon.ico',
+  './favicon.png',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './icon.png'
 ];
 
 // Instalação do Service Worker e forçar ativação imediata
@@ -69,7 +72,8 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // Se estiver offline, entrega a versão em cache
-        return caches.match(event.request);
+        return caches.match(event.request, { ignoreSearch: true })
+          .then((cached) => cached || caches.match(event.request));
       })
   );
 });
