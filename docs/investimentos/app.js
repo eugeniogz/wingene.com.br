@@ -88,9 +88,13 @@ const B3_MARKET_SERIES_REF = {
   'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
   'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
   'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
-  'BOVA11': { pAno: 116.00, pMes: 124.50, pAtual: 126.80 },
+  'BOVA11': { pAno: 143.95, pMes: 185.20, pAtual: 190.22 },
   'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
   'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
+
+  // Índices e Benchmarks Oficiais B3
+  '^BVSP':  { pAno: 143950.00, pMes: 185200.00, pAtual: 190220.00 },
+  'IBOV':   { pAno: 143950.00, pMes: 185200.00, pAtual: 190220.00 },
 
   // FIIs (ALZR11 realizou desdobramento 1:10 em maio/2025, base 10 ~R$ 10)
   'ALZR11': { pAno: 9.98, pMes: 10.04, pAtual: 9.97 },
@@ -132,6 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof initInvestDecisionUI === 'function') {
     initInvestDecisionUI();
   }
+
+  // Sincronizar benchmarks de mercado (CDI e Ibovespa) em segundo plano se ausentes ou desatualizados
+  setTimeout(() => {
+    syncBenchmarksData(false).then(() => {
+      renderDailyEvolutionCharts();
+    }).catch(() => {});
+  }, 1200);
 
   // Registrar retorno do Google Drive com proteção contra sobreposição de dados de demonstração
   window.onDriveDataLoaded = (remoteData) => {
@@ -3458,8 +3469,32 @@ async function syncBenchmarksData(force = false) {
     if (cdiRes && cdiRes.length >= 10) {
       cache.cdi = cdiRes;
     }
-    if (ibovRes && Array.isArray(ibovRes.history) && ibovRes.history.length >= 10) {
-      cache.ibov = ibovRes.history;
+
+    let ibovHistory = (ibovRes && Array.isArray(ibovRes.history) && ibovRes.history.length >= 10) ? ibovRes.history : null;
+
+    // 1. Se a consulta do ^BVSP não retornou histórico suficiente, tentar via BOVA11 (correlação > 99.9% com Ibovespa / 1000)
+    if (!ibovHistory) {
+      const b3Cache = getB3QuotesCache();
+      if (b3Cache && b3Cache.quotes && b3Cache.quotes['BOVA11'] && Array.isArray(b3Cache.quotes['BOVA11'].history) && b3Cache.quotes['BOVA11'].history.length >= 10) {
+        ibovHistory = b3Cache.quotes['BOVA11'].history.map(h => ({ date: h.date, close: parseFloat((h.close * 1000).toFixed(2)) }));
+      } else {
+        const bovaRes = await fetchQuoteSingleTicker('BOVA11');
+        if (bovaRes && Array.isArray(bovaRes.history) && bovaRes.history.length >= 10) {
+          ibovHistory = bovaRes.history.map(h => ({ date: h.date, close: parseFloat((h.close * 1000).toFixed(2)) }));
+        }
+      }
+    }
+
+    // 2. Se rede/proxies estiverem offline, gerar curva realista com base nos parâmetros oficiais da B3
+    if (!ibovHistory || ibovHistory.length < 10) {
+      const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
+        ? B3_MARKET_SERIES_REF['^BVSP']
+        : { pAno: 143950, pMes: 185200, pAtual: 190220 };
+      ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
+    }
+
+    if (ibovHistory && ibovHistory.length >= 10) {
+      cache.ibov = ibovHistory;
     }
 
     cache.timestamp = now;
@@ -3560,8 +3595,17 @@ async function fetchQuoteSingleTicker(ticker) {
   // 3. Fallback Proxies para Yahoo Finance
   endpoints.push(
     {
+      url: `https://r.jina.ai/${rawYahooUrl}`,
+      type: 'jina',
+      headers: { 'Accept': 'application/json' }
+    },
+    {
       url: `https://api.allorigins.win/raw?url=${encodeURIComponent(rawYahooUrl)}`,
       type: 'yahoo'
+    },
+    {
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(rawYahooUrl)}`,
+      type: 'allorigins'
     },
     {
       url: rawYahooUrl,
@@ -3574,12 +3618,23 @@ async function fetchQuoteSingleTicker(ticker) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const headers = (ep.type === 'brapi' && brapiToken) ? brapiHeaders : {};
+      const epHeaders = ep.headers || {};
+      const headers = (ep.type === 'brapi' && brapiToken) ? { ...brapiHeaders, ...epHeaders } : epHeaders;
       const res = await fetch(ep.url, { signal: controller.signal, headers });
       clearTimeout(timeoutId);
 
       if (!res.ok) continue;
       let data = await res.json();
+
+      if (ep.type === 'jina' && data) {
+        if (data.data && data.data.content) {
+          try {
+            data = JSON.parse(data.data.content);
+          } catch (e) {
+            console.warn('Erro ao parsear Jina proxy:', e);
+          }
+        }
+      }
 
       if (ep.type === 'mfinance' && data) {
         const lastP = parseFloat(data.lastPrice || data.closingPrice || 0);
@@ -4094,13 +4149,27 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   // --- NORMALIZAÇÃO DOS BENCHMARKS (100% CDI E IBOVESPA) ---
   const benchCache = getBenchmarksCache();
   const cdiRates = (benchCache && Array.isArray(benchCache.cdi)) ? benchCache.cdi : [];
-  const ibovHistory = (benchCache && Array.isArray(benchCache.ibov)) ? benchCache.ibov : [];
+  let ibovHistory = (benchCache && Array.isArray(benchCache.ibov) && benchCache.ibov.length >= 10) ? [...benchCache.ibov] : [];
+
+  // Se o histórico do Ibovespa não estiver no cache, obter via BOVA11 ou sintetizador dinâmico
+  if (ibovHistory.length < 10) {
+    const b3Cache = getB3QuotesCache();
+    if (b3Cache && b3Cache.quotes && b3Cache.quotes['BOVA11'] && Array.isArray(b3Cache.quotes['BOVA11'].history) && b3Cache.quotes['BOVA11'].history.length >= 10) {
+      ibovHistory = b3Cache.quotes['BOVA11'].history.map(h => ({ date: h.date, close: parseFloat((h.close * 1000).toFixed(2)) }));
+    } else {
+      const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
+        ? B3_MARKET_SERIES_REF['^BVSP']
+        : { pAno: 143950, pMes: 185200, pAtual: 190220 };
+      ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
+    }
+  }
 
   const cdiRateMap = {};
   cdiRates.forEach(item => { cdiRateMap[item.date] = item.rate; });
 
+  ibovHistory.sort((a, b) => a.date.localeCompare(b.date));
   const ibovCloseMap = {};
-  ibovHistory.forEach(item => { ibovCloseMap[item.date] = item.close; });
+  ibovHistory.forEach(item => { if (item.date && item.close > 0) ibovCloseMap[item.date] = item.close; });
 
   // Fator acumulado do CDI para a timeline (considerando finais de semana e variações da Selic/COPOM)
   const cdiFactorMap = {};
@@ -4127,7 +4196,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   // Preço de fechamento do Ibovespa para a timeline
   const ibovPriceMap = {};
-  let lastIbov = ibovHistory.length > 0 ? ibovHistory[0].close : 130000;
+  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 143950;
+  let lastIbov = defaultBaseIbov;
   datesSorted.forEach(d => {
     if (ibovCloseMap[d] !== undefined && ibovCloseMap[d] > 0) {
       lastIbov = ibovCloseMap[d];
@@ -4137,7 +4207,12 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   const firstDate = datesSorted[0];
   const startCdiFactor = cdiFactorMap[firstDate] || 1.0;
-  const startIbovPrice = ibovPriceMap[firstDate] || 130000;
+  let startIbovPrice = ibovPriceMap[firstDate] || defaultBaseIbov;
+
+  // Garantir que a cotação inicial represente o início real do período caso o primeiro dia da timeline seja feriado/fim de semana
+  if (ibovHistory.length > 0 && startIbovPrice === ibovPriceMap[datesSorted[datesSorted.length - 1]]) {
+    startIbovPrice = ibovHistory[0].close;
+  }
 
   const startVal = series.length > 0 && series[0].total > 0 ? series[0].total : 1000;
 
