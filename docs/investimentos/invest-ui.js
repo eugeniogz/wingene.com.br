@@ -1304,51 +1304,127 @@ function parsePastedTextIndicators(raw) {
 function generateBatchAiPrompt() {
   const acoes = (appState && Array.isArray(appState.acoes)) ? appState.acoes : [];
   const tickers = acoes.map(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean);
-  const tickersStr = tickers.length > 0 ? tickers.join(', ') : 'PETR4, VALE3, ITUB4, WEGE3';
-  const todayIso = new Date().toISOString().split('T')[0];
+  const tickersStr = tickers.length > 0 ? tickers.join(', ') : 'WEGE3, ISAE4, GOGL34, BBSE3, ALZR11, ITUB4, ALOS3, TAEE11, AMZO34, MSCD34';
 
-  return `Atue como um analista de investimentos fundamentalista sênior e especialista no mercado financeiro brasileiro e global (B3 e BDRs).
-Data de referência: ${todayIso}.
+  const now = new Date();
+  const dia = String(now.getDate()).padStart(2, '0');
+  const mes = String(now.getMonth() + 1).padStart(2, '0');
+  const ano = now.getFullYear();
+  const refDateStr = `${dia}/${mes}/${ano}`;
 
-Para cada uma das seguintes ações/BDRs da minha carteira:
+  const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+  let dataConsultaStr = '';
+  if (cache && cache.timestamp) {
+    const d = new Date(cache.timestamp);
+    const dDia = String(d.getDate()).padStart(2, '0');
+    const dMes = String(d.getMonth() + 1).padStart(2, '0');
+    const dAno = d.getFullYear();
+    const dHora = String(d.getHours()).padStart(2, '0');
+    const dMin = String(d.getMinutes()).padStart(2, '0');
+    const dSeg = String(d.getSeconds()).padStart(2, '0');
+    dataConsultaStr = `${dDia}/${dMes}/${dAno} as ${dHora}:${dMin}:${dSeg}`;
+  } else {
+    const dHora = String(now.getHours()).padStart(2, '0');
+    const dMin = String(now.getMinutes()).padStart(2, '0');
+    const dSeg = String(now.getSeconds()).padStart(2, '0');
+    dataConsultaStr = `${dia}/${mes}/${ano} as ${dHora}:${dMin}:${dSeg}`;
+  }
+
+  let pricesListStr = '';
+  if (acoes.length > 0) {
+    pricesListStr = acoes.map(a => {
+      const sym = (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '');
+      let price = a.precoAtual || a.preco || 0;
+      if (cache && cache.quotes && cache.quotes[sym] && cache.quotes[sym].currentPrice > 0) {
+        price = cache.quotes[sym].currentPrice;
+      }
+      return `- ${sym}: ${Number(price).toFixed(2)}`;
+    }).join('\n');
+  } else {
+    pricesListStr = [
+      '- WEGE3: 51.47',
+      '- ISAE4: 29.32',
+      '- GOGL34: 145.10',
+      '- BBSE3: 40.82',
+      '- ALZR11: 10.46',
+      '- ITUB4: 50.47',
+      '- ALOS3: 35.83',
+      '- TAEE11: 46.45',
+      '- AMZO34: 66.57',
+      '- MSCD34: 96.62'
+    ].join('\n');
+  }
+
+  const finTickers = tickers.filter(t => /^(?:ITUB|BBDC|BBAS|SANB|BPAC|BBSE|CXSE|PSSA|IRBR|BRSR|ABCB)/i.test(t));
+  const finLabel = finTickers.length > 0 ? finTickers.join(', ') : 'ITUB4, BBSE3';
+
+  const fiiTickers = tickers.filter(t => /11$/.test(t) && !/^(?:BOVA|SMAL|IVVB|HASH|SPXI|XINA|GOLD|BBSD|DIVO|MATB|FIND|GOVE|ISUS|TAEE)/i.test(t));
+  const fiiLabel = fiiTickers.length > 0 ? fiiTickers.join(', ') : 'ALZR11';
+
+  return `Atue como um analista sênior de investimentos fundamentalista e especialista em B3 e BDRs.
+Data de referência: ${refDateStr}.
+
+Colete e estruture os DADOS CONTÁBEIS BASE mais recentes divulgados (LTM e balanço mais recente) para os ativos abaixo:
 [${tickersStr}]
 
-Pesquise e forneça os DADOS CONTÁBEIS BASE mais recentes disponíveis (últimos 12 meses divulgados / LTM e balanço mais recente), para que nosso sistema calcule os múltiplos com precisão matemática.
+---
 
-REGRA MANDATÓRIA DE VALIDAÇÃO:
-“Se valor parecer absurdamente elevado ou incompatível com o setor, interrompa a geração do resultado, recalcule-o a partir dos dados contábeis e confirme-o em uma segunda fonte. Nunca aceite automaticamente um valor de fonte sem validação.”
+### PREÇOS DE REFERÊNCIA EM TELA (ÂNCORA OBRIGATÓRIA):
+Utilize exatamente as seguintes cotações da consulta de ${dataConsultaStr} (B3 / BRL) para o campo "precoAtual", sem tentar deduzir ou recalcular preços a partir de BDRs/ações no exterior:
+${pricesListStr}
 
-DIRETRIZES TÉCNICAS:
-1. DADOS-BASE CONTÁBEIS: Retorne os números contábeis reais (em reais absolutos ou na moeda oficial de reporte, sem notações como "bi" ou "mi"): receitaLiquida, ebitda, ebit, lucroLiquido, patrimonioLiquido, dividaBruta, caixa, fluxoCaixaLivre, numeroAcoes, lpa, dividendosPorAcao (soma dos proventos pagos por ação nos últimos 12m).
-2. SETOR FINANCEIRO (BANCOS / SEGURADORAS): Não utilizam EBITDA nem endividamento líquido tradicional. Nesses casos, use null para ebitda, ebit, dividaBruta, caixa, margemEbitda e dividaLiquidaEbitda.
-3. MÚLTIPLOS E TAXAS: Forneça também as taxas de crescimento médio de 5 anos (crescimentoReceita5a, crescimentoLucro5a), ROIC (%) e ROE (%). Você pode incluir os múltiplos estimados de referência (pl, margemLiquida, margemEbitda, dividaLiquidaEbitda, dividendYield), mas o sistema priorizará o recálculo exato a partir dos dados contábeis.
+---
 
-Responda ESTRITAMENTE com o bloco JSON válido abaixo, sem texto antes ou depois:
+### DIRETRIZES TÉCNICAS E REGRAS DE INTEGRIDADE:
+
+1. TRATAMENTO ESPECÍFICO PARA BDRs (NNNN34):
+   - "precoAtual": Deve refletir rigorosamente o valor em Reais (BRL) do BDR negociado na B3 fornecido acima.
+   - "moedaBalanco": Deve ser explicitamente "USD".
+   - Os dados corporativos brutos (receitaLiquida, ebitda, ebit, lucroLiquido, patrimonioLiquido, dividaBruta, caixa, fluxoCaixaLivre) e o LPA original devem refletir as demonstrações contábeis oficiais da matriz (em USD e sem abreviações como "bi" ou "mi").
+   - O P/L informado deve considerar a paridade (ratio BDR : Ação Original) e o câmbio oficial de fechamento na data de referência para evitar distorções matemáticas.
+
+2. SETOR FINANCEIRO & SEGURADORAS (${finLabel}):
+   - Não utilizam métricas de dívida corporativa nem EBITDA.
+   - Defina obrigatoriamente como \`null\`: "ebitda", "ebit", "dividaBruta", "caixa", "margemEbitda" e "dividaLiquidaEbitda".
+
+3. FUNDOS IMOBILIÁRIOS (${fiiLabel}):
+   - Adapte para a contabilidade imobiliária: receita imobiliária, resultado financeiro/lucro distribuível, patrimônio líquido.
+   - Defina como \`null\`: "ebitda", "ebit", "margemEbitda", "dividaLiquidaEbitda" e "roic".
+
+4. AUDITORIA MANDATÓRIA ANTES DO OUTPUT:
+   - Verifique se os números em reais/dólares absolutos possuem a ordem de grandeza correta (ex.: Weg com receita na faixa de dezenas de bilhões; Alphabet/Amazon na faixa de centenas de bilhões em USD).
+   - Se algum indicador apresentar discrepância bizarra em relação à mediana histórica do setor, interrompa, recalcule e use a segunda fonte antes de emitir o dado.
+
+---
+
+### FORMATO DE SAÍDA:
+Responda EXCLUSIVAMENTE com o array JSON válido abaixo, sem texto introdutório, sem explicações e sem blocos de texto adicionais:
 
 [
   {
     "ticker": "WEGE3",
-    "precoAtual": 52.10,
-    "receitaLiquida": 32500000000,
-    "ebitda": 7200000000,
-    "ebit": 6100000000,
-    "lucroLiquido": 5060000000,
-    "patrimonioLiquido": 15260000000,
-    "dividaBruta": 3500000000,
-    "caixa": 6500000000,
-    "fluxoCaixaLivre": 4200000000,
+    "precoAtual": 51.47,
+    "moedaBalanco": "BRL",
+    "receitaLiquida": 38120000000,
+    "ebitda": 8560000000,
+    "ebit": 7430000000,
+    "lucroLiquido": 6240000000,
+    "patrimonioLiquido": 19480000000,
+    "dividaBruta": 4820000000,
+    "caixa": 7890000000,
+    "fluxoCaixaLivre": 5130000000,
     "numeroAcoes": 4197317998,
-    "lpa": 1.21,
-    "dividendosPorAcao": 1.18,
-    "roic": 25.73,
-    "roe": 33.16,
-    "crescimentoReceita5a": 18.49,
-    "crescimentoLucro5a": 21.72,
-    "pl": 43.05,
-    "margemLiquida": 15.57,
-    "margemEbitda": 22.15,
-    "dividaLiquidaEbitda": -0.42,
-    "dividendYield": 2.27
+    "lpa": 1.49,
+    "dividendosPorAcao": 1.24,
+    "roic": 28.45,
+    "roe": 32.03,
+    "crescimentoReceita5a": 20.15,
+    "crescimentoLucro5a": 22.84,
+    "pl": 34.54,
+    "margemLiquida": 16.37,
+    "margemEbitda": 22.46,
+    "dividaLiquidaEbitda": -0.36,
+    "dividendYield": 2.41
   }
 ]`;
 }
@@ -1356,16 +1432,40 @@ Responda ESTRITAMENTE com o bloco JSON válido abaixo, sem texto antes ou depois
 /**
  * Abre o modal de atualização em lote via IA
  */
-function openBatchAiFundamentalsModal() {
+async function openBatchAiFundamentalsModal() {
   const modal = document.getElementById('modalBatchAiFundamentalsBackdrop');
   const promptEl = document.getElementById('batchAiPromptTextarea');
   const inputEl = document.getElementById('batchAiResponseInput');
   const fbEl = document.getElementById('batchAiFeedback');
+  const btnCopy = document.getElementById('btnCopyAiPrompt');
 
-  if (promptEl) promptEl.value = generateBatchAiPrompt();
   if (inputEl) inputEl.value = '';
   if (fbEl) fbEl.innerHTML = '';
   if (modal) modal.style.display = 'flex';
+
+  const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+  const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const isCacheStale = !cache || !cache.timestamp || ((now - cache.timestamp) > ONE_DAY_MS);
+
+  if (isCacheStale && typeof triggerB3Sync === 'function') {
+    if (promptEl) {
+      promptEl.value = '⏳ Cache de cotações com mais de 24h ou ausente. Atualizando cotações na B3 antes de gerar o prompt...';
+    }
+    if (btnCopy) btnCopy.disabled = true;
+
+    try {
+      await triggerB3Sync(false);
+    } catch (e) {
+      console.warn('Erro ao atualizar cotações antes de gerar prompt da IA:', e);
+    } finally {
+      if (btnCopy) btnCopy.disabled = false;
+    }
+  }
+
+  if (promptEl) {
+    promptEl.value = generateBatchAiPrompt();
+  }
 }
 
 /**
@@ -1511,6 +1611,9 @@ function processBatchAiResponse() {
       const lpaRaw = getNum(item, 'lpa', 'eps', 'earningsPerShare');
 
       // Persistir dados contábeis no ativo para modelo DCF e análise de saúde
+      const moeda = item.moedaBalanco || item.moeda || item.currency;
+      if (moeda) asset.fundamentals.currency = String(moeda).trim().toUpperCase();
+      if (patrimonioLiquido !== null) asset.fundamentals.equity = patrimonioLiquido;
       if (receita !== null) asset.fundamentals.revenue = receita;
       if (lucroLiquido !== null) asset.fundamentals.netIncome = lucroLiquido;
       if (ebitda !== null) asset.fundamentals.ebitda = ebitda;
@@ -1548,11 +1651,15 @@ function processBatchAiResponse() {
       }
 
       // P/L (Preço / Lucro) = Cotação / LPA
-      if (refPrice && refPrice > 0 && asset.fundamentals.eps && asset.fundamentals.eps > 0) {
+      const isBdr = (asset.fundamentals.currency === 'USD') || /(?:34|35|32|33)$/.test(itemTicker);
+      const peRaw = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
+      if (isBdr && peRaw !== null) {
+        // Para BDRs, usar o P/L já calculado e normalizado pela IA (paridade e câmbio)
+        asset.fundamentals.pe = peRaw;
+      } else if (refPrice && refPrice > 0 && asset.fundamentals.eps && asset.fundamentals.eps > 0) {
         asset.fundamentals.pe = parseFloat((refPrice / asset.fundamentals.eps).toFixed(2));
-      } else {
-        const peRaw = getNum(item, 'pl', 'pe', 'priceEarnings', 'p_l');
-        if (peRaw !== null) asset.fundamentals.pe = peRaw;
+      } else if (peRaw !== null) {
+        asset.fundamentals.pe = peRaw;
       }
 
       // Margem Líquida (%) = (Lucro Líquido / Receita Líquida) * 100
@@ -1580,11 +1687,13 @@ function processBatchAiResponse() {
       }
 
       // Dividend Yield (%) = (Dividendos por Ação / Cotação) * 100
-      if (refPrice && refPrice > 0 && dpa !== null) {
+      const dyRaw = getNum(item, 'dividendYield', 'dividend_yield', 'dy', 'DY');
+      if (isBdr && dyRaw !== null) {
+        asset.fundamentals.dividendYield = dyRaw;
+      } else if (refPrice && refPrice > 0 && dpa !== null) {
         asset.fundamentals.dividendYield = parseFloat(((dpa / refPrice) * 100).toFixed(2));
-      } else {
-        const dyRaw = getNum(item, 'dividendYield', 'dividend_yield', 'dy', 'DY');
-        if (dyRaw !== null) asset.fundamentals.dividendYield = dyRaw;
+      } else if (dyRaw !== null) {
+        asset.fundamentals.dividendYield = dyRaw;
       }
 
       // Cobertura de Juros = EBIT / Despesas Financeiras Líquidas
