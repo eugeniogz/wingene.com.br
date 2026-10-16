@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Política de Privacidade | WhyNot</title>
-  <meta name="description" content="Política de Privacidade e Proteção de Dados do aplicativo WhyNot (br.com.wingene.whynot). Transparência total sobre permissões de notificações e uso de IA.">
+  <meta name="description" content="Política de Privacidade e Proteção de Dados do aplicativo WhyNot (br.com.wingene.whynot). Transparência total sobre permissões de notificações e processamento 100% local no dispositivo.">
   
   <meta property="og:type" content="website">
   <meta property="og:title" content="Política de Privacidade - WhyNot">
-  <meta property="og:description" content="Saiba como o WhyNot protege suas informações e gerencia permissões de notificações no Android.">
+  <meta property="og:description" content="Saiba como o WhyNot protege suas informações com processamento 100% local e sem envio de notificações para a nuvem.">
   <meta property="og:image" content="assets/icon.png">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
   <link rel="icon" type="image/png" href="assets/icon.png">
@@ -274,8 +274,8 @@
       <div class="doc-meta">
         <span><strong>Aplicativo:</strong> WhyNot</span>
         <span><strong>Identificador (Package):</strong> br.com.wingene.whynot</span>
-        <span><strong>Data de Vigência:</strong> 20 de Setembro de 2026</span>
-        <span><strong>Versão:</strong> 1.0.8</span>
+        <span><strong>Data de Vigência:</strong> 16 de Outubro de 2026</span>
+        <span><strong>Versão:</strong> 1.1.0</span>
       </div>
     </div>
 
@@ -286,7 +286,7 @@
         Esta Política de Privacidade descreve de forma clara e transparente como o aplicativo móvel <strong>WhyNot</strong> ("Nós", "Nosso" ou "Aplicativo"), de titularidade de <strong>José Eugênio Gonçalves</strong> (Wingene Tecnologia), coleta, processa, utiliza e protege os dados dos usuários ("Você").
       </p>
       <p>
-        O WhyNot é uma ferramenta de produtividade projetada para realizar a <strong>triagem semântica inteligente, filtragem de ruído e alerta de alta prioridade de notificações</strong> no sistema operacional Android.
+        O WhyNot é uma ferramenta de produtividade e foco projetada para realizar a <strong>triagem inteligente, filtragem de ruído e alerta de alta prioridade de notificações</strong> no sistema operacional Android, operando exclusivamente com <strong>processamento 100% local no dispositivo (on-device)</strong>.
       </p>
       <div class="highlight-box">
         <strong>Contato do Encarregado de Dados (DPO / Suporte):</strong><br>
@@ -306,12 +306,12 @@
         <strong>Finalidade Exclusiva:</strong> Permite ao aplicativo ler o conteúdo das notificações ativas emitidas por outros aplicativos instalados no seu aparelho (como título, corpo da mensagem, nome do aplicativo remetente e carimbo de data/hora).
       </p>
       <p>
-        <strong>Como é utilizado:</strong> Essa leitura serve unicamente para que o motor de inteligência artificial ou motor heurístico analise a urgência da mensagem (ex: diferenciar uma mensagem de segurança com código 2FA de uma propaganda promocional) e gerar sumários executivos diários.
+        <strong>Como é utilizado:</strong> Essa leitura serve unicamente para que o motor local de regras analise a notificação (ex: identificar códigos 2FA, avisos bancários ou mensagens urgentes de trabalho vs. propagandas e distrações) e organize o feed em abas dedicadas (Urgentes, Normais, Ocultadas & Spams).
       </p>
 
       <h3>B. Exibição de Notificações (<code>POST_NOTIFICATIONS</code>)</h3>
       <p>
-        Permite ao WhyNot emitir os <strong>Alertas de Prioridade Crítica</strong> (heads-up alerts) quando um evento de extrema urgência for detectado, bem como notificar sobre o status do monitoramento e os resumos agendados (Digest).
+        Permite ao WhyNot emitir os <strong>Alertas de Prioridade Crítica</strong> (heads-up alerts) com sirene ou vibração quando um evento de extrema urgência for detectado, bem como notificar sobre o status do serviço de monitoramento ativo.
       </p>
 
       <h3>C. Serviço em Primeiro Plano (<code>FOREGROUND_SERVICE</code> e <code>SPECIAL_USE</code>)</h3>
@@ -330,39 +330,37 @@
       </p>
     </section>
 
-    <!-- Seção 3: Tratamento de Dados e Inteligência Artificial -->
+    <!-- Seção 3: Processamento Local e Privacidade (Sem IA em Nuvem) -->
     <section class="policy-section">
-      <h2>3. Processamento por Inteligência Artificial (Google Gemini)</h2>
+      <h2>3. Processamento 100% Local no Dispositivo (Sem Uso de IA em Nuvem)</h2>
       <p>
-        O WhyNot oferece dois métodos de processamento para a triagem de notificações:
+        O WhyNot foi concebido sob o princípio de <strong>Privacidade por Concepção (Privacy by Design)</strong>.
       </p>
-
-      <h3>A. Modo Nuvem com Google Gemini 1.5 Flash</h3>
+      <div class="highlight-box">
+        <strong>Sem Envio de Notificações para Nuvem ou IA:</strong><br>
+        O aplicativo <strong>NÃO</strong> utiliza serviços de inteligência artificial em nuvem (como OpenAI, Google Gemini ou servidores externos de processamento de linguagem) e <strong>NÃO</strong> envia o conteúdo textual de notificações (títulos, mensagens ou remetentes) para nenhum servidor remoto.
+      </div>
+      <h3>A. Motor de Regras e Triagem Local On-Device</h3>
       <p>
-        Quando conectado à internet e com a IA em nuvem ativada, os trechos textuais da notificação recebida (título e corpo) são transmitidos via conexão segura e criptografada (HTTPS / TLS 1.3) para as nossas <em>Cloud Functions</em> hospedadas no <strong>Google Cloud Platform / Firebase</strong> (projeto <code>whynot-ia</code>).
+        Toda a triagem, classificação de urgência, detecção de códigos 2FA e aplicação de filtros é executada <strong>exclusivamente na CPU do seu próprio smartphone</strong>, através de regras determinísticas, expressões regulares e termos heurísticos pré-definidos e configuráveis por você.
       </p>
       <ul>
-        <li>O modelo Google Gemini recebe o texto de forma isolada e stateless para retornar exclusivamente: categoria, pontuação de urgência (0 a 1) e uma frase de resumo executivo.</li>
-        <li><strong>Nenhuma notificação é utilizada para treinamento público de modelos de inteligência artificial</strong>.</li>
-        <li>As chaves de API do Google Gemini ficam blindadas no servidor em nuvem e nunca são expostas no código do aplicativo instalado no seu celular.</li>
+        <li><strong>Zero tráfego externo de notificações:</strong> As notificações chegam, são avaliadas e permanecem salvas estritamente no banco de dados local do seu dispositivo.</li>
+        <li><strong>Sem treinamento de modelos:</strong> Nenhum dado seu é utilizado ou alimentado em modelos de aprendizado de máquina.</li>
+        <li><strong>Independência de conexão:</strong> A triagem e os alertas funcionam com precisão instantânea mesmo quando o dispositivo estiver completamente offline ou em Modo Avião.</li>
       </ul>
-
-      <h3>B. Modo Heurístico Local (100% Offline)</h3>
-      <p>
-        O usuário pode optar, a qualquer momento nas Configurações do WhyNot, por desativar o processamento em nuvem. Nesse modo, a triagem é executada exclusivamente no processador do seu aparelho por meio de regras heurísticas e expressões regulares locais, sem qualquer tráfego de dados para a internet.
-      </p>
     </section>
 
     <!-- Seção 4: Autenticação Google e Contas -->
     <section class="policy-section">
       <h2>4. Autenticação com Conta Google (Google Sign-In)</h2>
       <p>
-        O aplicativo disponibiliza login seguro através do <strong>Google Sign-In</strong> e <strong>Firebase Authentication</strong>.
+        O aplicativo disponibiliza login opcional seguro através do <strong>Google Sign-In</strong> e <strong>Firebase Authentication</strong>.
       </p>
       <ul>
         <li><strong>Dados coletados no login:</strong> Nome de exibição, endereço de e-mail e identificador único de usuário (UID).</li>
-        <li><strong>Finalidade:</strong> Identificar a sessão ativa, sincronizar de forma segura preferências de configuração do usuário no Cloud Firestore e autenticar chamadas às funções de triagem na nuvem via tokens JWT criptografados.</li>
-        <li><strong>Senhas:</strong> O WhyNot <strong>não possui acesso nem armazena</strong> senhas da sua conta Google. Toda a autenticação é gerida diretamente pelos serviços do Google Play Services.</li>
+        <li><strong>Finalidade Estrita:</strong> Identificar a sessão ativa e permitir a sincronização segura de preferências e regras de configuração do usuário (como palavras-chave personalizadas e listas de apps silenciados) no Cloud Firestore. <strong>O conteúdo textual das notificações nunca é sincronizado nem armazenado no Cloud Firestore.</strong></li>
+        <li><strong>Senhas:</strong> O WhyNot <strong>não possui acesso nem armazena</strong> senhas da sua conta Google. Toda a autenticação é gerida diretamente pelos serviços oficiais do Google Play Services.</li>
       </ul>
     </section>
 
@@ -373,10 +371,10 @@
         <strong>Compromisso Inegociável:</strong> O WhyNot <strong>NÃO</strong> vende, aluga, comercializa ou transfere seus dados pessoais, hábitos de navegação ou conteúdo de notificações para empresas de publicidade, corretores de dados (data brokers) ou quaisquer terceiros com fins lucrativos.
       </div>
       <p>
-        O compartilhamento de dados ocorre exclusivamente com os provedores de infraestrutura essenciais para o funcionamento do app contratados pelo desenvolvedor:
+        O compartilhamento de dados ocorre exclusivamente com os provedores de infraestrutura essenciais para a autenticação opcional contratados pelo desenvolvedor:
       </p>
       <ul>
-        <li><strong>Google Cloud Platform & Firebase:</strong> Para hospedagem de back-end, autenticação e computação em nuvem segura.</li>
+        <li><strong>Google Cloud Platform & Firebase:</strong> Utilizados exclusivamente para a autenticação segura do usuário (Google Sign-In) e backup em nuvem das preferências de configuração do app.</li>
       </ul>
     </section>
 
@@ -419,9 +417,9 @@
         Adotamos medidas técnicas e administrativas aptas a proteger seus dados contra acessos não autorizados e situações acidentais ou ilícitas de destruição, perda ou alteração:
       </p>
       <ul>
-        <li>Criptografia de ponta a ponta em trânsito com TLS 1.3 / HTTPS.</li>
-        <li>Proteção das chaves mestras e credenciais sensíveis via Google Secret Manager.</li>
-        <li>Regras de segurança rigorosas no Cloud Firestore, impedindo que um usuário acesse qualquer registro que não seja de sua própria titularidade.</li>
+        <li><strong>Isolamento Local:</strong> O processamento e filtragem de notificações ocorrem 100% no próprio dispositivo, eliminando qualquer risco de interceptação de mensagens por redes externas.</li>
+        <li>Criptografia de ponta a ponta em trânsito com TLS 1.3 / HTTPS na sincronização de configurações de conta.</li>
+        <li>Regras de segurança rigorosas no Cloud Firestore, garantindo que nenhum usuário acesse configurações ou dados de outro.</li>
       </ul>
     </section>
 
