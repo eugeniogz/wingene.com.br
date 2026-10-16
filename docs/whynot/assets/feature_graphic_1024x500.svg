@@ -1,0 +1,337 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlowEmerald" cx="15%" cy="30%" r="52%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bgGlowGold" cx="88%" cy="12%" r="48%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="bgGlowPhone" cx="64%" cy="48%" r="45%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.16" />
+      <stop offset="60%" stop-color="#059669" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#059669" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Star Emblem Gradients -->
+    <linearGradient id="goldLightGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Text Title Gradient -->
+    <linearGradient id="textGradTitle" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="45%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+
+    <!-- Phone Chassis Gradients -->
+    <linearGradient id="phoneBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="25%" stop-color="#334155" />
+      <stop offset="70%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+    <linearGradient id="phoneScreenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0b101b" />
+      <stop offset="100%" stop-color="#05070c" />
+    </linearGradient>
+
+    <!-- Floating Cards Gradients -->
+    <linearGradient id="glassCardBgGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1612" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#100b0d" stop-opacity="0.98" />
+    </linearGradient>
+    <linearGradient id="glassCardBgGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1f17" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#08120e" stop-opacity="0.98" />
+    </linearGradient>
+
+    <!-- Glow & Shadows -->
+    <filter id="shadowGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="phoneShadow" x="-25%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="-8" dy="22" stdDeviation="24" flood-color="#000000" flood-opacity="0.90" />
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#10b981" flood-opacity="0.22" />
+    </filter>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.80" />
+    </filter>
+  </defs>
+
+  <style>
+    .font-title { font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif; font-weight: 800; }
+    .font-bold { font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif; font-weight: 700; }
+    .font-regular { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 400; }
+    .font-medium { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 500; }
+    .font-semibold { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 600; }
+  </style>
+
+  <!-- 1. BASE CANVAS -->
+  <rect width="1024" height="500" fill="#060709" />
+
+  <!-- 2. LUXURY AMBIENT GLOWS -->
+  <rect width="1024" height="500" fill="url(#bgGlowEmerald)" />
+  <rect width="1024" height="500" fill="url(#bgGlowGold)" />
+  <rect width="1024" height="500" fill="url(#bgGlowPhone)" />
+
+  <!-- 3. GEOMETRIC BACKGROUND ACCENTS -->
+  <g opacity="0.16" stroke="#38bdf8" stroke-width="1">
+    <line x1="480" y1="70" x2="600" y2="35" stroke-dasharray="3 6" />
+    <line x1="600" y1="35" x2="780" y2="85" stroke-dasharray="3 6" />
+    <line x1="780" y1="85" x2="980" y2="40" stroke-dasharray="3 6" />
+    <line x1="780" y1="85" x2="860" y2="230" stroke-dasharray="3 6" />
+    <line x1="860" y1="230" x2="990" y2="320" stroke-dasharray="3 6" />
+    <line x1="500" y1="430" x2="620" y2="470" stroke-dasharray="3 6" />
+    
+    <circle cx="480" cy="70" r="3" fill="#10b981" />
+    <circle cx="600" cy="35" r="3.5" fill="#34d399" />
+    <circle cx="780" cy="85" r="4" fill="#fbbf24" />
+    <circle cx="980" cy="40" r="3" fill="#38bdf8" />
+    <circle cx="860" cy="230" r="4" fill="#10b981" />
+    <circle cx="990" cy="320" r="3.5" fill="#f59e0b" />
+    <circle cx="500" cy="430" r="3" fill="#34d399" />
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- LEFT COLUMN: BRANDING, HEADLINE & CURRENT FEATURES      -->
+  <!-- ======================================================== -->
+  <g transform="translate(54, 0)">
+    
+    <!-- Header Brand Bar -->
+    <g transform="translate(0, 48)">
+      <!-- 3D Faceted Star Emblem -->
+      <g transform="translate(24, 24) scale(0.40)" filter="url(#shadowGlow)">
+        <polygon points="0,0 0,-85 -18,-31.18" fill="url(#goldLightGrad)" />
+        <polygon points="0,0 0,-85 18,-31.18" fill="url(#goldGrad)" />
+        <polygon points="0,0 73.61,-42.5 18,-31.18" fill="url(#greenGrad)" />
+        <polygon points="0,0 73.61,-42.5 36,0" fill="#059669" />
+        <polygon points="0,0 73.61,42.5 36,0" fill="url(#goldLightGrad)" />
+        <polygon points="0,0 73.61,42.5 18,31.18" fill="url(#goldGrad)" />
+        <polygon points="0,0 0,85 18,31.18" fill="url(#greenGrad)" />
+        <polygon points="0,0 0,85 -18,31.18" fill="#047857" />
+        <polygon points="0,0 -73.61,42.5 -18,31.18" fill="url(#goldLightGrad)" />
+        <polygon points="0,0 -73.61,42.5 -36,0" fill="url(#goldGrad)" />
+        <polygon points="0,0 -73.61,-42.5 -36,0" fill="url(#greenGrad)" />
+        <polygon points="0,0 -73.61,-42.5 -18,-31.18" fill="#059669" />
+        <polygon points="0,-46.77 40.5,-23.39 40.5,23.39 0,46.77 -40.5,23.39 -40.5,-23.39" fill="#0a0a0e" stroke="url(#goldGrad)" stroke-width="3.5" />
+        <path d="M -22.5,-15 L -12,16.5 L 0,-1.5 L 12,16.5 L 22.5,-15" fill="none" stroke="url(#goldLightGrad)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="0" cy="28.5" r="5" fill="#34d399" />
+      </g>
+
+      <!-- Logo Typography -->
+      <text x="62" y="33" class="font-title" font-size="33" fill="#ffffff" letter-spacing="0.5">WhyNot</text>
+
+      <!-- 100% On-Device Badge -->
+      <g transform="translate(202, 11)">
+        <rect width="142" height="27" rx="13.5" fill="#10b981" fill-opacity="0.14" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.6" />
+        <circle cx="15" cy="13.5" r="3.5" fill="#34d399" />
+        <text x="27" y="17.5" class="font-bold" font-size="10.5" fill="#a7f3d0" letter-spacing="0.8">100% ON-DEVICE</text>
+      </g>
+    </g>
+
+    <!-- Main Title (2 Lines) -->
+    <g transform="translate(0, 148)">
+      <text x="0" y="0" class="font-title" font-size="38" fill="#ffffff" letter-spacing="-0.5">
+        Triagem Inteligente de
+      </text>
+      <text x="0" y="46" class="font-title" font-size="38" fill="url(#textGradTitle)" letter-spacing="-0.5">
+        Notificações Android
+      </text>
+    </g>
+
+    <!-- Subtitle Description -->
+    <g transform="translate(0, 242)">
+      <text x="0" y="0" class="font-regular" font-size="15" fill="#94a3b8">
+        Filtre o ruído, silencie distrações e nunca perca alertas
+      </text>
+      <text x="0" y="24" class="font-regular" font-size="15" fill="#94a3b8">
+        críticos de bancos, códigos 2FA e mensagens urgentes.
+      </text>
+    </g>
+
+    <!-- 3 Highlight Feature Badges -->
+    <g transform="translate(0, 312)">
+      <!-- Badge 1: Alertas Sirene -->
+      <g transform="translate(0, 0)">
+        <rect width="144" height="40" rx="10" fill="#201511" fill-opacity="0.9" stroke="#f59e0b" stroke-width="1.3" stroke-opacity="0.75" />
+        <circle cx="18" cy="20" r="4.5" fill="#f59e0b" />
+        <text x="32" y="24.5" class="font-bold" font-size="12" fill="#fef3c7">Alertas Sirene</text>
+      </g>
+
+      <!-- Badge 2: Feed 4 Abas -->
+      <g transform="translate(154, 0)">
+        <rect width="138" height="40" rx="10" fill="#111d28" fill-opacity="0.9" stroke="#38bdf8" stroke-width="1.3" stroke-opacity="0.75" />
+        <circle cx="18" cy="20" r="4.5" fill="#38bdf8" />
+        <text x="32" y="24.5" class="font-bold" font-size="12" fill="#e0f2fe">Feed 4 Abas</text>
+      </g>
+
+      <!-- Badge 3: Filtros & Mute -->
+      <g transform="translate(302, 0)">
+        <rect width="146" height="40" rx="10" fill="#0f2219" fill-opacity="0.9" stroke="#10b981" stroke-width="1.3" stroke-opacity="0.75" />
+        <circle cx="18" cy="20" r="4.5" fill="#10b981" />
+        <text x="32" y="24.5" class="font-bold" font-size="12" fill="#d1fae5">Filtros &amp; Mute</text>
+      </g>
+    </g>
+
+    <!-- Bottom Reassurance Guarantee -->
+    <g transform="translate(0, 402)">
+      <rect width="448" height="38" rx="9" fill="#0d141f" fill-opacity="0.7" stroke="#1e293b" stroke-width="1" />
+      <g transform="translate(16, 24)">
+        <!-- Shield Lock Icon -->
+        <path d="M4 8 V6 A4 4 0 0 1 12 6 V8 M2 8 H14 A1 1 0 0 1 15 9 V15 A1 1 0 0 1 14 16 H2 A1 1 0 0 1 1 15 V9 A1 1 0 0 1 2 8 Z" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" transform="translate(0, -15) scale(0.95)" />
+        <text x="24" y="-1.5" class="font-semibold" font-size="12" fill="#cbd5e1">
+          Privacidade Absoluta • Sem envio de dados para a nuvem
+        </text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- RIGHT COLUMN: SMARTPHONE DEVICE & FLOATING CALLOUT CARDS -->
+  <!-- ======================================================== -->
+  <g transform="translate(515, 18)">
+
+    <!-- 1. SMARTPHONE DEVICE MOCKUP (Shifted slightly left for balanced breath) -->
+    <g transform="translate(0, 0)" filter="url(#phoneShadow)">
+      <!-- Outer Metal Chassis -->
+      <rect x="0" y="0" width="242" height="462" rx="38" fill="url(#phoneBorder)" stroke="#475569" stroke-width="2" />
+      
+      <!-- Inner Bezel -->
+      <rect x="5.5" y="5.5" width="231" height="451" rx="33" fill="#020408" />
+
+      <!-- Screen Display -->
+      <rect x="9" y="9" width="224" height="444" rx="29" fill="url(#phoneScreenGrad)" />
+
+      <!-- Dynamic Island / Speaker Notch -->
+      <rect x="91" y="15" width="60" height="11" rx="5.5" fill="#000000" />
+      <circle cx="139" cy="20.5" r="2.5" fill="#1e293b" />
+
+      <!-- Inside App Screen UI -->
+      <g transform="translate(15, 36)">
+        
+        <!-- Status Bar -->
+        <g transform="translate(0, 4)">
+          <text x="4" y="8" class="font-semibold" font-size="8.5" fill="#94a3b8">09:41</text>
+          <path d="M 172 5 A 4 4 0 0 1 180 5 M 174 7 A 2 2 0 0 1 178 7 M 176 9 A 1 1 0 0 1 176 9" fill="none" stroke="#94a3b8" stroke-width="1" />
+          <rect x="184" y="2" width="13" height="7" rx="1.5" fill="none" stroke="#94a3b8" stroke-width="1" />
+          <rect x="186" y="4" width="7" height="3" rx="0.5" fill="#94a3b8" />
+        </g>
+
+        <!-- Top App Bar -->
+        <g transform="translate(4, 22)">
+          <text x="0" y="16" class="font-title" font-size="16" fill="#ffffff">WhyNot</text>
+          <!-- Active Status Pill -->
+          <g transform="translate(142, 4)">
+            <rect width="48" height="14" rx="7" fill="#10b981" fill-opacity="0.18" stroke="#10b981" stroke-width="0.8" />
+            <circle cx="8" cy="7" r="2.5" fill="#34d399" />
+            <text x="15" y="10" class="font-bold" font-size="7.5" fill="#34d399">Ativo</text>
+          </g>
+        </g>
+
+        <!-- 4 Filter Tabs Row (Properly spaced) -->
+        <g transform="translate(0, 52)">
+          <rect x="0" y="0" width="42" height="21" rx="6" fill="#1e293b" />
+          <text x="21" y="13.5" class="font-bold" font-size="8" fill="#e2e8f0" text-anchor="middle">Todas</text>
+
+          <rect x="46" y="0" width="54" height="21" rx="6" fill="#dc2626" />
+          <text x="73" y="13.5" class="font-bold" font-size="8" fill="#ffffff" text-anchor="middle">Urgentes</text>
+
+          <rect x="104" y="0" width="44" height="21" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.8" />
+          <text x="126" y="13.5" class="font-semibold" font-size="7.5" fill="#94a3b8" text-anchor="middle">Normais</text>
+
+          <rect x="152" y="0" width="42" height="21" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.8" />
+          <text x="173" y="13.5" class="font-semibold" font-size="7.5" fill="#94a3b8" text-anchor="middle">Ocultas</text>
+        </g>
+
+        <!-- App Screen Card 1: Urgent Alert (Inter / Pix) -->
+        <g transform="translate(0, 88)">
+          <rect width="194" height="92" rx="11" fill="#1b1214" stroke="#ef4444" stroke-width="1.3" />
+          
+          <!-- App Info & Tag -->
+          <text x="10" y="17" class="font-bold" font-size="9" fill="#f87171">🏦 Banco Inter • Urgente</text>
+          <rect x="140" y="8" width="46" height="14" rx="4" fill="#dc2626" />
+          <text x="163" y="18" class="font-title" font-size="7.5" fill="#ffffff" text-anchor="middle">CRÍTICO</text>
+
+          <!-- Notification Title & Content -->
+          <text x="10" y="34" class="font-bold" font-size="10" fill="#ffffff">Código Pix: 849201</text>
+          <text x="10" y="48" class="font-regular" font-size="8.5" fill="#cbd5e1">Transferência de R$ 1.500 solicitada</text>
+          
+          <!-- Local Action Pill -->
+          <rect x="8" y="60" width="178" height="23" rx="6" fill="#450a0a" stroke="#991b1b" stroke-width="0.8" />
+          <text x="14" y="75" class="font-bold" font-size="8" fill="#fca5a5">🚨 Sirene &amp; Vibração Ativas (DND)</text>
+        </g>
+
+        <!-- App Screen Card 2: Trabalho Urgente (Slack) -->
+        <g transform="translate(0, 192)">
+          <rect width="194" height="74" rx="11" fill="#181926" stroke="#f59e0b" stroke-width="1.1" />
+          <text x="10" y="17" class="font-bold" font-size="9" fill="#fbbf24">💼 Slack • Trabalho</text>
+          <rect x="130" y="8" width="56" height="14" rx="4" fill="#b45309" fill-opacity="0.75" />
+          <text x="158" y="18" class="font-bold" font-size="7.5" fill="#fef3c7" text-anchor="middle">PRIORITÁRIA</text>
+
+          <text x="10" y="34" class="font-bold" font-size="10" fill="#ffffff">Reunião antecipada p/ 14h</text>
+          <text x="10" y="48" class="font-regular" font-size="8.5" fill="#94a3b8">Link Google Meet atualizado na pauta</text>
+          <text x="10" y="63" class="font-semibold" font-size="7.5" fill="#fbbf24">Regra prioritária: #diretoria</text>
+        </g>
+
+        <!-- App Screen Card 3: Mute/Silêncio (Promoção) -->
+        <g transform="translate(0, 278)">
+          <rect width="194" height="58" rx="11" fill="#0d1421" stroke="#1e293b" stroke-width="1" />
+          <text x="10" y="16" class="font-semibold" font-size="8.5" fill="#64748b">🛍️ App Compras • Silenciado</text>
+          <rect x="146" y="8" width="40" height="13" rx="4" fill="#1e293b" />
+          <text x="166" y="17.5" class="font-bold" font-size="7.5" fill="#94a3b8" text-anchor="middle">MUTE</text>
+
+          <text x="10" y="32" class="font-medium" font-size="9" fill="#64748b">Cupom de 50% expira hoje</text>
+          <text x="10" y="47" class="font-semibold" font-size="8" fill="#059669">✓ Ocultada da barra de status</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- 2. FLOATING CALLOUT CARD (TOP RIGHT): CRITICAL ALERT -->
+    <g transform="translate(216, 52)" filter="url(#cardShadow)">
+      <rect width="248" height="96" rx="18" fill="url(#glassCardBgGold)" stroke="#f59e0b" stroke-width="1.6" stroke-opacity="0.85" />
+      
+      <!-- Bell with Sound Waves Icon -->
+      <circle cx="38" cy="48" r="20" fill="#f59e0b" fill-opacity="0.20" />
+      <g transform="translate(26, 36)">
+        <path d="M12 4 A5 5 0 0 0 7 9 V13 L5 15 H19 L17 13 V9 A5 5 0 0 0 12 4 Z M10 17 A2 2 0 0 0 14 17" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+
+      <text x="70" y="34" class="font-title" font-size="13" fill="#fef08a" letter-spacing="0.5">ALERTA PRIORITÁRIO</text>
+      <text x="70" y="54" class="font-bold" font-size="12" fill="#ffffff">Sirene &amp; Vibração Ativas</text>
+      <text x="70" y="73" class="font-regular" font-size="10" fill="#cbd5e1">Bypass do Modo Não Perturbe</text>
+    </g>
+
+    <!-- 3. FLOATING CALLOUT CARD (BOTTOM RIGHT): ON-DEVICE PRIVACY -->
+    <g transform="translate(202, 332)" filter="url(#cardShadow)">
+      <rect width="258" height="94" rx="18" fill="url(#glassCardBgGreen)" stroke="#10b981" stroke-width="1.6" stroke-opacity="0.85" />
+      
+      <!-- Shield / Verified Icon -->
+      <circle cx="38" cy="47" r="20" fill="#10b981" fill-opacity="0.20" />
+      <g transform="translate(26, 35)">
+        <path d="M12 2 L4 5 V11 C4 16 7.5 20.5 12 22 C16.5 20.5 20 16 20 11 V5 Z" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9 11 L11 13 L15 9" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+
+      <text x="70" y="33" class="font-title" font-size="13" fill="#6ee7b7" letter-spacing="0.5">MOTOR LOCAL NO CHIP</text>
+      <text x="70" y="53" class="font-bold" font-size="12" fill="#ffffff">Zero Latência • 100% Offline</text>
+      <text x="70" y="72" class="font-regular" font-size="10" fill="#94a3b8">Suas mensagens não saem do celular</text>
+    </g>
+
+  </g>
+</svg>
