@@ -181,6 +181,22 @@ function applyRemoteData(remoteData) {
     desktopPassword: remoteData.desktopPassword || appState.desktopPassword || '',
     lastUpdated: remoteData.lastUpdated || new Date().toISOString()
   };
+
+  // Se o cache local de cotações B3 for mais recente que o arquivo do Google Drive,
+  // preservar as cotações mais recentes em vez de sobrescrever com preços desatualizados
+  const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+  const remoteTime = new Date(remoteData.lastUpdated || 0).getTime();
+  if (cache && cache.quotes && cache.timestamp && (!remoteTime || cache.timestamp >= remoteTime)) {
+    appState.acoes.forEach(ac => {
+      const t = ac.ticker ? ac.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
+      const q = cache.quotes[t] || (ac.ticker && cache.quotes[ac.ticker]);
+      if (q && q.currentPrice > 0) {
+        ac.precoAtual = q.currentPrice;
+        ac.preco = q.currentPrice;
+      }
+    });
+  }
+
   sanitizeAppState();
   saveLocalState(false, false);
   checkDesktopLockState();
@@ -3542,7 +3558,8 @@ async function fetchQuoteSingleTicker(ticker) {
   const yahooSymbol = isIndex ? '^BVSP' : `${cleanSymbol}.SA`;
   const brapiSymbol = isIndex ? 'IBOV' : cleanSymbol;
 
-  const isFii = cleanSymbol.endsWith('11') && !cleanSymbol.startsWith('BOVA') && !cleanSymbol.startsWith('SMAL');
+  const commonUnits11 = ['TAEE11', 'KLBN11', 'SANB11', 'BPAC11', 'SAPR11', 'ALUP11', 'TIET11', 'BBDC11', 'ENGI11', 'SULA11'];
+  const isFii = cleanSymbol.endsWith('11') && !cleanSymbol.startsWith('BOVA') && !cleanSymbol.startsWith('SMAL') && !commonUnits11.includes(cleanSymbol);
   const isBdr = cleanSymbol.endsWith('34') || cleanSymbol.endsWith('35') || cleanSymbol.endsWith('39');
   const mfinanceCategory = isFii ? 'fiis' : 'stocks';
 
@@ -3577,6 +3594,13 @@ async function fetchQuoteSingleTicker(ticker) {
       url: `https://mfinance.com.br/api/v1/${mfinanceCategory}/${encodeURIComponent(cleanSymbol)}`,
       type: 'mfinance'
     });
+    if (cleanSymbol.endsWith('11')) {
+      const altCategory = isFii ? 'stocks' : 'fiis';
+      endpoints.push({
+        url: `https://mfinance.com.br/api/v1/${altCategory}/${encodeURIComponent(cleanSymbol)}`,
+        type: 'mfinance'
+      });
+    }
   }
 
   // 2. Brapi (se token existir ou para sandbox público)
@@ -3866,12 +3890,6 @@ async function triggerB3Sync(force = false) {
     // Sincronizar benchmarks de CDI e Ibovespa em segundo plano
     await syncBenchmarksData(force);
 
-    if (force) {
-      try {
-        localStorage.removeItem(B3_CACHE_KEY);
-      } catch (e) {}
-    }
-
     let cache = getB3QuotesCache();
     const now = Date.now();
 
@@ -3914,8 +3932,14 @@ async function triggerB3Sync(force = false) {
           const t = acaoItem.ticker ? acaoItem.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
           if (t === symbol && newQuotes[symbol]) {
             if (newQuotes[symbol].currentPrice > 0) {
+              if (acaoItem.preco !== newQuotes[symbol].currentPrice || acaoItem.precoAtual !== newQuotes[symbol].currentPrice) {
+                if (typeof recordAssetHistory === 'function') {
+                  recordAssetHistory(acaoItem, newQuotes[symbol].currentPrice);
+                }
+              }
               acaoItem.preco = newQuotes[symbol].currentPrice;
               acaoItem.precoAtual = newQuotes[symbol].currentPrice;
+              acaoItem.data = new Date().toLocaleDateString('pt-BR');
             }
 
             let hist = cache.quotes[symbol].history;
@@ -3948,7 +3972,11 @@ async function triggerB3Sync(force = false) {
     }
 
     sanitizeAppState();
-    saveLocalState(false, false);
+    if (updatedCount > 0) {
+      saveLocalState(true, true);
+    } else {
+      saveLocalState(false, false);
+    }
     renderApp();
 
     if (updatedCount > 0) {
