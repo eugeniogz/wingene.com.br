@@ -930,6 +930,164 @@ h1, h2, h3, h4 {
     flex-shrink: 0;
 }
 
+/* ==========================================================================
+   SEÇÃO SOFTWARES E FERRAMENTAS CONSCIENTES
+   ========================================================================== */
+.software-section {
+    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-primary) 100%);
+    position: relative;
+    border-top: 1px solid var(--border-glass);
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.software-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.software-card {
+    border-radius: 20px;
+    padding: 2.2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1px solid var(--border-glass);
+    transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.software-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--border-glass-hover);
+    box-shadow: 0 16px 36px 0 rgba(0, 0, 0, 0.25);
+}
+
+.software-card-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.software-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+    width: fit-content;
+}
+
+.badge-vida-app {
+    background-color: var(--color-valores-glow);
+    color: var(--text-valores);
+    border: 1px solid rgba(148, 15, 15, 0.2);
+}
+
+.badge-afeto-app {
+    background-color: var(--color-atencao-glow);
+    color: var(--color-atencao);
+    border: 1px solid rgba(18, 62, 156, 0.2);
+}
+
+.badge-winvest-app {
+    background-color: var(--color-imperfeicoes-glow);
+    color: var(--color-imperfeicoes);
+    border: 1px solid rgba(133, 117, 6, 0.2);
+}
+
+.badge-whynot-app {
+    background-color: var(--color-decisoes-glow);
+    color: var(--color-decisoes);
+    border: 1px solid rgba(14, 125, 15, 0.2);
+}
+
+.software-card h3 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.software-tagline {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.software-card p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.software-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.software-features li {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.software-features li::before {
+    content: "✓";
+    font-weight: 700;
+    color: var(--color-decisoes);
+    font-size: 0.9rem;
+}
+
+.software-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-glass);
+}
+
+.software-btn-main {
+    flex: 1;
+    text-align: center;
+    padding: 0.7rem 1.2rem;
+    font-size: 0.9rem;
+    border-radius: 30px;
+}
+
+.software-link-more {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: var(--transition-quick);
+    padding: 0.4rem 0.6rem;
+}
+
+.software-link-more:hover {
+    color: var(--text-primary);
+}
+
 /* Seção Mapa de Conteúdo (Tópicos do Acervo) */
 .content-directory-section {
     background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
