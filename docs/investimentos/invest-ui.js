@@ -1344,14 +1344,14 @@ function generateBatchAiPrompt() {
     pricesListStr = [
       '- WEGE3: 51.47',
       '- ISAE4: 29.32',
-      '- GOGL34: 145.10',
+      '- GOGL34: 142.25',
       '- BBSE3: 40.82',
       '- ALZR11: 10.46',
       '- ITUB4: 50.47',
       '- ALOS3: 35.83',
       '- TAEE11: 46.45',
-      '- AMZO34: 66.57',
-      '- MSCD34: 96.62'
+      '- AMZO34: 67.01',
+      '- MSCD34: 104.86'
     ].join('\n');
   }
 

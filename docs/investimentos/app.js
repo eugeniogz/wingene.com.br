@@ -105,11 +105,11 @@ const B3_MARKET_SERIES_REF = {
   'VISC11': { pAno: 118.00, pMes: 121.40, pAtual: 122.10 },
 
   // BDRs Principais (Valores reais em R$ na B3)
-  'MSCD34': { pAno: 78.40, pMes: 94.10, pAtual: 96.62 }, // Mastercard
-  'AMZO34': { pAno: 48.20, pMes: 64.50, pAtual: 66.57 }, // Amazon
-  'GOGL34': { pAno: 88.57, pMes: 129.80, pAtual: 145.10 }, // Alphabet/Google
-  'AAPL34': { pAno: 64.20, pMes: 78.40, pAtual: 81.96 }, // Apple
-  'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.46 }, // Nvidia
+  'MSCD34': { pAno: 78.40, pMes: 94.10, pAtual: 104.86 }, // Mastercard
+  'AMZO34': { pAno: 48.20, pMes: 64.50, pAtual: 67.01 }, // Amazon
+  'GOGL34': { pAno: 88.57, pMes: 129.80, pAtual: 142.20 }, // Alphabet/Google
+  'AAPL34': { pAno: 64.20, pMes: 78.40, pAtual: 92.14 }, // Apple
+  'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.25 }, // Nvidia
   'MSFT34': { pAno: 82.40, pMes: 94.10, pAtual: 96.50 }, // Microsoft
   'META34': { pAno: 54.30, pMes: 92.10, pAtual: 98.40 }, // Meta
   'TSLA34': { pAno: 42.10, pMes: 55.40, pAtual: 58.20 }, // Tesla
@@ -3568,23 +3568,8 @@ async function fetchQuoteSingleTicker(ticker) {
   const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
   const brapiHeaders = brapiToken ? { 'Authorization': `Bearer ${brapiToken}` } : {};
 
-  // Para BDRs sem token Brapi cadastrado: se constar na referência de mercado, resolver imediatamente
-  if (isBdr && !brapiToken && typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[cleanSymbol]) {
-    const ref = B3_MARKET_SERIES_REF[cleanSymbol];
-    if (ref && ref.pAtual > 0) {
-      const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
-        ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
-        : [];
-      return sanitizeFetchedQuote({
-        symbol: cleanSymbol,
-        currentPrice: ref.pAtual,
-        updatedAt: new Date().toISOString(),
-        history: generatedHist
-      });
-    }
-  }
-
   const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [];
 
@@ -3603,23 +3588,28 @@ async function fetchQuoteSingleTicker(ticker) {
     }
   }
 
-  // 2. Brapi (se token existir ou para sandbox público)
+  // 2. Brapi (se token existir ou para sandbox público de ações/FIIs)
   if (brapiToken) {
     endpoints.push({
       url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
       type: 'brapi'
     });
-  } else {
+  } else if (!isBdr) {
     endpoints.push({
       url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d`,
       type: 'brapi'
     });
   }
 
-  // 3. Fallback Proxies para Yahoo Finance
+  // 3. Fallback Proxies para Yahoo Finance (essencial para BDRs e benchmarks)
   endpoints.push(
     {
       url: `https://r.jina.ai/${rawYahooUrl}`,
+      type: 'jina',
+      headers: { 'Accept': 'application/json' }
+    },
+    {
+      url: `https://r.jina.ai/${rawYahooUrl2}`,
       type: 'jina',
       headers: { 'Accept': 'application/json' }
     },
