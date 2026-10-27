@@ -91,6 +91,24 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://wingene.com.br/whealth/</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wingene.com.br/whealth/privacy.html</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://wingene.com.br/whealth/terms.html</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://wingene.com.br/whynot/</loc>
     <lastmod>2026-10-16</lastmod>
     <changefreq>weekly</changefreq>
