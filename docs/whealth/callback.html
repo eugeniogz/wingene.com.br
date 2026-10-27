@@ -49,14 +49,33 @@
   </div>
 
   <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
     const params = window.location.search;
     const deepLink = 'whealth://oauth-callback' + params;
     document.getElementById('app-link').href = deepLink;
 
-    // Automatic deep-link trigger
-    setTimeout(() => {
-      window.location.href = deepLink;
-    }, 400);
+    const tokenEndpoint = 'https://southamerica-east1-whealth-wingene.cloudfunctions.net/garminWebhook/oauth/token';
+
+    if (code) {
+      document.getElementById('status-text').innerText = 'Validando credenciais com a Garmin...';
+      fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('status-text').innerText = 'Conta Garmin conectada com sucesso! Abrindo o Whealth...';
+        setTimeout(() => { window.location.href = deepLink; }, 300);
+      })
+      .catch(err => {
+        console.warn('Background token exchange error, forwarding to app:', err);
+        setTimeout(() => { window.location.href = deepLink; }, 400);
+      });
+    } else {
+      setTimeout(() => { window.location.href = deepLink; }, 400);
+    }
   </script>
 </body>
 </html>
