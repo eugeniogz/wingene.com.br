@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whealth | Autenticação Garmin Connect™</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/png" href="assets/icon_transparent.png">
+  <style>
+    .callback-card {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 40px;
+      background: #141824;
+      border-radius: 20px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      margin: 24px auto;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-left-color: #00d2ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="callback-card">
+      <img src="assets/icon_transparent.png" alt="Whealth" style="width: 76px; height: 76px; margin-bottom: 16px;">
+      <h2 style="font-size: 1.6rem; color: #ffffff; margin-bottom: 8px;">Garmin Connect™</h2>
+      <div class="spinner" id="spinner"></div>
+      <p id="status-text" style="color: #94a3b8; font-size: 1.05rem; line-height: 1.6; margin-top: 16px;">
+        Autorização recebida com sucesso! Retornando ao aplicativo Whealth...
+      </p>
+      <div style="margin-top: 28px;">
+        <a id="app-link" href="whealth://oauth-callback" class="btn btn-primary" style="display: inline-block; padding: 12px 28px; text-decoration: none; border-radius: 30px; font-weight: 600; color: #fff; background: linear-gradient(135deg, #00d2ff, #0066ff);">
+          Abrir o Aplicativo Whealth
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const params = window.location.search;
+    const deepLink = 'whealth://oauth-callback' + params;
+    document.getElementById('app-link').href = deepLink;
+
+    // Automatic deep-link trigger
+    setTimeout(() => {
+      window.location.href = deepLink;
+    }, 400);
+  </script>
+</body>
+</html>
