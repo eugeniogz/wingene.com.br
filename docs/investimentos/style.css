@@ -1240,6 +1240,8 @@ select.form-control {
 
 .toast-success { border-left: 4px solid var(--primary-green); }
 .toast-error { border-left: 4px solid var(--primary-red); }
+.toast-warning { border-left: 4px solid #f59e0b; }
+.toast-info { border-left: 4px solid var(--primary-blue); }
 
 .clickable-row {
   cursor: pointer;

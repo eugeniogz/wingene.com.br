@@ -437,26 +437,16 @@ function sanitizeAppState() {
       }
     }
 
-    // Ativo sem preço (ou zerado): recuperar imediatamente de B3_MARKET_SERIES_REF ou cache de cotações
+    // Ativo sem preço (ou zerado): recuperar de cache de cotações se existente
     if ((isNaN(pAt) || pAt <= 0) && (isNaN(pCad) || pCad <= 0)) {
-      if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[rawT]) {
-        const ref = B3_MARKET_SERIES_REF[rawT];
-        if (ref && ref.pAtual > 0) {
-          ac.preco = ref.pAtual;
-          ac.precoAtual = ref.pAtual;
-          pCad = ref.pAtual;
-          pAt = ref.pAtual;
-        }
-      } else {
-        const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
-        if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
-          const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
-          if (q && q.currentPrice > 0) {
-            ac.preco = q.currentPrice;
-            ac.precoAtual = q.currentPrice;
-            pCad = q.currentPrice;
-            pAt = q.currentPrice;
-          }
+      const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+      if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
+        const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
+        if (q && q.currentPrice > 0) {
+          ac.preco = q.currentPrice;
+          ac.precoAtual = q.currentPrice;
+          pCad = q.currentPrice;
+          pAt = q.currentPrice;
         }
       }
     }
@@ -866,8 +856,6 @@ function setupEventListeners() {
         if (q && q.currentPrice > 0) {
           precoInput.value = q.currentPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-      } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
-        precoInput.value = B3_MARKET_SERIES_REF[symbol].pAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
     }
   });
@@ -1251,14 +1239,10 @@ function calculateFinancials() {
     const qty = parseFloat(acao.quantidade) || 0;
     let precoAtual = parseFloat(acao.precoAtual !== undefined ? acao.precoAtual : acao.preco) || 0;
 
-    // Se o preço estiver 0 no objeto, recupera da cotação em cache ou da tabela de referência do mercado
+    // Se o preço estiver 0 no objeto, recupera da cotação em cache se disponível
     if (precoAtual === 0) {
       if (cached && cached.currentPrice > 0) {
         precoAtual = cached.currentPrice;
-      } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
-        precoAtual = B3_MARKET_SERIES_REF[symbol].pAtual || 0;
-      }
-      if (precoAtual > 0) {
         acao.preco = precoAtual;
         acao.precoAtual = precoAtual;
       }
@@ -2169,7 +2153,7 @@ function handleAddAcaoModalSubmit(e) {
     nome = (typeof B3_POPULAR_STOCKS !== 'undefined' && B3_POPULAR_STOCKS[ticker]) ? B3_POPULAR_STOCKS[ticker] : ticker;
   }
 
-  // Se o preço não foi informado (0), tenta buscar do cache de cotações da B3 se disponível ou referência
+  // Se o preço não foi informado (0), tenta buscar do cache de cotações da B3 se disponível
   if (preco === 0) {
     const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
     const symbol = ticker.replace(/\.SA$/i, '');
@@ -2178,8 +2162,6 @@ function handleAddAcaoModalSubmit(e) {
       if (q && q.currentPrice > 0) {
         preco = q.currentPrice;
       }
-    } else if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[symbol]) {
-      preco = B3_MARKET_SERIES_REF[symbol].pAtual || 0;
     }
   }
 
@@ -2223,9 +2205,14 @@ function handleAddAcaoModalSubmit(e) {
           }
           saveLocalState(true, true);
           renderApp();
+          showToast(`Cotação de ${ticker} obtida: R$ ${quote.currentPrice.toFixed(2)}`, 'success');
         }
+      } else {
+        showToast(`Cotação de ${ticker} não encontrada nas APIs. Ativo não foi atualizado.`, 'warning', 7000);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast(`Cotação de ${ticker} não encontrada nas APIs. Ativo não foi atualizado.`, 'warning', 7000);
+    });
   }
 }
 
@@ -3119,7 +3106,7 @@ function escapeHtml(str) {
   });
 }
 
-function showToast(msg, type = 'info') {
+function showToast(msg, type = 'info', duration = 4500) {
   console.log(`[Toast ${type.toUpperCase()}] ${msg}`);
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -3131,7 +3118,7 @@ function showToast(msg, type = 'info') {
   setTimeout(() => {
     toast.classList.remove('show', 'visible');
     setTimeout(() => toast.remove(), 300);
-  }, 4500);
+  }, duration);
 }
 
 // --- GERADOR DE PROMPT PARA IA (AGNÓSTICO) ---
@@ -3147,9 +3134,110 @@ function formatDiffPctText(diffPct) {
   return '0.0%';
 }
 
+// --- SUPORTE A DECISÃO NO GERADOR DE PROMPT IA ---
+function getAssetFundamentalsAgeInDays(asset) {
+  const f = (asset && asset.fundamentals) || {};
+  if (!f.fundamentalsUpdatedAt) return null;
+
+  const val = String(f.fundamentalsUpdatedAt).trim();
+  const parts = val.split('-');
+  let updateDate;
+  if (parts.length === 3) {
+    updateDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  } else {
+    updateDate = new Date(val);
+  }
+
+  if (isNaN(updateDate.getTime())) return null;
+
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const updateMidnight = new Date(updateDate.getFullYear(), updateDate.getMonth(), updateDate.getDate()).getTime();
+
+  return Math.max(0, Math.round((todayMidnight - updateMidnight) / (1000 * 60 * 60 * 24)));
+}
+
+function buildDecisionSupportPromptSection(fin, maxDays = 2, mode = 'initial') {
+  if (typeof buildRebalancingDecisionList !== 'function') return '';
+
+  const list = buildRebalancingDecisionList(fin);
+  if (!list || list.length === 0) return '';
+
+  // Filtra ativos cujos dados do painel de decisão / fundamentos estejam atualizados a no máximo maxDays dias (0, 1 ou 2 dias)
+  const freshItems = list.filter(item => {
+    const age = getAssetFundamentalsAgeInDays(item.originalAsset || item);
+    return age !== null && age <= maxDays;
+  });
+
+  if (freshItems.length === 0) {
+    return '';
+  }
+
+  const staleItems = list.filter(item => {
+    const age = getAssetFundamentalsAgeInDays(item.originalAsset || item);
+    return age === null || age > maxDays;
+  });
+
+  const lines = [];
+  lines.push('');
+  if (mode === 'initial') {
+    lines.push('### 5. PAINEL DE APOIO À DECISÃO & PRIORIDADE DE APORTE');
+    lines.push('*Critérios do sistema: Ponderação entre Qualidade, Valuation, Tese e Distância da Meta. Posições acima da meta não são priorizadas. Valuation esticado reduz prioridade.*');
+  } else {
+    lines.push('### 4. APOIO À DECISÃO & PRIORIDADE DE APORTE ATUALIZADA');
+    lines.push('*Critérios do sistema: Ponderação entre Qualidade, Valuation, Tese e Distância da Meta. Posições acima da meta não são priorizadas. Valuation esticado reduz prioridade.*');
+  }
+  lines.push('');
+  lines.push('**Ranking Ordenado por Prioridade de Aporte (Dados Atualizados):**');
+
+  freshItems.forEach(item => {
+    const d = item.decision;
+    const q = (d.qualityScore && d.qualityScore.score !== null) ? `${d.qualityScore.score}/100` : 'N/D';
+    const v = (d.valuationScore && d.valuationScore.score !== null) ? `${d.valuationScore.score}/100` : 'N/D';
+    const inv = (d.investmentScore && d.investmentScore.score !== null) ? `${d.investmentScore.score}/100 (${d.investmentScore.classification})` : 'N/D';
+    const gap = d.allocationGap > 0
+      ? `-${d.allocationGap.toFixed(1)} p.p. (abaixo da meta)`
+      : (d.allocationGap < 0 ? `+${Math.abs(d.allocationGap).toFixed(1)} p.p. (acima da meta)` : 'em linha com a meta');
+
+    let dcfStr = '';
+    if (d.valuationScore && d.valuationScore.dcf && d.valuationScore.dcf.isAvailable && d.valuationScore.dcf.marginOfSafety !== null) {
+      const sign = d.valuationScore.dcf.marginOfSafety > 0 ? '+' : '';
+      dcfStr = ` | Margem Seg. DCF: ${sign}${d.valuationScore.dcf.marginOfSafety}%`;
+    }
+
+    const orig = item.originalAsset || item;
+    const dtRef = (orig.fundamentals && orig.fundamentals.fundamentalsUpdatedAt) ? orig.fundamentals.fundamentalsUpdatedAt : 'recente';
+    const age = getAssetFundamentalsAgeInDays(orig);
+    const ageLabel = age === 0 ? 'hoje' : (age === 1 ? 'ontem' : `${age} dias atrás`);
+
+    lines.push(`- **${item.ticker}**: Prioridade: **${d.priorityLevel}** (Score: ${d.priorityScore}) | Quality: ${q} | Valuation: ${v}${dcfStr} | Investment Score: ${inv} | Gap Alocação: ${gap} | Atualizado: ${dtRef} (${ageLabel})`);
+  });
+
+  if (staleItems.length > 0) {
+    const staleTickers = staleItems.map(i => i.ticker).join(', ');
+    lines.push(`\n*Nota: Os ativos a seguir não possuem dados de apoio à decisão atualizados nos últimos ${maxDays} dias e foram omitidos deste ranking: ${staleTickers}.*`);
+  }
+
+  // Alertas relevantes do sistema para os ativos atualizados
+  if (typeof generateInvestmentAlerts === 'function') {
+    const alerts = generateInvestmentAlerts(fin);
+    const freshTickers = new Set(freshItems.map(i => i.ticker));
+    const activeAlerts = alerts.filter(al => !al.ticker || freshTickers.has(al.ticker));
+    if (activeAlerts.length > 0) {
+      lines.push('\n**Alertas e Diagnósticos Relevantes do Sistema:**');
+      activeAlerts.forEach(al => {
+        lines.push(`- ${al.icon} **${al.title}**: ${al.description}`);
+      });
+    }
+  }
+
+  return lines.join('\n');
+}
+
 function generateAIPromptText() {
   const fin = calculateFinancials();
   const lastUpdate = new Date().toLocaleDateString('pt-BR');
+  const decisionSection = buildDecisionSupportPromptSection(fin, 2, 'initial');
 
   let prompt = `Você é um analista financeiro sênior especialista em alocação de ativos, renda fixa, ações e gestão de portfólio pessoal.
 
@@ -3174,15 +3262,15 @@ Por favor, faça um diagnóstico completo, analise a saúde da minha carteira de
 ${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'} | Var. Mês: ${formatDiffValText(rf.diffMesVal)} (${formatDiffPctText(rf.diffMesPct)}) | Var. Ano: ${formatDiffValText(rf.diffAnoVal)} (${formatDiffPctText(rf.diffAnoPct)})`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
 
 ### 4. DETALHAMENTO DA CARTEIRA DE AÇÕES & METAS DE REBALANCEAMENTO
-${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}${decisionSection}
 
 ---
 
 ### INSTRUÇÕES PARA A ANÁLISE:
 1. **Diagnóstico de Alocação Macro**: Comente sobre a distribuição entre RDB/CDI, IPCA/LCA e Ações em relação às metas estipuladas.
 2. **Avaliação da Rentabilidade e Evolução**: Destaque pontos positivos e alertas na evolução patrimonial recente.
-3. **Plano de Rebalanceamento Inteligente**: Quais grandes classes e quais ações estão mais abaixo das metas cadastradas e deveriam ser priorizadas nos próximos aportes? Considere também eventuais anotações/planejamentos registrados pelo usuário.
-4. **Análise de Risco & Recomendações Práticas**: Identifique possíveis pontos céticos ou riscos de concentração de forma clara e estruturada.`;
+3. **Plano de Rebalanceamento Inteligente**: Quais grandes classes e quais ações estão mais abaixo das metas cadastradas e deveriam ser priorizadas nos próximos aportes? Considere também eventuais anotações/planejamentos registrados pelo usuário.${decisionSection ? '\n4. **Validação do Painel de Apoio à Decisão**: Avalie os scores de Qualidade, Valuation e as Prioridades de Aporte calculadas pelo sistema para os ativos atualizados, comentando se concorda com as ordens sugeridas e destacando potenciais distorções ou oportunidades.' : ''}
+${decisionSection ? '5' : '4'}. **Análise de Risco & Recomendações Práticas**: Identifique possíveis pontos céticos ou riscos de concentração de forma clara e estruturada.`;
 
   return prompt;
 }
@@ -3190,6 +3278,7 @@ ${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | 
 function generateAIContinuePromptText() {
   const fin = calculateFinancials();
   const lastUpdate = new Date().toLocaleDateString('pt-BR');
+  const decisionSection = buildDecisionSupportPromptSection(fin, 2, 'continue');
 
   let prompt = `Estou atualizando nossa conversa com a posição e cotações mais recentes da minha carteira de investimentos (data de referência: ${lastUpdate}).
 
@@ -3204,14 +3293,14 @@ function generateAIContinuePromptText() {
 ${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'}`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
 
 ### 3. POSIÇÃO DA CARTEIRA DE AÇÕES & REBALANCEAMENTO
-${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual: ${ac.percentualAtual.toFixed(1)}% | Meta Configurada: ${ac.meta.toFixed(1)}%${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual: ${ac.percentualAtual.toFixed(1)}% | Meta Configurada: ${ac.meta.toFixed(1)}%${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}${decisionSection}
 
 ---
 
 ### INSTRUÇÕES PARA A CONTINUAÇÃO DO NOSSO DIÁLOGO:
 1. Com base na nossa conversa prévia e nestes dados atualizados, quais ajustes pontuais você recomenda?
-2. Quais ativos ou grandes classes estão mais distantes das metas configuradas e deveriam receber o meu próximo aporte?
-3. Houve alguma alteração relevante na dinâmica ou concentração que exija atenção?`;
+2. Quais ativos ou grandes classes estão mais distantes das metas configuradas e deveriam receber o meu próximo aporte?${decisionSection ? '\n3. Considerando os scores e prioridades de aporte atualizados do nosso Painel de Apoio à Decisão, mantenha ou refine as recomendações para os próximos aportes.' : ''}
+${decisionSection ? '4' : '3'}. Houve alguma alteração relevante na dinâmica ou concentração que exija atenção?`;
 
   return prompt;
 }
@@ -3729,38 +3818,7 @@ async function fetchQuoteSingleTicker(ticker) {
     }
   }
 
-  // Se for ativo cadastrado nas referências de mercado internas (ex: BDRs ou histórico fixo)
-  if (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF[cleanSymbol]) {
-    const ref = B3_MARKET_SERIES_REF[cleanSymbol];
-    if (ref && ref.pAtual > 0) {
-      const generatedHist = (typeof generateRealB3HistoryForTicker === 'function')
-        ? generateRealB3HistoryForTicker(cleanSymbol, ref.pAtual, ref.pAno, ref.pMes)
-        : [];
-      return sanitizeFetchedQuote({
-        symbol: cleanSymbol,
-        currentPrice: ref.pAtual,
-        updatedAt: new Date().toISOString(),
-        history: generatedHist
-      });
-    }
-  }
-
-  // Fallback se o ativo já existe na carteira com preço cadastrado
-  if (typeof appState !== 'undefined' && Array.isArray(appState.acoes)) {
-    const existing = appState.acoes.find(a => (a.ticker || '').trim().toUpperCase().replace(/\.SA$/i, '') === cleanSymbol);
-    if (existing) {
-      const p = parseFloat(existing.precoAtual || existing.preco || 0);
-      if (p > 0) {
-        return sanitizeFetchedQuote({
-          symbol: cleanSymbol,
-          currentPrice: p,
-          updatedAt: new Date().toISOString(),
-          history: []
-        });
-      }
-    }
-  }
-
+  // Se não foi encontrado preço real nas APIs, NÃO usar dados armazenados locais (B3_MARKET_SERIES_REF ou dados locais da carteira)
   return null;
 }
 
@@ -3820,10 +3878,10 @@ async function fetchQuoteForModalInput(tickerId, nameId, priceId) {
       }
       showToast(`Cotação de ${rawTicker}: R$ ${quoteData.currentPrice.toFixed(2)}`, 'success');
     } else {
-      showToast(`Não foi possível obter preço em tempo real para ${rawTicker}. Digite manualmente.`, 'warning');
+      showToast(`Não foi possível obter preço para ${rawTicker}. Ativo não encontrado e não atualizado.`, 'warning', 7000);
     }
   } catch (err) {
-    showToast(`Erro ao buscar cotação de ${rawTicker}.`, 'error');
+    showToast(`Erro ao buscar cotação de ${rawTicker}. Ativo não foi atualizado.`, 'error', 7000);
   } finally {
     if (btnFetch) btnFetch.disabled = false;
   }
@@ -3849,11 +3907,17 @@ async function triggerB3Sync(force = false) {
     return;
   }
 
-  const tickers = appState.acoes.map(a => a.ticker).filter(Boolean);
+  const rawTickers = (appState && Array.isArray(appState.acoes))
+    ? appState.acoes.map(a => a.ticker).filter(Boolean)
+    : [];
   const statusEvol = document.getElementById('b3CacheStatusSpanEvol');
   const statusAcoes = document.getElementById('b3CacheStatusSpanAcoes');
   const btnEvol = document.getElementById('btnSyncB3QuotesEvol');
   const btnAcoes = document.getElementById('btnSyncB3QuotesAcoes');
+  const banners = [
+    document.getElementById('b3SyncWarningBannerAcoes'),
+    document.getElementById('b3SyncWarningBannerEvol')
+  ];
 
   const updateStatusText = (msg) => {
     if (statusEvol) statusEvol.textContent = msg;
@@ -3865,8 +3929,13 @@ async function triggerB3Sync(force = false) {
     if (btnAcoes) btnAcoes.disabled = disabled;
   };
 
-  if (tickers.length === 0) {
+  const hideBanners = () => {
+    banners.forEach(b => { if (b) b.style.display = 'none'; });
+  };
+
+  if (!appState || !Array.isArray(appState.acoes) || appState.acoes.length === 0) {
     updateStatusText('Nenhuma ação cadastrada');
+    hideBanners();
     renderDailyEvolutionCharts();
     return;
   }
@@ -3876,6 +3945,11 @@ async function triggerB3Sync(force = false) {
   updateStatusText('🔄 Atualizando cotações B3...');
   showToast('Iniciando sincronização de cotações da B3...', 'info');
 
+  const cleanTickers = [...new Set(rawTickers.map(t => t.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))];
+  const noTickerAssets = (appState.acoes || [])
+    .filter(a => !a.ticker || !a.ticker.trim())
+    .map(a => a.nome || 'Ativo sem código');
+
   try {
     // Sincronizar benchmarks de CDI e Ibovespa em segundo plano
     await syncBenchmarksData(force);
@@ -3883,14 +3957,18 @@ async function triggerB3Sync(force = false) {
     let cache = getB3QuotesCache();
     const now = Date.now();
 
-    const newQuotes = await fetchB3QuotesForTickers(tickers, (curr, total, symbol) => {
+    const newQuotes = await fetchB3QuotesForTickers(cleanTickers, (curr, total, symbol) => {
       updateStatusText(`🔄 Sincronizando (${curr}/${total}): ${symbol}...`);
     });
     
     let updatedCount = 0;
-    Object.keys(newQuotes).forEach(symbol => {
+    const updatedTickers = [];
+    const notUpdatedTickers = [];
+
+    cleanTickers.forEach(symbol => {
       const newQuoteData = newQuotes[symbol];
       if (newQuoteData && newQuoteData.currentPrice > 0) {
+        updatedTickers.push(symbol);
         if (!cache) {
           cache = { timestamp: now, lastSyncFormatted: new Date().toLocaleString('pt-BR'), quotes: {} };
         }
@@ -3920,17 +3998,15 @@ async function triggerB3Sync(force = false) {
 
         appState.acoes.forEach(acaoItem => {
           const t = acaoItem.ticker ? acaoItem.ticker.trim().toUpperCase().replace(/\.SA$/i, '') : '';
-          if (t === symbol && newQuotes[symbol]) {
-            if (newQuotes[symbol].currentPrice > 0) {
-              if (acaoItem.preco !== newQuotes[symbol].currentPrice || acaoItem.precoAtual !== newQuotes[symbol].currentPrice) {
-                if (typeof recordAssetHistory === 'function') {
-                  recordAssetHistory(acaoItem, newQuotes[symbol].currentPrice);
-                }
+          if (t === symbol) {
+            if (acaoItem.preco !== newQuoteData.currentPrice || acaoItem.precoAtual !== newQuoteData.currentPrice) {
+              if (typeof recordAssetHistory === 'function') {
+                recordAssetHistory(acaoItem, newQuoteData.currentPrice);
               }
-              acaoItem.preco = newQuotes[symbol].currentPrice;
-              acaoItem.precoAtual = newQuotes[symbol].currentPrice;
-              acaoItem.data = new Date().toLocaleDateString('pt-BR');
             }
+            acaoItem.preco = newQuoteData.currentPrice;
+            acaoItem.precoAtual = newQuoteData.currentPrice;
+            acaoItem.data = new Date().toLocaleDateString('pt-BR');
 
             let hist = cache.quotes[symbol].history;
             if (!Array.isArray(hist) || hist.length <= 1) {
@@ -3952,10 +4028,16 @@ async function triggerB3Sync(force = false) {
             }
           }
         });
+      } else {
+        notUpdatedTickers.push(symbol);
       }
     });
 
-    if (cache) {
+    if (noTickerAssets.length > 0) {
+      notUpdatedTickers.push(...noTickerAssets);
+    }
+
+    if (cache && updatedCount > 0) {
       cache.timestamp = now;
       cache.lastSyncFormatted = new Date().toLocaleString('pt-BR');
       saveB3QuotesCache(cache);
@@ -3969,18 +4051,41 @@ async function triggerB3Sync(force = false) {
     }
     renderApp();
 
-    if (updatedCount > 0) {
-      showToast(`Cotações e histórico de ${updatedCount} ativos sincronizados da B3!`, 'success');
+    // Emissão de mensagens claras com quais ativos foram ou não atualizados
+    if (updatedCount > 0 && notUpdatedTickers.length === 0) {
+      showToast(`✅ Todas as cotações (${updatedCount} ativos) sincronizadas com sucesso da B3!`, 'success', 5000);
+      updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted} (Todos atualizados)` : 'Cache: Atualizado');
+      hideBanners();
+    } else if (updatedCount > 0 && notUpdatedTickers.length > 0) {
+      const notUpdatedStr = notUpdatedTickers.join(', ');
+      showToast(`⚠️ ${updatedCount} ativos atualizados. Não foi possível atualizar: ${notUpdatedStr}`, 'warning', 8500);
+      updateStatusText(`Cache: ${cache && cache.lastSyncFormatted ? cache.lastSyncFormatted : 'Atualizado'} (Não atualizados: ${notUpdatedStr})`);
+      banners.forEach(b => {
+        if (!b) return;
+        b.style.display = 'block';
+        b.innerHTML = `⚠️ <strong>Atenção:</strong> Cotações de ${updatedCount} ativos atualizadas. Os seguintes ativos não tiveram cotação encontrada nas APIs e <strong>não foram atualizados</strong>: <strong>${notUpdatedStr}</strong> (seus dados armazenados não foram alterados).`;
+      });
     } else {
-      showToast('Nenhuma nova cotação obtida. Exibindo dados locais.', 'info');
+      const notUpdatedStr = notUpdatedTickers.length > 0 ? notUpdatedTickers.join(', ') : 'Nenhum ativo atualizado';
+      showToast(`❌ Nenhuma cotação foi atualizada da B3. Não foram atualizados: ${notUpdatedStr}`, 'error', 8500);
+      updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted} (Falha na atualização)` : 'Cache: Não sincronizado');
+      banners.forEach(b => {
+        if (!b) return;
+        b.style.display = 'block';
+        b.innerHTML = `❌ <strong>Atenção:</strong> Nenhuma cotação pôde ser obtida das APIs de mercado. Os seguintes ativos <strong>não foram atualizados</strong>: <strong>${notUpdatedStr}</strong>.`;
+      });
     }
-
-    updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Cache: Não sincronizado');
   } catch (err) {
     console.error('Erro ao sincronizar cotações B3:', err);
-    showToast('Erro ao sincronizar cotações da B3.', 'error');
+    const notUpdatedStr = cleanTickers.join(', ');
+    showToast(`Erro ao sincronizar cotações da B3. Não foram atualizados: ${notUpdatedStr}`, 'error', 8500);
     const cache = getB3QuotesCache();
     updateStatusText(cache && cache.lastSyncFormatted ? `Cache: ${cache.lastSyncFormatted}` : 'Cache: Não sincronizado');
+    banners.forEach(b => {
+      if (!b) return;
+      b.style.display = 'block';
+      b.innerHTML = `❌ <strong>Erro:</strong> Falha de conexão ao sincronizar cotações da B3. Os seguintes ativos não foram atualizados: <strong>${notUpdatedStr}</strong>.`;
+    });
   } finally {
     isB3SyncInProgress = false;
     setButtonsDisabled(false);
