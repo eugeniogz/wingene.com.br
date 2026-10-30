@@ -51,8 +51,9 @@
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const state = urlParams.get('state');
     const params = window.location.search;
-    const deepLink = 'whealth://oauth-callback' + params;
+    let deepLink = 'whealth://oauth-callback' + params;
     document.getElementById('app-link').href = deepLink;
 
     const tokenEndpoint = 'https://southamerica-east1-whealth-wingene.cloudfunctions.net/garminWebhook/oauth/token';
@@ -62,11 +63,23 @@
       fetch(tokenEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: code }),
+        body: JSON.stringify({ code: code, state: state }),
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById('status-text').innerText = 'Conta Garmin conectada com sucesso! Abrindo o Whealth...';
+        if (data && data.access_token) {
+          urlParams.set('access_token', data.access_token);
+          if (data.refresh_token) {
+            urlParams.set('refresh_token', data.refresh_token);
+          }
+          deepLink = 'whealth://oauth-callback?' + urlParams.toString();
+          document.getElementById('app-link').href = deepLink;
+          document.getElementById('status-text').innerText = 'Conta Garmin conectada com sucesso! Abrindo o Whealth...';
+        } else {
+          console.warn('Background token exchange error, forwarding to app:', data);
+          const errDetail = (data && (data.error_description || data.error || data.message)) || 'Token não recebido';
+          document.getElementById('status-text').innerText = 'Retornando ao aplicativo Whealth... (' + errDetail + ')';
+        }
         setTimeout(() => { window.location.href = deepLink; }, 300);
       })
       .catch(err => {
