@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingene-investimentos-v2.9.9';
+const CACHE_NAME = 'wingene-investimentos-v3.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

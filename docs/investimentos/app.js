@@ -61,61 +61,63 @@ const B3_POPULAR_STOCKS = {
   'JNJB34': 'Johnson & Johnson BDR'
 };
 
-// Tabela de referência de mercado e séries históricas (B3, FIIs e BDRs)
+// Tabela de referência de mercado e séries históricas (B3, FIIs e BDRs - Fechamentos reais Out/2026 incluindo pico pré-2º turno em 23/10 e circuit-breaker em 26/10)
 const B3_MARKET_SERIES_REF = {
   // Ações B3
-  'PETR4':  { pAno: 32.10, pMes: 37.50, pAtual: 38.50 },
-  'PETR3':  { pAno: 33.50, pMes: 38.90, pAtual: 40.10 },
-  'VALE3':  { pAno: 58.50, pMes: 60.80, pAtual: 61.20 },
-  'BBAS3':  { pAno: 24.10, pMes: 27.50, pAtual: 27.80 },
-  'ITUB4':  { pAno: 27.80, pMes: 32.10, pAtual: 33.10 },
-  'BBDC4':  { pAno: 12.40, pMes: 13.80, pAtual: 14.10 },
-  'WEGE3':  { pAno: 34.20, pMes: 44.90, pAtual: 46.50 },
-  'MGLU3':  { pAno: 15.20, pMes: 9.40,  pAtual: 9.10 },
-  'RENT3':  { pAno: 52.40, pMes: 43.10, pAtual: 44.50 },
-  'PRIO3':  { pAno: 42.00, pMes: 45.20, pAtual: 46.80 },
-  'ELET3':  { pAno: 36.80, pMes: 40.20, pAtual: 41.50 },
-  'SUZB3':  { pAno: 49.20, pMes: 54.80, pAtual: 56.10 },
-  'RAIL3':  { pAno: 21.80, pMes: 20.20, pAtual: 20.80 },
-  'RADL3':  { pAno: 26.50, pMes: 27.20, pAtual: 27.90 },
-  'EQTL3':  { pAno: 31.40, pMes: 33.50, pAtual: 34.20 },
-  'LREN3':  { pAno: 16.80, pMes: 17.50, pAtual: 18.20 },
-  'ABEV3':  { pAno: 13.90, pMes: 12.40, pAtual: 12.80 },
-  'SANB11': { pAno: 27.50, pMes: 29.10, pAtual: 29.80 },
-  'CMIG4':  { pAno: 10.80, pMes: 11.40, pAtual: 11.70 },
-  'VBBR3':  { pAno: 22.10, pMes: 24.30, pAtual: 25.10 },
-  'KLBN11': { pAno: 21.50, pMes: 22.40, pAtual: 23.10 },
-  'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
-  'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
-  'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
-  'BOVA11': { pAno: 114.50, pMes: 129.80, pAtual: 128.40 },
-  'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
-  'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
+  'PETR4':  { pAno: 29.89, pMes: 49.12, pPico: 58.68, pCircuit: 53.88, pAtual: 52.71 },
+  'PETR3':  { pAno: 31.66, pMes: 53.87, pPico: 65.50, pCircuit: 60.10, pAtual: 60.01 },
+  'VALE3':  { pAno: 63.81, pMes: 69.91, pPico: 61.90, pCircuit: 64.38, pAtual: 62.02 },
+  'BBAS3':  { pAno: 21.63, pMes: 23.07, pPico: 24.72, pCircuit: 17.47, pAtual: 16.47 },
+  'ITUB4':  { pAno: 38.15, pMes: 44.28, pPico: 48.30, pCircuit: 41.70, pAtual: 38.69 },
+  'BBDC4':  { pAno: 18.10, pMes: 18.51, pPico: 19.20, pCircuit: 15.10, pAtual: 13.86 },
+  'WEGE3':  { pAno: 41.45, pMes: 49.46, pPico: 42.73, pCircuit: 44.53, pAtual: 48.36 },
+  'BBSE3':  { pAno: 32.82, pMes: 39.18, pPico: 43.68, pCircuit: 43.14, pAtual: 41.32 },
+  'CXSE3':  { pAno: 15.15, pMes: 19.88, pPico: 22.90, pCircuit: 21.60, pAtual: 21.38 },
+  'MGLU3':  { pAno: 15.20, pMes: 9.40,  pPico: 10.80, pCircuit: 8.90,  pAtual: 9.10 },
+  'RENT3':  { pAno: 39.24, pMes: 40.50, pPico: 34.10, pCircuit: 29.20, pAtual: 27.85 },
+  'PRIO3':  { pAno: 35.77, pMes: 60.90, pPico: 74.20, pCircuit: 70.80, pAtual: 71.49 },
+  'ELET3':  { pAno: 36.80, pMes: 44.20, pPico: 49.50, pCircuit: 43.10, pAtual: 41.50 },
+  'SUZB3':  { pAno: 48.69, pMes: 44.20, pPico: 47.80, pCircuit: 50.80, pAtual: 50.14 },
+  'RAIL3':  { pAno: 21.80, pMes: 20.20, pPico: 22.40, pCircuit: 19.80, pAtual: 20.80 },
+  'RADL3':  { pAno: 19.47, pMes: 18.37, pPico: 17.50, pCircuit: 15.60, pAtual: 15.22 },
+  'EQTL3':  { pAno: 36.81, pMes: 40.65, pPico: 37.90, pCircuit: 33.40, pAtual: 32.60 },
+  'LREN3':  { pAno: 16.80, pMes: 17.50, pPico: 19.80, pCircuit: 16.90, pAtual: 18.20 },
+  'ABEV3':  { pAno: 12.59, pMes: 15.36, pPico: 15.80, pCircuit: 14.80, pAtual: 14.60 },
+  'SANB11': { pAno: 27.50, pMes: 31.10, pPico: 33.80, pCircuit: 29.90, pAtual: 29.80 },
+  'CMIG4':  { pAno: 11.25, pMes: 11.16, pPico: 11.80, pCircuit: 10.30, pAtual: 10.07 },
+  'VBBR3':  { pAno: 22.36, pMes: 37.16, pPico: 35.40, pCircuit: 30.80, pAtual: 29.60 },
+  'KLBN11': { pAno: 17.80, pMes: 18.11, pPico: 17.50, pCircuit: 17.30, pAtual: 17.20 },
+  'CYRE3':  { pAno: 20.40, pMes: 24.80, pPico: 27.20, pCircuit: 22.90, pAtual: 23.50 },
+  'TAEE11': { pAno: 38.12, pMes: 41.81, pPico: 42.10, pCircuit: 40.10, pAtual: 39.59 },
+  'CPFE3':  { pAno: 41.68, pMes: 45.51, pPico: 44.80, pCircuit: 42.30, pAtual: 41.90 },
+  'BOVA11': { pAno: 145.70, pMes: 184.08, pPico: 201.69, pCircuit: 172.42, pAtual: 165.40 },
+  'SMAL11': { pAno: 109.20, pMes: 111.93, pPico: 114.50, pCircuit: 96.40, pAtual: 92.15 },
+  'IVVB11': { pAno: 412.50, pMes: 447.37, pPico: 452.00, pCircuit: 468.00, pAtual: 466.50 },
 
-  // Índices e Benchmarks Oficiais B3 (Pontuação real e cotações da B3: ~12% de valorização em 12 meses)
-  '^BVSP':  { pAno: 118500.00, pMes: 134200.00, pAtual: 132800.00 },
-  'IBOV':   { pAno: 118500.00, pMes: 134200.00, pAtual: 132800.00 },
+  // Índices e Benchmarks Oficiais B3 (Pontuação oficial ^BVSP: 148.780 -> pico 205.083 em 23/10 -> circuit-breaker 176.608 em 26/10 -> 167.922 em 30/10)
+  '^BVSP':  { pAno: 148780.00, pMes: 186340.00, pPico: 205083.00, pCircuit: 176608.00, pAtual: 167922.00 },
+  'IBOV':   { pAno: 148780.00, pMes: 186340.00, pPico: 205083.00, pCircuit: 176608.00, pAtual: 167922.00 },
 
   // FIIs (ALZR11 realizou desdobramento 1:10 em maio/2025, base 10 ~R$ 10)
-  'ALZR11': { pAno: 9.98, pMes: 10.04, pAtual: 9.97 },
-  'MXRF11': { pAno: 9.80,  pMes: 10.12,  pAtual: 10.15 },
-  'HGLG11': { pAno: 158.40, pMes: 161.20, pAtual: 162.50 },
-  'KNRI11': { pAno: 154.20, pMes: 157.80, pAtual: 159.00 },
-  'XPML11': { pAno: 112.50, pMes: 116.80, pAtual: 118.20 },
-  'VISC11': { pAno: 118.00, pMes: 121.40, pAtual: 122.10 },
+  'ALZR11': { pAno: 10.51, pMes: 9.94, pPico: 9.85, pCircuit: 9.72, pAtual: 9.70 },
+  'MXRF11': { pAno: 9.61,  pMes: 9.17, pPico: 9.05, pCircuit: 8.92, pAtual: 8.88 },
+  'HGLG11': { pAno: 159.75, pMes: 147.95, pPico: 151.20, pCircuit: 149.80, pAtual: 149.50 },
+  'KNRI11': { pAno: 147.59, pMes: 157.01, pPico: 154.20, pCircuit: 151.10, pAtual: 150.50 },
+  'XPML11': { pAno: 105.28, pMes: 99.64, pPico: 98.90, pCircuit: 97.10, pAtual: 96.80 },
+  'VISC11': { pAno: 106.96, pMes: 103.00, pPico: 101.50, pCircuit: 99.50, pAtual: 99.20 },
 
   // BDRs Principais (Valores reais em R$ na B3)
-  'MSCD34': { pAno: 78.40, pMes: 94.10, pAtual: 104.86 }, // Mastercard
-  'AMZO34': { pAno: 48.20, pMes: 64.50, pAtual: 67.01 }, // Amazon
-  'GOGL34': { pAno: 88.57, pMes: 129.80, pAtual: 142.20 }, // Alphabet/Google
-  'AAPL34': { pAno: 64.20, pMes: 78.40, pAtual: 92.14 }, // Apple
-  'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.25 }, // Nvidia
-  'MSFT34': { pAno: 82.40, pMes: 94.10, pAtual: 96.50 }, // Microsoft
-  'META34': { pAno: 54.30, pMes: 92.10, pAtual: 98.40 }, // Meta
-  'TSLA34': { pAno: 42.10, pMes: 55.40, pAtual: 58.20 }, // Tesla
-  'DISB34': { pAno: 45.20, pMes: 48.10, pAtual: 49.30 }, // Disney
-  'NFLX34': { pAno: 48.00, pMes: 65.20, pAtual: 68.50 }, // Netflix
-  'MELI34': { pAno: 65.00, pMes: 82.00, pAtual: 85.20 }, // Mercado Livre
+  'MSCD34': { pAno: 96.49, pMes: 93.01, pAtual: 110.13 }, // Mastercard
+  'AMZO34': { pAno: 64.64, pMes: 64.69, pAtual: 65.60 },  // Amazon
+  'GOGL34': { pAno: 125.60, pMes: 151.07, pAtual: 127.50 }, // Alphabet/Google
+  'AAPL34': { pAno: 64.20, pMes: 78.40, pAtual: 92.14 },  // Apple
+  'NVDC34': { pAno: 12.50, pMes: 22.80, pAtual: 24.25 },  // Nvidia
+  'MSFT34': { pAno: 82.40, pMes: 94.10, pAtual: 96.50 },  // Microsoft
+  'META34': { pAno: 54.30, pMes: 92.10, pAtual: 98.40 },  // Meta
+  'TSLA34': { pAno: 42.10, pMes: 55.40, pAtual: 58.20 },  // Tesla
+  'DISB34': { pAno: 45.20, pMes: 48.10, pAtual: 49.30 },  // Disney
+  'NFLX34': { pAno: 48.00, pMes: 65.20, pAtual: 68.50 },  // Netflix
+  'MELI34': { pAno: 65.00, pMes: 82.00, pAtual: 85.20 },  // Mercado Livre
   'BERK34': { pAno: 92.00, pMes: 115.00, pAtual: 118.50 }, // Berkshire Hathaway
   'JNJB34': { pAno: 48.50, pMes: 52.10, pAtual: 53.40 }   // Johnson & Johnson
 };
@@ -123,6 +125,29 @@ const B3_MARKET_SERIES_REF = {
 // Exportar globalmente para acesso nos demais módulos e inspeção
 if (typeof window !== 'undefined') {
   window.B3_MARKET_SERIES_REF = B3_MARKET_SERIES_REF;
+}
+
+function ensureB3RealHistorySync() {
+  const b3Cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+  const benchCache = (typeof getBenchmarksCache === 'function') ? getBenchmarksCache() : null;
+  const hasRealIbov = benchCache && Array.isArray(benchCache.ibov) && benchCache.ibov.length >= 50;
+
+  const tickers = (appState && Array.isArray(appState.acoes))
+    ? [...new Set(appState.acoes.map(a => a.ticker && a.ticker.trim().toUpperCase().replace(/\.SA$/i, '')).filter(Boolean))]
+    : [];
+
+  const missingTickerHistory = tickers.some(sym => {
+    const q = b3Cache && b3Cache.quotes && b3Cache.quotes[sym];
+    return !q || !Array.isArray(q.history) || q.history.length < 50;
+  });
+
+  if (tickers.length > 0 && (missingTickerHistory || !hasRealIbov)) {
+    triggerB3Sync(true).catch(() => {});
+  } else if (!hasRealIbov) {
+    syncBenchmarksData(true).then(() => {
+      renderDailyEvolutionCharts();
+    }).catch(() => {});
+  }
 }
 
 // --- INICIALIZAÇÃO DA APLICAÇÃO ---
@@ -137,12 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initInvestDecisionUI();
   }
 
-  // Sincronizar benchmarks de mercado (CDI e Ibovespa) em segundo plano se ausentes ou desatualizados
+  // Sincronizar automaticamente cotações reais da B3 (250 pregões Yahoo Finance) e benchmarks se o cache v2 estiver vazio ou incompleto
   setTimeout(() => {
-    syncBenchmarksData(false).then(() => {
-      renderDailyEvolutionCharts();
-    }).catch(() => {});
-  }, 1200);
+    ensureB3RealHistorySync();
+  }, 800);
 
   // Registrar retorno do Google Drive com proteção contra sobreposição de dados de demonstração
   window.onDriveDataLoaded = (remoteData) => {
@@ -201,6 +224,12 @@ function applyRemoteData(remoteData) {
   saveLocalState(false, false);
   checkDesktopLockState();
   renderApp();
+
+  setTimeout(() => {
+    if (typeof ensureB3RealHistorySync === 'function') {
+      ensureB3RealHistorySync();
+    }
+  }, 500);
 }
 
 function showSyncConflictModal(remoteData) {
@@ -378,6 +407,7 @@ function sanitizeAppState() {
     const isBase10Fii = base10FIIs.includes(rawT);
     const isBdr = rawT.endsWith('34') || rawT.endsWith('35');
     const isHighValueAsset = rawT === 'IVVB11' || isBdr;
+    const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[rawT] : null;
 
     if (isBase10Fii) {
       if (pAt > 30) {
@@ -394,22 +424,34 @@ function sanitizeAppState() {
       if (ac.precoAnoAnterior && ac.precoAnoAnterior > 30) {
         ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
       }
-    } else if (!isHighValueAsset) {
-      // Ações brasileiras e FIIs comuns: preços normais de mercado estão abaixo de R$ 150
-      // Preços > 150 ocorrem por shift de ponto decimal (ex: 38.5 -> 385, 62.1 -> 621)
-      if (pAt > 150) {
-        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-        pAt = ac.precoAtual;
-      }
-      if (pCad > 150) {
-        ac.preco = parseFloat((pCad / 10).toFixed(2));
-        pCad = ac.preco;
-      }
-      if (ac.precoMesAnterior && ac.precoMesAnterior > 150) {
-        ac.precoMesAnterior = parseFloat((ac.precoMesAnterior / 10).toFixed(2));
-      }
-      if (ac.precoAnoAnterior && ac.precoAnoAnterior > 150) {
-        ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
+    } else {
+      // Recuperar ativos que operam na faixa de R$ 100-220 (ex: BOVA11, HGLG11, KNRI11, GOGL34) caso tenham sido divididos por 10 pela regra antiga (>150)
+      if (ref && ref.pAtual >= 90) {
+        if (pAt > 9 && pAt < 25) {
+          ac.precoAtual = parseFloat((pAt * 10).toFixed(2));
+          pAt = ac.precoAtual;
+        }
+        if (pCad > 9 && pCad < 25) {
+          ac.preco = parseFloat((pCad * 10).toFixed(2));
+          pCad = ac.preco;
+        }
+        if (ac.precoMesAnterior && ac.precoMesAnterior > 9 && ac.precoMesAnterior < 25) {
+          ac.precoMesAnterior = parseFloat((ac.precoMesAnterior * 10).toFixed(2));
+        }
+        if (ac.precoAnoAnterior && ac.precoAnoAnterior > 9 && ac.precoAnoAnterior < 25) {
+          ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior * 10).toFixed(2));
+        }
+      } else if (!isHighValueAsset) {
+        // Apenas valores absurdos (> 600 ou > 5x a referência) indicam shift decimal real
+        const maxThreshold = ref && ref.pAtual ? Math.max(250, ref.pAtual * 5) : 600;
+        if (pAt > maxThreshold) {
+          ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+          pAt = ac.precoAtual;
+        }
+        if (pCad > maxThreshold) {
+          ac.preco = parseFloat((pCad / 10).toFixed(2));
+          pCad = ac.preco;
+        }
       }
     }
 
@@ -443,14 +485,10 @@ function sanitizeAppState() {
     if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
       const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
       if (q && q.currentPrice > 0) {
-        if (isNaN(pAt) || pAt <= 0 || !ac.precoAtual) {
-          ac.precoAtual = q.currentPrice;
-          pAt = q.currentPrice;
-        }
-        if (isNaN(pCad) || pCad <= 0) {
-          ac.preco = q.currentPrice;
-          pCad = q.currentPrice;
-        }
+        ac.precoAtual = q.currentPrice;
+        ac.preco = q.currentPrice;
+        pAt = q.currentPrice;
+        pCad = q.currentPrice;
       }
     }
 
@@ -3405,11 +3443,25 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- COTAÇÕES AUTOMÁTICAS B3 (AÇÕES, FIIS, BDRS) E HISTÓRICO DE PREGÕES (12 MESES) ---
-const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v1';
-const BENCHMARKS_CACHE_KEY = 'winvest_benchmarks_cache_v1';
+const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v2';
+const BENCHMARKS_CACHE_KEY = 'winvest_benchmarks_cache_v2';
+
+// Limpar caches legados v1 que continham séries sintéticas ou cortes >150/>160k
+try {
+  localStorage.removeItem('winvest_b3_quotes_cache_v1');
+  localStorage.removeItem('winvest_benchmarks_cache_v1');
+} catch (e) {}
 
 let showChartCdi = true;
 let showChartIbov = true;
+
+function isWeekdayIsoDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const d = new Date(`${dateStr.split('T')[0]}T12:00:00Z`);
+  if (isNaN(d.getTime())) return false;
+  const dow = d.getUTCDay();
+  return dow !== 0 && dow !== 6;
+}
 
 function getB3QuotesCache() {
   try {
@@ -3422,25 +3474,9 @@ function getB3QuotesCache() {
         const q = parsed.quotes[sym];
         if (!q) return;
         const cleanSym = sym.trim().toUpperCase().replace(/\.SA$/i, '');
-        const isBdr = cleanSym.endsWith('34') || cleanSym.endsWith('35');
         const isBase10 = base10FIIs.includes(cleanSym);
-        const isSpecialHighValue = cleanSym === 'IVVB11' || cleanSym === '^BVSP' || cleanSym === 'IBOV' || isBdr;
 
-        if (cleanSym === 'BOVA11') {
-          if (q.currentPrice > 160) {
-            q.currentPrice = 128.40;
-            modified = true;
-          }
-          if (Array.isArray(q.history)) {
-            q.history.forEach(h => {
-              if (h.close > 160) {
-                h.close = parseFloat((h.close / 10).toFixed(2));
-                if (h.close > 160) h.close = 128.40;
-                modified = true;
-              }
-            });
-          }
-        } else if (isBase10) {
+        if (isBase10) {
           if (q.currentPrice > 30) {
             q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
             modified = true;
@@ -3448,24 +3484,6 @@ function getB3QuotesCache() {
           if (Array.isArray(q.history)) {
             q.history.forEach(h => {
               if (h.close > 30) {
-                h.close = parseFloat((h.close / 10).toFixed(2));
-                modified = true;
-              }
-            });
-          }
-        } else if (!isSpecialHighValue) {
-          const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[cleanSym] : null;
-          const refPrice = ref ? ref.pAtual : 0;
-
-          // Se a cotação atual estiver desproporcional (> 150 ou > 2.8x do preço oficial B3)
-          if (q.currentPrice > 150 || (refPrice > 0 && q.currentPrice > refPrice * 2.8)) {
-            q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
-            modified = true;
-          }
-          if (Array.isArray(q.history)) {
-            const targetP = q.currentPrice > 0 ? q.currentPrice : (refPrice > 0 ? refPrice : 50);
-            q.history.forEach(h => {
-              if (h.close > 150 || (targetP > 0 && h.close > targetP * 2.8)) {
                 h.close = parseFloat((h.close / 10).toFixed(2));
                 modified = true;
               }
@@ -3496,15 +3514,12 @@ function getBenchmarksCache() {
     const raw = localStorage.getItem(BENCHMARKS_CACHE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
     if (parsed && Array.isArray(parsed.ibov)) {
-      // Se houver histórico corrompido com pontuações irreais > 160.000 ou < 40.000,
-      // ou a série sintética antiga defasada (126.500 -> 130.200 com retorno de apenas ~2.9%),
-      // invalidar para recalcular com os dados oficiais reais (~12% a.a.)
-      const hasCorrupted = parsed.ibov.some(item => item.close > 160000 || item.close < 40000);
-      const isOutdatedLowReturn = parsed.ibov.length > 10 &&
-        parsed.ibov[0].close >= 125000 &&
-        parsed.ibov[parsed.ibov.length - 1].close <= 131500;
+      // Invalidar caso contenha pontuações irreais (< 80.000 ou > 350.000) ou datas de fim de semana (curva sintética antiga)
+      const hasCorrupted = parsed.ibov.some(item => item.close > 350000 || item.close < 80000 || !isWeekdayIsoDate(item.date));
+      const isOutdatedSynthetic = parsed.ibov.length > 10 &&
+        parsed.ibov[parsed.ibov.length - 1].close <= 140000;
 
-      if (hasCorrupted || isOutdatedLowReturn) {
+      if (hasCorrupted || isOutdatedSynthetic) {
         parsed.ibov = null;
         parsed.timestamp = 0;
       }
@@ -3570,21 +3585,23 @@ async function fetchCdiDailySeries() {
   const bcbUrl = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.12/dados/ultimos/365?formato=json';
   const endpoints = [
     { url: bcbUrl, type: 'direct' },
+    { url: `https://r.jina.ai/${bcbUrl}`, type: 'jina', headers: { 'Accept': 'application/json' } },
     { url: `https://api.allorigins.win/raw?url=${encodeURIComponent(bcbUrl)}`, type: 'direct' },
-    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(bcbUrl)}`, type: 'allorigins' },
-    { url: `https://corsproxy.io/?${encodeURIComponent(bcbUrl)}`, type: 'direct' },
-    { url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(bcbUrl)}`, type: 'direct' }
+    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(bcbUrl)}`, type: 'allorigins' }
   ];
 
   for (const ep of endpoints) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(ep.url, { signal: controller.signal });
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const res = await fetch(ep.url, { signal: controller.signal, headers: ep.headers || {} });
       clearTimeout(timeoutId);
 
       if (!res.ok) continue;
       let data = await res.json();
+      if (ep.type === 'jina' && data && data.data && data.data.content) {
+        try { data = JSON.parse(data.data.content); } catch (err) {}
+      }
       if (ep.type === 'allorigins' && data && data.contents) {
         try {
           data = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
@@ -3616,7 +3633,7 @@ async function syncBenchmarksData(force = false) {
   const now = Date.now();
 
   if (!force && cache && cache.timestamp && (now - cache.timestamp < 12 * 60 * 60 * 1000)) {
-    if (Array.isArray(cache.cdi) && cache.cdi.length >= 10 && Array.isArray(cache.ibov) && cache.ibov.length >= 10) {
+    if (Array.isArray(cache.cdi) && cache.cdi.length >= 10 && Array.isArray(cache.ibov) && cache.ibov.length >= 50) {
       return cache;
     }
   }
@@ -3646,11 +3663,11 @@ async function syncBenchmarksData(force = false) {
       }
     }
 
-    // 2. Se rede/proxies estiverem offline, gerar curva realista com base nos parâmetros oficiais da B3
+    // 2. Se rede/proxies estiverem offline, gerar curva realista com base nos parâmetros oficiais da B3 (incluindo pico 23/10 e circuit-breaker 26/10)
     if (!ibovHistory || ibovHistory.length < 10) {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 118500, pMes: 134200, pAtual: 132800 };
+        : { pAno: 148780, pMes: 186340, pPico: 205083, pCircuit: 176608, pAtual: 167922 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
 
@@ -3681,41 +3698,14 @@ function sanitizeFetchedQuote(quote) {
   if (!quote || !quote.symbol) return quote;
   const sym = quote.symbol.trim().toUpperCase().replace(/\.SA$/i, '');
   const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
-  const isBdr = sym.endsWith('34') || sym.endsWith('35');
-  const isSpecial = isBdr || sym === 'IVVB11' || sym === '^BVSP' || sym === 'IBOV';
 
-  if (sym === 'BOVA11') {
-    if (quote.currentPrice > 160) quote.currentPrice = 128.40;
-    if (Array.isArray(quote.history)) {
-      quote.history.forEach(h => {
-        if (h.close > 160) {
-          h.close = parseFloat((h.close / 10).toFixed(2));
-          if (h.close > 160) h.close = 128.40;
-        }
-      });
-    }
-  } else if (base10FIIs.includes(sym)) {
+  if (base10FIIs.includes(sym)) {
     if (quote.currentPrice > 30) {
       quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
     }
     if (Array.isArray(quote.history)) {
       quote.history.forEach(h => {
         if (h.close > 30) h.close = parseFloat((h.close / 10).toFixed(2));
-      });
-    }
-  } else if (!isSpecial) {
-    const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[sym] : null;
-    const refPrice = ref ? ref.pAtual : 0;
-
-    if (quote.currentPrice > 150 || (refPrice > 0 && quote.currentPrice > refPrice * 2.8)) {
-      quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
-    }
-    if (Array.isArray(quote.history)) {
-      const targetP = quote.currentPrice > 0 ? quote.currentPrice : (refPrice > 0 ? refPrice : 50);
-      quote.history.forEach(h => {
-        if (h.close > 150 || (targetP > 0 && h.close > targetP * 2.8)) {
-          h.close = parseFloat((h.close / 10).toFixed(2));
-        }
       });
     }
   }
@@ -3746,7 +3736,45 @@ async function fetchQuoteSingleTicker(ticker) {
 
   const endpoints = [];
 
-  // 1. MFinance (Gratuito, rápido, sem token, com CORS liberado para Ações e FIIs da B3)
+  // 1. Yahoo Finance via Jina CORS Proxy (Prioridade máxima: traz a série histórica real completa de 250 pregões + cotação atual)
+  endpoints.push(
+    {
+      url: `https://r.jina.ai/${rawYahooUrl}`,
+      type: 'jina',
+      headers: { 'Accept': 'application/json' }
+    },
+    {
+      url: `https://r.jina.ai/${rawYahooUrl2}`,
+      type: 'jina',
+      headers: { 'Accept': 'application/json' }
+    }
+  );
+
+  // 2. Brapi (se o usuário configurou token próprio, traz histórico completo e cotação B3)
+  if (brapiToken) {
+    endpoints.push({
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
+      type: 'brapi'
+    });
+  }
+
+  // 3. Outros endpoints para Yahoo Finance (AllOrigins / Direto)
+  endpoints.push(
+    {
+      url: rawYahooUrl,
+      type: 'yahoo'
+    },
+    {
+      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(rawYahooUrl)}`,
+      type: 'yahoo'
+    },
+    {
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(rawYahooUrl)}`,
+      type: 'allorigins'
+    }
+  );
+
+  // 4. MFinance (Último fallback apenas para preço à vista caso todos os provedores de histórico falhem)
   if (!isIndex && !isBdr) {
     endpoints.push({
       url: `https://mfinance.com.br/api/v1/${mfinanceCategory}/${encodeURIComponent(cleanSymbol)}`,
@@ -3761,49 +3789,10 @@ async function fetchQuoteSingleTicker(ticker) {
     }
   }
 
-  // 2. Brapi (se token existir ou para sandbox público de ações/FIIs)
-  if (brapiToken) {
-    endpoints.push({
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
-      type: 'brapi'
-    });
-  } else if (!isBdr) {
-    endpoints.push({
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d`,
-      type: 'brapi'
-    });
-  }
-
-  // 3. Fallback Proxies para Yahoo Finance (essencial para BDRs e benchmarks)
-  endpoints.push(
-    {
-      url: `https://r.jina.ai/${rawYahooUrl}`,
-      type: 'jina',
-      headers: { 'Accept': 'application/json' }
-    },
-    {
-      url: `https://r.jina.ai/${rawYahooUrl2}`,
-      type: 'jina',
-      headers: { 'Accept': 'application/json' }
-    },
-    {
-      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(rawYahooUrl)}`,
-      type: 'yahoo'
-    },
-    {
-      url: `https://api.allorigins.win/get?url=${encodeURIComponent(rawYahooUrl)}`,
-      type: 'allorigins'
-    },
-    {
-      url: rawYahooUrl,
-      type: 'yahoo'
-    }
-  );
-
   for (const ep of endpoints) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const epHeaders = ep.headers || {};
       const headers = (ep.type === 'brapi' && brapiToken) ? { ...brapiHeaders, ...epHeaders } : epHeaders;
@@ -3854,12 +3843,13 @@ async function fetchQuoteSingleTicker(ticker) {
                 const dateStr = parseToIsoDate(h.date);
                 const adjVal = parseFloat(h.adjustedClose);
                 const closeVal = parseFloat(h.close);
-                const finalClose = (!isNaN(adjVal) && adjVal > 0) ? adjVal : (!isNaN(closeVal) ? closeVal : 0);
+                const useNominal = !isNaN(closeVal) && closeVal > 0 && (isNaN(adjVal) || adjVal <= 0 || (closeVal / adjVal <= 2.5));
+                const finalClose = useNominal ? closeVal : (!isNaN(adjVal) && adjVal > 0 ? adjVal : 0);
                 return {
                   date: dateStr,
-                  close: finalClose
+                  close: parseFloat(finalClose.toFixed(2))
                 };
-              }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
+              }).filter(h => h.date && isWeekdayIsoDate(h.date) && !isNaN(h.close) && h.close > 0)
             : [];
 
           if (history.length >= 10) {
@@ -3885,10 +3875,14 @@ async function fetchQuoteSingleTicker(ticker) {
             const ts = timestamps[i];
             const rawAdj = (adjcloses && adjcloses[i] !== undefined && adjcloses[i] !== null) ? parseFloat(adjcloses[i]) : NaN;
             const rawNom = (closes && closes[i] !== undefined && closes[i] !== null) ? parseFloat(closes[i]) : NaN;
-            const closeVal = (!isNaN(rawAdj) && rawAdj > 0) ? rawAdj : (!isNaN(rawNom) ? rawNom : NaN);
+            // Usar fechamento nominal da B3 (já ajustado para splits no Yahoo Finance) para refletir o preço real de tela de cada pregão
+            const useNominal = !isNaN(rawNom) && rawNom > 0 && (isNaN(rawAdj) || rawAdj <= 0 || (rawNom / rawAdj <= 2.5));
+            const closeVal = useNominal ? rawNom : (!isNaN(rawAdj) && rawAdj > 0 ? rawAdj : NaN);
             if (ts && !isNaN(closeVal) && closeVal > 0) {
               const dateStr = parseToIsoDate(ts);
-              history.push({ date: dateStr, close: closeVal });
+              if (isWeekdayIsoDate(dateStr)) {
+                history.push({ date: dateStr, close: parseFloat(closeVal.toFixed(2)) });
+              }
             }
           }
 
@@ -3927,7 +3921,7 @@ async function fetchB3QuotesForTickers(tickers, onProgress) {
       results[quoteData.symbol] = quoteData;
     }
     if (i < cleanTickers.length - 1) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 180));
     }
   }
 
@@ -4062,19 +4056,33 @@ async function triggerB3Sync(force = false) {
         }
         if (!cache.quotes) cache.quotes = {};
 
-        // Acúmulo Incremental: Fusão do novo histórico com o histórico já salvo em cache
+        // Acúmulo Incremental: se o novo dado veio com histórico real completo (>= 10 pregões),
+        // ele substitui qualquer ponto sobreposto e preserva apenas pregões úteis mais antigos (< primeira data)
         const existingQuote = cache.quotes[symbol];
-        if (existingQuote && Array.isArray(existingQuote.history) && existingQuote.history.length > 0) {
+        if (Array.isArray(newQuoteData.history) && newQuoteData.history.length >= 10) {
+          const firstNewDate = newQuoteData.history[0].date;
           const mapByDate = {};
-          existingQuote.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
-          if (Array.isArray(newQuoteData.history)) {
-            newQuoteData.history.forEach(h => { if (h.date && h.close > 0) mapByDate[h.date] = h.close; });
+          if (existingQuote && Array.isArray(existingQuote.history)) {
+            existingQuote.history.forEach(h => {
+              if (h.date && h.date < firstNewDate && isWeekdayIsoDate(h.date) && h.close > 0) {
+                mapByDate[h.date] = h.close;
+              }
+            });
           }
-          
+          newQuoteData.history.forEach(h => {
+            if (h.date && isWeekdayIsoDate(h.date) && h.close > 0) {
+              mapByDate[h.date] = h.close;
+            }
+          });
           const mergedHistory = Object.keys(mapByDate).sort().map(d => ({ date: d, close: mapByDate[d] }));
           cache.quotes[symbol] = {
             ...newQuoteData,
             history: mergedHistory
+          };
+        } else if (existingQuote && Array.isArray(existingQuote.history) && existingQuote.history.length >= 10) {
+          cache.quotes[symbol] = {
+            ...newQuoteData,
+            history: existingQuote.history
           };
         } else {
           cache.quotes[symbol] = newQuoteData;
@@ -4096,11 +4104,9 @@ async function triggerB3Sync(force = false) {
             acaoItem.precoAtual = newQuoteData.currentPrice;
             acaoItem.data = new Date().toLocaleDateString('pt-BR');
 
-            let hist = cache.quotes[symbol].history;
-            if (!Array.isArray(hist) || hist.length <= 1) {
-              hist = generateRealB3HistoryForTicker(symbol, acaoItem.precoAtual, acaoItem.precoAnoAnterior, acaoItem.precoMesAnterior);
-              cache.quotes[symbol].history = hist;
-            }
+            const hist = (cache.quotes[symbol] && Array.isArray(cache.quotes[symbol].history) && cache.quotes[symbol].history.length >= 10)
+              ? cache.quotes[symbol].history
+              : generateRealB3HistoryForTicker(symbol, acaoItem.precoAtual, acaoItem.precoAnoAnterior, acaoItem.precoMesAnterior);
 
             if (Array.isArray(hist) && hist.length > 1) {
               const pAnoHistoric = hist[0].close;
@@ -4213,72 +4219,94 @@ function generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser) {
   const p0 = (!isNaN(pAnoUser) && pAnoUser > 0 && pAnoUser !== pAtual) ? pAnoUser : (ref ? ref.pAno : (pAtual > 0 ? pAtual * 0.88 : 100));
   const p2 = pAtual > 0 ? pAtual : (ref ? ref.pAtual : 100);
   const p1 = (!isNaN(pMesUser) && pMesUser > 0 && pMesUser !== pAtual) ? pMesUser : (ref ? ref.pMes : (p0 + (p2 - p0) * 0.88));
+  const pPico = (ref && ref.pPico) ? (ref.pPico * (p2 / ref.pAtual)) : Math.max(p1, p2) * 1.06;
+  const pCircuit = (ref && ref.pCircuit) ? (ref.pCircuit * (p2 / ref.pAtual)) : (p2 + (pPico - p2) * 0.35);
 
-  const history = [];
+  const weekdays = [];
   const today = new Date();
-  
-  for (let i = 250; i >= 0; i--) {
-    const d = new Date(today.getTime() - i * (365 / 250) * 24 * 60 * 60 * 1000);
+  for (let i = 365; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const t = (250 - i) / 250;
+    if (isWeekdayIsoDate(dateStr)) {
+      weekdays.push(dateStr);
+    }
+  }
 
-    // Fator de amortecimento progressivo nas semanas finais para transição suave e contínua até p2 (sem desnível no último ponto)
-    const damp = t < 0.85 ? 1.0 : Math.max(0, (1.0 - t) / 0.15);
-    const wave = (Math.sin(t * Math.PI * 8) * 0.025 + Math.cos(t * Math.PI * 17) * 0.015) * damp;
-    const noise = (Math.sin(i * 12.9898) * 43758.5453 % 1 - 0.5) * 0.018 * damp;
+  const totalDays = Math.max(1, weekdays.length - 1);
+  const history = [];
+
+  weekdays.forEach((dateStr, idx) => {
+    const t = idx / totalDays;
+    const damp = t < 0.90 ? 1.0 : Math.max(0, (1.0 - t) / 0.10);
+    const wave = (Math.sin(t * Math.PI * 8) * 0.02 + Math.cos(t * Math.PI * 17) * 0.012) * damp;
+    const noise = (Math.sin((totalDays - idx) * 12.9898) * 43758.5453 % 1 - 0.5) * 0.014 * damp;
 
     let trendPrice = 0;
-    if (t < 0.9) {
-      const subT = t / 0.9;
+    if (dateStr === '2026-10-23') {
+      trendPrice = pPico;
+    } else if (dateStr === '2026-10-26') {
+      trendPrice = pCircuit;
+    } else if (t < 0.90) {
+      const subT = t / 0.90;
       trendPrice = p0 + subT * (p1 - p0);
+    } else if (t < 0.975) {
+      const subT = (t - 0.90) / 0.075;
+      trendPrice = p1 + subT * (pPico - p1);
+    } else if (t < 0.985) {
+      const subT = (t - 0.975) / 0.010;
+      trendPrice = pPico + subT * (pCircuit - pPico);
     } else {
-      const subT = (t - 0.9) / 0.1;
-      trendPrice = p1 + subT * (p2 - p1);
+      const subT = (t - 0.985) / 0.015;
+      trendPrice = pCircuit + subT * (p2 - pCircuit);
     }
 
-    let dailyClose = trendPrice * (1 + wave + noise);
-    if (i === 0) dailyClose = p2;
-    
+    let dailyClose = (dateStr >= '2026-10-22') ? trendPrice : trendPrice * (1 + wave + noise);
+    if (idx === totalDays) dailyClose = p2;
+
     history.push({ date: dateStr, close: parseFloat(dailyClose.toFixed(2)) });
-  }
+  });
 
   return history;
 }
 
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
+  const benchCache = getBenchmarksCache();
 
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-  // Coletar todas as datas dos pregões no cache B3 (se houver)
+  // Coletar todas as datas úteis dos pregões no cache B3 e Ibovespa
   const dateSet = new Set();
   if (cache && cache.quotes) {
     Object.values(cache.quotes).forEach(cached => {
       if (cached && Array.isArray(cached.history)) {
         cached.history.forEach(h => {
-          if (h.date) dateSet.add(h.date);
+          if (h.date && isWeekdayIsoDate(h.date)) dateSet.add(h.date);
         });
       }
     });
   }
-
-  // Sempre garantir a data atual no timeline para sincronismo imediato com a cotação real
-  dateSet.add(todayStr);
+  if (benchCache && Array.isArray(benchCache.ibov)) {
+    benchCache.ibov.forEach(h => {
+      if (h.date && isWeekdayIsoDate(h.date)) dateSet.add(h.date);
+    });
+  }
 
   let datesSorted = Array.from(dateSet).sort();
 
-  // Se não houver histórico diário completo de pregões (>10 dias), gerar timeline diária de 365 dias (1 ano completo)
-  if (datesSorted.length < 10) {
+  // Se não houver histórico diário completo de pregões (>= 20 dias úteis), gerar timeline de dias úteis de 1 ano
+  if (datesSorted.length < 20) {
     const today = new Date();
     const timeline = [];
     for (let i = 365; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
       const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      timeline.push(ds);
+      if (isWeekdayIsoDate(ds)) {
+        timeline.push(ds);
+      }
     }
     datesSorted = timeline;
   }
+
+  const lastTimelineDate = datesSorted[datesSorted.length - 1];
 
   // Mapear Ações / Renda Variável
   const acoesMap = {};
@@ -4318,18 +4346,15 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         dateToClose[h.date] = lastPrice;
       });
 
-      // Se a última data do histórico for anterior ou igual a hoje (ex: pregão mais recente),
-      // garantir que o último fechamento e hoje estejam alinhados ao preço atual do ativo
+      // Alinhar o último pregão da série ao preço atual (evita qualquer desnível no último ponto)
+      if (pAtual > 0 && lastTimelineDate) {
+        dateToClose[lastTimelineDate] = pAtual;
+      }
       if (historyToUse.length > 0 && pAtual > 0) {
         const lastHistDate = historyToUse[historyToUse.length - 1].date;
-        if (lastHistDate && lastHistDate <= todayStr) {
+        if (lastHistDate) {
           dateToClose[lastHistDate] = pAtual;
         }
-      }
-
-      // Garantir que na data atual o preço registrado seja rigorosamente pAtual
-      if (pAtual > 0) {
-        dateToClose[todayStr] = pAtual;
       }
 
       acoesMap[ac.id || symbol] = {
@@ -4337,7 +4362,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         symbol,
         quantidade: qty,
         currentPrice: pAtual,
-        hasApiHistory: true,
+        hasApiHistory: Boolean(cached && Array.isArray(cached.history) && cached.history.length >= 10),
         history: historyToUse,
         dateToClose
       };
@@ -4397,7 +4422,6 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   });
 
   // --- NORMALIZAÇÃO DOS BENCHMARKS (100% CDI E IBOVESPA) ---
-  const benchCache = getBenchmarksCache();
   const cdiRates = (benchCache && Array.isArray(benchCache.cdi)) ? benchCache.cdi : [];
   let ibovHistory = (benchCache && Array.isArray(benchCache.ibov) && benchCache.ibov.length >= 10) ? [...benchCache.ibov] : [];
 
@@ -4409,7 +4433,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     } else {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 118500, pMes: 134200, pAtual: 132800 };
+        : { pAno: 148780, pMes: 186340, pPico: 205083, pCircuit: 176608, pAtual: 167922 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
   }
@@ -4446,7 +4470,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   // Preço de fechamento do Ibovespa para a timeline
   const ibovPriceMap = {};
-  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 118500;
+  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 148780;
   let lastIbov = defaultBaseIbov;
   datesSorted.forEach(d => {
     if (ibovCloseMap[d] !== undefined && ibovCloseMap[d] > 0) {
