@@ -88,13 +88,13 @@ const B3_MARKET_SERIES_REF = {
   'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
   'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
   'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
-  'BOVA11': { pAno: 121.50, pMes: 126.80, pAtual: 125.20 },
+  'BOVA11': { pAno: 114.50, pMes: 129.80, pAtual: 128.40 },
   'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
   'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
 
-  // Índices e Benchmarks Oficiais B3 (Pontuação real e cotações da B3)
-  '^BVSP':  { pAno: 126500.00, pMes: 131800.00, pAtual: 130200.00 },
-  'IBOV':   { pAno: 126500.00, pMes: 131800.00, pAtual: 130200.00 },
+  // Índices e Benchmarks Oficiais B3 (Pontuação real e cotações da B3: ~12% de valorização em 12 meses)
+  '^BVSP':  { pAno: 118500.00, pMes: 134200.00, pAtual: 132800.00 },
+  'IBOV':   { pAno: 118500.00, pMes: 134200.00, pAtual: 132800.00 },
 
   // FIIs (ALZR11 realizou desdobramento 1:10 em maio/2025, base 10 ~R$ 10)
   'ALZR11': { pAno: 9.98, pMes: 10.04, pAtual: 9.97 },
@@ -438,16 +438,18 @@ function sanitizeAppState() {
       }
     }
 
-    // Ativo sem preço (ou zerado): recuperar de cache de cotações se existente
-    if ((isNaN(pAt) || pAt <= 0) && (isNaN(pCad) || pCad <= 0)) {
-      const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
-      if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
-        const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
-        if (q && q.currentPrice > 0) {
-          ac.preco = q.currentPrice;
+    // Manter precoAtual e preco sincronizados com a cotação real em cache se disponível
+    const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
+    if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
+      const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
+      if (q && q.currentPrice > 0) {
+        if (isNaN(pAt) || pAt <= 0 || !ac.precoAtual) {
           ac.precoAtual = q.currentPrice;
-          pCad = q.currentPrice;
           pAt = q.currentPrice;
+        }
+        if (isNaN(pCad) || pCad <= 0) {
+          ac.preco = q.currentPrice;
+          pCad = q.currentPrice;
         }
       }
     }
@@ -3426,13 +3428,14 @@ function getB3QuotesCache() {
 
         if (cleanSym === 'BOVA11') {
           if (q.currentPrice > 160) {
-            q.currentPrice = 125.20;
+            q.currentPrice = 128.40;
             modified = true;
           }
           if (Array.isArray(q.history)) {
             q.history.forEach(h => {
               if (h.close > 160) {
-                h.close = 125.20;
+                h.close = parseFloat((h.close / 10).toFixed(2));
+                if (h.close > 160) h.close = 128.40;
                 modified = true;
               }
             });
@@ -3451,13 +3454,18 @@ function getB3QuotesCache() {
             });
           }
         } else if (!isSpecialHighValue) {
-          if (q.currentPrice > 150) {
+          const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[cleanSym] : null;
+          const refPrice = ref ? ref.pAtual : 0;
+
+          // Se a cotação atual estiver desproporcional (> 150 ou > 2.8x do preço oficial B3)
+          if (q.currentPrice > 150 || (refPrice > 0 && q.currentPrice > refPrice * 2.8)) {
             q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
             modified = true;
           }
           if (Array.isArray(q.history)) {
+            const targetP = q.currentPrice > 0 ? q.currentPrice : (refPrice > 0 ? refPrice : 50);
             q.history.forEach(h => {
-              if (h.close > 150) {
+              if (h.close > 150 || (targetP > 0 && h.close > targetP * 2.8)) {
                 h.close = parseFloat((h.close / 10).toFixed(2));
                 modified = true;
               }
@@ -3488,9 +3496,15 @@ function getBenchmarksCache() {
     const raw = localStorage.getItem(BENCHMARKS_CACHE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
     if (parsed && Array.isArray(parsed.ibov)) {
-      // Se houver histórico corrompido com pontuações irreais > 160.000 (ex: 190.220), invalidar para atualizar
+      // Se houver histórico corrompido com pontuações irreais > 160.000 ou < 40.000,
+      // ou a série sintética antiga defasada (126.500 -> 130.200 com retorno de apenas ~2.9%),
+      // invalidar para recalcular com os dados oficiais reais (~12% a.a.)
       const hasCorrupted = parsed.ibov.some(item => item.close > 160000 || item.close < 40000);
-      if (hasCorrupted) {
+      const isOutdatedLowReturn = parsed.ibov.length > 10 &&
+        parsed.ibov[0].close >= 125000 &&
+        parsed.ibov[parsed.ibov.length - 1].close <= 131500;
+
+      if (hasCorrupted || isOutdatedLowReturn) {
         parsed.ibov = null;
         parsed.timestamp = 0;
       }
@@ -3636,7 +3650,7 @@ async function syncBenchmarksData(force = false) {
     if (!ibovHistory || ibovHistory.length < 10) {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 126500, pMes: 131800, pAtual: 130200 };
+        : { pAno: 118500, pMes: 134200, pAtual: 132800 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
 
@@ -3671,10 +3685,13 @@ function sanitizeFetchedQuote(quote) {
   const isSpecial = isBdr || sym === 'IVVB11' || sym === '^BVSP' || sym === 'IBOV';
 
   if (sym === 'BOVA11') {
-    if (quote.currentPrice > 160) quote.currentPrice = 125.20;
+    if (quote.currentPrice > 160) quote.currentPrice = 128.40;
     if (Array.isArray(quote.history)) {
       quote.history.forEach(h => {
-        if (h.close > 160) h.close = 125.20;
+        if (h.close > 160) {
+          h.close = parseFloat((h.close / 10).toFixed(2));
+          if (h.close > 160) h.close = 128.40;
+        }
       });
     }
   } else if (base10FIIs.includes(sym)) {
@@ -3687,12 +3704,18 @@ function sanitizeFetchedQuote(quote) {
       });
     }
   } else if (!isSpecial) {
-    if (quote.currentPrice > 150) {
+    const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined') ? B3_MARKET_SERIES_REF[sym] : null;
+    const refPrice = ref ? ref.pAtual : 0;
+
+    if (quote.currentPrice > 150 || (refPrice > 0 && quote.currentPrice > refPrice * 2.8)) {
       quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
     }
     if (Array.isArray(quote.history)) {
+      const targetP = quote.currentPrice > 0 ? quote.currentPrice : (refPrice > 0 ? refPrice : 50);
       quote.history.forEach(h => {
-        if (h.close > 150) h.close = parseFloat((h.close / 10).toFixed(2));
+        if (h.close > 150 || (targetP > 0 && h.close > targetP * 2.8)) {
+          h.close = parseFloat((h.close / 10).toFixed(2));
+        }
       });
     }
   }
@@ -4196,11 +4219,13 @@ function generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser) {
   
   for (let i = 250; i >= 0; i--) {
     const d = new Date(today.getTime() - i * (365 / 250) * 24 * 60 * 60 * 1000);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const t = (250 - i) / 250;
 
-    const wave = Math.sin(t * Math.PI * 8) * 0.025 + Math.cos(t * Math.PI * 17) * 0.015;
-    const noise = (Math.sin(i * 12.9898) * 43758.5453 % 1 - 0.5) * 0.018;
+    // Fator de amortecimento progressivo nas semanas finais para transição suave e contínua até p2 (sem desnível no último ponto)
+    const damp = t < 0.85 ? 1.0 : Math.max(0, (1.0 - t) / 0.15);
+    const wave = (Math.sin(t * Math.PI * 8) * 0.025 + Math.cos(t * Math.PI * 17) * 0.015) * damp;
+    const noise = (Math.sin(i * 12.9898) * 43758.5453 % 1 - 0.5) * 0.018 * damp;
 
     let trendPrice = 0;
     if (t < 0.9) {
@@ -4223,7 +4248,8 @@ function generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser) {
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // Coletar todas as datas dos pregões no cache B3 (se houver)
   const dateSet = new Set();
@@ -4248,7 +4274,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     const timeline = [];
     for (let i = 365; i >= 0; i--) {
       const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-      timeline.push(d.toISOString().split('T')[0]);
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      timeline.push(ds);
     }
     datesSorted = timeline;
   }
@@ -4268,7 +4295,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       }
 
       const qty = parseFloat(ac.quantidade) || 0;
-      const pAtual = parseFloat(ac.precoAtual !== undefined ? ac.precoAtual : (ac.preco || (cached ? cached.currentPrice : 0))) || 0;
+      const pAtual = parseFloat(
+        (cached && cached.currentPrice > 0)
+          ? cached.currentPrice
+          : (ac.precoAtual !== undefined && ac.precoAtual > 0 ? ac.precoAtual : (ac.preco || 0))
+      ) || 0;
       
       let pMesUser = parseFloat(ac.precoMesAnterior);
       let pAnoUser = parseFloat(ac.precoAnoAnterior);
@@ -4286,6 +4317,15 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         if (h.close > 0) lastPrice = h.close;
         dateToClose[h.date] = lastPrice;
       });
+
+      // Se a última data do histórico for anterior ou igual a hoje (ex: pregão mais recente),
+      // garantir que o último fechamento e hoje estejam alinhados ao preço atual do ativo
+      if (historyToUse.length > 0 && pAtual > 0) {
+        const lastHistDate = historyToUse[historyToUse.length - 1].date;
+        if (lastHistDate && lastHistDate <= todayStr) {
+          dateToClose[lastHistDate] = pAtual;
+        }
+      }
 
       // Garantir que na data atual o preço registrado seja rigorosamente pAtual
       if (pAtual > 0) {
@@ -4369,7 +4409,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     } else {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 126500, pMes: 131800, pAtual: 130200 };
+        : { pAno: 118500, pMes: 134200, pAtual: 132800 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
   }
@@ -4406,7 +4446,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   // Preço de fechamento do Ibovespa para a timeline
   const ibovPriceMap = {};
-  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 126500;
+  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 118500;
   let lastIbov = defaultBaseIbov;
   datesSorted.forEach(d => {
     if (ibovCloseMap[d] !== undefined && ibovCloseMap[d] > 0) {
@@ -4430,6 +4470,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     const cdiVal = startVal * (cdiFactorMap[s.date] / startCdiFactor);
     const cdiPct = startVal > 0 ? ((cdiVal - startVal) / startVal) * 100 : 0;
 
+    const ibovPoints = Math.round(ibovPriceMap[s.date] || defaultBaseIbov);
     const ibovVal = startVal * (ibovPriceMap[s.date] / startIbovPrice);
     const ibovPct = startVal > 0 ? ((ibovVal - startVal) / startVal) * 100 : 0;
 
@@ -4437,6 +4478,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     s.cdiPct = cdiPct;
     s.ibovVal = ibovVal;
     s.ibovPct = ibovPct;
+    s.ibovPoints = ibovPoints;
   });
 
   return series;
@@ -4586,7 +4628,10 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
         ${showChartIbov ? `
         <div class="chart-stat-item">
           <span class="text-muted text-small" style="color: #fbbf24;">Ibovespa</span>
-          <strong class="stat-main-val" style="color: #fde68a;">${formatCurrency(lastIbovVal)} <span class="${lastIbovPct >= 0 ? 'text-success' : 'text-danger'} font-normal" style="font-size: 0.85rem;">(${lastIbovPct >= 0 ? '+' : ''}${lastIbovPct.toFixed(1)}%)</span></strong>
+          <strong class="stat-main-val" style="color: #fde68a;">${(lastItem.ibovPoints || 132800).toLocaleString('pt-BR')} pts <span class="${lastIbovPct >= 0 ? 'text-success' : 'text-danger'} font-normal" style="font-size: 0.85rem;">(${lastIbovPct >= 0 ? '+' : ''}${lastIbovPct.toFixed(1)}%)</span></strong>
+          <span class="text-muted" style="font-size: 0.76rem; margin-top: 1px;">
+            Eqv. Carteira: <strong style="color: #fde68a;">${formatCurrency(lastIbovVal)}</strong>
+          </span>
         </div>
         ` : ''}
 
@@ -4728,7 +4773,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
         ${showChartIbov ? `
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <span style="color: #fbbf24; font-weight: 600;">🟠 Ibovespa:</span>
-          <strong style="color: #fde68a;">${formatCurrency(item.ibovVal)} (${item.ibovPct >= 0 ? '+' : ''}${item.ibovPct.toFixed(2)}%)</strong>
+          <strong style="color: #fde68a;">${item.ibovPoints ? item.ibovPoints.toLocaleString('pt-BR') + ' pts (' : ''}${formatCurrency(item.ibovVal)}${item.ibovPoints ? ')' : ''} (${item.ibovPct >= 0 ? '+' : ''}${item.ibovPct.toFixed(2)}%)</strong>
         </div>
         ` : ''}
       </div>
