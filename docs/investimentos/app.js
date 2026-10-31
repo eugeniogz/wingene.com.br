@@ -88,13 +88,13 @@ const B3_MARKET_SERIES_REF = {
   'CYRE3':  { pAno: 20.40, pMes: 22.80, pAtual: 23.50 },
   'TAEE11': { pAno: 34.50, pMes: 35.80, pAtual: 36.20 },
   'CPFE3':  { pAno: 33.80, pMes: 34.90, pAtual: 35.50 },
-  'BOVA11': { pAno: 143.95, pMes: 185.20, pAtual: 190.22 },
+  'BOVA11': { pAno: 121.50, pMes: 126.80, pAtual: 125.20 },
   'SMAL11': { pAno: 98.50, pMes: 101.20, pAtual: 102.80 },
   'IVVB11': { pAno: 285.00, pMes: 345.00, pAtual: 355.00 },
 
-  // Índices e Benchmarks Oficiais B3
-  '^BVSP':  { pAno: 143950.00, pMes: 185200.00, pAtual: 190220.00 },
-  'IBOV':   { pAno: 143950.00, pMes: 185200.00, pAtual: 190220.00 },
+  // Índices e Benchmarks Oficiais B3 (Pontuação real e cotações da B3)
+  '^BVSP':  { pAno: 126500.00, pMes: 131800.00, pAtual: 130200.00 },
+  'IBOV':   { pAno: 126500.00, pMes: 131800.00, pAtual: 130200.00 },
 
   // FIIs (ALZR11 realizou desdobramento 1:10 em maio/2025, base 10 ~R$ 10)
   'ALZR11': { pAno: 9.98, pMes: 10.04, pAtual: 9.97 },
@@ -373,54 +373,13 @@ function sanitizeAppState() {
       }
     }
 
-    // Ações brasileiras padrão com preços absurdos > 150 (PETR4, VALE3, ITUB4, WEGE3, BBAS3, BBDC4 etc)
-    const standardB3Stocks = ['PETR4', 'PETR3', 'VALE3', 'ITUB4', 'BBAS3', 'BBDC4', 'WEGE3', 'ABEV3', 'MGLU3', 'RENT3', 'PRIO3', 'ELET3', 'SUZB3', 'RAIL3', 'RADL3', 'EQTL3', 'LREN3', 'SANB11', 'CMIG4', 'VBBR3', 'KLBN11', 'CYRE3', 'TAEE11', 'CPFE3'];
-    if (standardB3Stocks.includes(rawT)) {
-      if (pAt > 150) {
-        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-        pAt = ac.precoAtual;
-      }
-      if (pCad > 150) {
-        ac.preco = parseFloat((pCad / 10).toFixed(2));
-        pCad = ac.preco;
-      }
-    }
-
-    // BDRs (GOGL34, MSCD34, AMZO34 etc), se ficaram inflados 10x
-    if (rawT === 'GOGL34') {
-      if (pAt > 500) {
-        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-        pAt = ac.precoAtual;
-      }
-      if (pCad > 500) {
-        ac.preco = parseFloat((pCad / 10).toFixed(2));
-        pCad = ac.preco;
-      }
-    }
-    if (rawT === 'MSCD34') {
-      if (pAt > 400) {
-        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-        pAt = ac.precoAtual;
-      }
-      if (pCad > 400) {
-        ac.preco = parseFloat((pCad / 10).toFixed(2));
-        pCad = ac.preco;
-      }
-    }
-    if (rawT === 'AMZO34') {
-      if (pAt > 300) {
-        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
-        pAt = ac.precoAtual;
-      }
-      if (pCad > 300) {
-        ac.preco = parseFloat((pCad / 10).toFixed(2));
-        pCad = ac.preco;
-      }
-    }
-
-    // FIIs de base 10 (ALZR11 realizou desdobramento 1:10 em maio/2025, cotando ~R$ 10; MXRF11 etc)
+    // FIIs de base 10 (ALZR11, MXRF11 etc, cotando ~R$ 10)
     const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
-    if (base10FIIs.includes(rawT)) {
+    const isBase10Fii = base10FIIs.includes(rawT);
+    const isBdr = rawT.endsWith('34') || rawT.endsWith('35');
+    const isHighValueAsset = rawT === 'IVVB11' || isBdr;
+
+    if (isBase10Fii) {
       if (pAt > 30) {
         ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
         pAt = ac.precoAtual;
@@ -433,6 +392,48 @@ function sanitizeAppState() {
         ac.precoMesAnterior = parseFloat((ac.precoMesAnterior / 10).toFixed(2));
       }
       if (ac.precoAnoAnterior && ac.precoAnoAnterior > 30) {
+        ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
+      }
+    } else if (!isHighValueAsset) {
+      // Ações brasileiras e FIIs comuns: preços normais de mercado estão abaixo de R$ 150
+      // Preços > 150 ocorrem por shift de ponto decimal (ex: 38.5 -> 385, 62.1 -> 621)
+      if (pAt > 150) {
+        ac.precoAtual = parseFloat((pAt / 10).toFixed(2));
+        pAt = ac.precoAtual;
+      }
+      if (pCad > 150) {
+        ac.preco = parseFloat((pCad / 10).toFixed(2));
+        pCad = ac.preco;
+      }
+      if (ac.precoMesAnterior && ac.precoMesAnterior > 150) {
+        ac.precoMesAnterior = parseFloat((ac.precoMesAnterior / 10).toFixed(2));
+      }
+      if (ac.precoAnoAnterior && ac.precoAnoAnterior > 150) {
+        ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
+      }
+    }
+
+    // BDRs específicos (GOGL34, MSCD34, AMZO34 etc), se ficaram inflados 10x
+    if (rawT === 'GOGL34' && (pAt > 500 || pCad > 500)) {
+      if (pAt > 500) { ac.precoAtual = parseFloat((pAt / 10).toFixed(2)); pAt = ac.precoAtual; }
+      if (pCad > 500) { ac.preco = parseFloat((pCad / 10).toFixed(2)); pCad = ac.preco; }
+    }
+    if (rawT === 'MSCD34' && (pAt > 400 || pCad > 400)) {
+      if (pAt > 400) { ac.precoAtual = parseFloat((pAt / 10).toFixed(2)); pAt = ac.precoAtual; }
+      if (pCad > 400) { ac.preco = parseFloat((pCad / 10).toFixed(2)); pCad = ac.preco; }
+    }
+    if (rawT === 'AMZO34' && (pAt > 300 || pCad > 300)) {
+      if (pAt > 300) { ac.precoAtual = parseFloat((pAt / 10).toFixed(2)); pAt = ac.precoAtual; }
+      if (pCad > 300) { ac.preco = parseFloat((pCad / 10).toFixed(2)); pCad = ac.preco; }
+    }
+
+    // Proteger preços históricos contra distorções desproporcionais (>4.5x do preço base)
+    const baseP = pAt > 0 ? pAt : (pCad > 0 ? pCad : 0);
+    if (baseP > 0) {
+      if (ac.precoMesAnterior && (ac.precoMesAnterior / baseP > 4.5)) {
+        ac.precoMesAnterior = parseFloat((ac.precoMesAnterior / 10).toFixed(2));
+      }
+      if (ac.precoAnoAnterior && (ac.precoAnoAnterior / baseP > 4.5)) {
         ac.precoAnoAnterior = parseFloat((ac.precoAnoAnterior / 10).toFixed(2));
       }
     }
@@ -3415,9 +3416,28 @@ function getB3QuotesCache() {
     if (parsed && parsed.quotes) {
       const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
       let modified = false;
-      base10FIIs.forEach(sym => {
-        if (parsed.quotes[sym]) {
-          const q = parsed.quotes[sym];
+      Object.keys(parsed.quotes).forEach(sym => {
+        const q = parsed.quotes[sym];
+        if (!q) return;
+        const cleanSym = sym.trim().toUpperCase().replace(/\.SA$/i, '');
+        const isBdr = cleanSym.endsWith('34') || cleanSym.endsWith('35');
+        const isBase10 = base10FIIs.includes(cleanSym);
+        const isSpecialHighValue = cleanSym === 'IVVB11' || cleanSym === '^BVSP' || cleanSym === 'IBOV' || isBdr;
+
+        if (cleanSym === 'BOVA11') {
+          if (q.currentPrice > 160) {
+            q.currentPrice = 125.20;
+            modified = true;
+          }
+          if (Array.isArray(q.history)) {
+            q.history.forEach(h => {
+              if (h.close > 160) {
+                h.close = 125.20;
+                modified = true;
+              }
+            });
+          }
+        } else if (isBase10) {
           if (q.currentPrice > 30) {
             q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
             modified = true;
@@ -3425,6 +3445,19 @@ function getB3QuotesCache() {
           if (Array.isArray(q.history)) {
             q.history.forEach(h => {
               if (h.close > 30) {
+                h.close = parseFloat((h.close / 10).toFixed(2));
+                modified = true;
+              }
+            });
+          }
+        } else if (!isSpecialHighValue) {
+          if (q.currentPrice > 150) {
+            q.currentPrice = parseFloat((q.currentPrice / 10).toFixed(2));
+            modified = true;
+          }
+          if (Array.isArray(q.history)) {
+            q.history.forEach(h => {
+              if (h.close > 150) {
                 h.close = parseFloat((h.close / 10).toFixed(2));
                 modified = true;
               }
@@ -3453,7 +3486,16 @@ function saveB3QuotesCache(cache) {
 function getBenchmarksCache() {
   try {
     const raw = localStorage.getItem(BENCHMARKS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && Array.isArray(parsed.ibov)) {
+      // Se houver histórico corrompido com pontuações irreais > 160.000 (ex: 190.220), invalidar para atualizar
+      const hasCorrupted = parsed.ibov.some(item => item.close > 160000 || item.close < 40000);
+      if (hasCorrupted) {
+        parsed.ibov = null;
+        parsed.timestamp = 0;
+      }
+    }
+    return parsed;
   } catch (e) {
     return null;
   }
@@ -3594,7 +3636,7 @@ async function syncBenchmarksData(force = false) {
     if (!ibovHistory || ibovHistory.length < 10) {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 143950, pMes: 185200, pAtual: 190220 };
+        : { pAno: 126500, pMes: 131800, pAtual: 130200 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
 
@@ -3625,13 +3667,32 @@ function sanitizeFetchedQuote(quote) {
   if (!quote || !quote.symbol) return quote;
   const sym = quote.symbol.trim().toUpperCase().replace(/\.SA$/i, '');
   const base10FIIs = ['ALZR11', 'MXRF11', 'VGIR11', 'CPTS11', 'VGHF11', 'KNSC11', 'RBRF11', 'GALG11', 'GZIT11'];
-  if (base10FIIs.includes(sym)) {
+  const isBdr = sym.endsWith('34') || sym.endsWith('35');
+  const isSpecial = isBdr || sym === 'IVVB11' || sym === '^BVSP' || sym === 'IBOV';
+
+  if (sym === 'BOVA11') {
+    if (quote.currentPrice > 160) quote.currentPrice = 125.20;
+    if (Array.isArray(quote.history)) {
+      quote.history.forEach(h => {
+        if (h.close > 160) h.close = 125.20;
+      });
+    }
+  } else if (base10FIIs.includes(sym)) {
     if (quote.currentPrice > 30) {
       quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
     }
     if (Array.isArray(quote.history)) {
       quote.history.forEach(h => {
         if (h.close > 30) h.close = parseFloat((h.close / 10).toFixed(2));
+      });
+    }
+  } else if (!isSpecial) {
+    if (quote.currentPrice > 150) {
+      quote.currentPrice = parseFloat((quote.currentPrice / 10).toFixed(2));
+    }
+    if (Array.isArray(quote.history)) {
+      quote.history.forEach(h => {
+        if (h.close > 150) h.close = parseFloat((h.close / 10).toFixed(2));
       });
     }
   }
@@ -3768,9 +3829,12 @@ async function fetchQuoteSingleTicker(ticker) {
           const history = Array.isArray(item.historicalDataPrice)
             ? item.historicalDataPrice.map(h => {
                 const dateStr = parseToIsoDate(h.date);
+                const adjVal = parseFloat(h.adjustedClose);
+                const closeVal = parseFloat(h.close);
+                const finalClose = (!isNaN(adjVal) && adjVal > 0) ? adjVal : (!isNaN(closeVal) ? closeVal : 0);
                 return {
                   date: dateStr,
-                  close: parseFloat(h.close || h.adjustedClose || 0)
+                  close: finalClose
                 };
               }).filter(h => h.date && !isNaN(h.close) && h.close > 0)
             : [];
@@ -3796,8 +3860,9 @@ async function fetchQuoteSingleTicker(ticker) {
           const history = [];
           for (let i = 0; i < timestamps.length; i++) {
             const ts = timestamps[i];
-            const rawClose = closes[i] !== undefined && closes[i] !== null ? closes[i] : (adjcloses[i] !== undefined ? adjcloses[i] : null);
-            const closeVal = parseFloat(rawClose);
+            const rawAdj = (adjcloses && adjcloses[i] !== undefined && adjcloses[i] !== null) ? parseFloat(adjcloses[i]) : NaN;
+            const rawNom = (closes && closes[i] !== undefined && closes[i] !== null) ? parseFloat(closes[i]) : NaN;
+            const closeVal = (!isNaN(rawAdj) && rawAdj > 0) ? rawAdj : (!isNaN(rawNom) ? rawNom : NaN);
             if (ts && !isNaN(closeVal) && closeVal > 0) {
               const dateStr = parseToIsoDate(ts);
               history.push({ date: dateStr, close: closeVal });
@@ -4099,11 +4164,11 @@ function populateChartAssetFilter() {
 
   const currentVal = select.value || 'ALL';
   let optionsHtml = `
-    <option value="ALL">🌐 Toda a Renda Variável (Consolidado)</option>
+    <option value="ALL">🌐 Toda a Carteira (Renda Variável Consolidada)</option>
   `;
 
   if (appState.acoes && appState.acoes.length > 0) {
-    optionsHtml += `<optgroup label="Ações / FIIs / BDRs">`;
+    optionsHtml += `<optgroup label="Ações / FIIs / BDRs (Cotação Individual)">`;
     appState.acoes.forEach(ac => {
       const ticker = ac.ticker ? ac.ticker.trim().toUpperCase() : '';
       if (ticker) {
@@ -4158,6 +4223,8 @@ function generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser) {
 function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   // Coletar todas as datas dos pregões no cache B3 (se houver)
   const dateSet = new Set();
   if (cache && cache.quotes) {
@@ -4169,6 +4236,9 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       }
     });
   }
+
+  // Sempre garantir a data atual no timeline para sincronismo imediato com a cotação real
+  dateSet.add(todayStr);
 
   let datesSorted = Array.from(dateSet).sort();
 
@@ -4182,8 +4252,6 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     }
     datesSorted = timeline;
   }
-
-  const todayStr = new Date().toISOString().split('T')[0];
 
   // Mapear Ações / Renda Variável
   const acoesMap = {};
@@ -4200,7 +4268,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       }
 
       const qty = parseFloat(ac.quantidade) || 0;
-      const pAtual = parseFloat(ac.preco || ac.precoAtual || (cached ? cached.currentPrice : 0)) || 0;
+      const pAtual = parseFloat(ac.precoAtual !== undefined ? ac.precoAtual : (ac.preco || (cached ? cached.currentPrice : 0))) || 0;
       
       let pMesUser = parseFloat(ac.precoMesAnterior);
       let pAnoUser = parseFloat(ac.precoAnoAnterior);
@@ -4219,6 +4287,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         dateToClose[h.date] = lastPrice;
       });
 
+      // Garantir que na data atual o preço registrado seja rigorosamente pAtual
+      if (pAtual > 0) {
+        dateToClose[todayStr] = pAtual;
+      }
+
       acoesMap[ac.id || symbol] = {
         id: ac.id || symbol,
         symbol,
@@ -4233,16 +4306,20 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   const series = [];
   let prevTotal = 0;
+  const isSingleAsset = selectedSymbol.startsWith('AC_');
 
   datesSorted.forEach((dateStr, idx) => {
     let dayTotal = 0;
+    let dayUnitPrice = 0;
+    let singleQty = 0;
 
     // Processar Renda Variável (Ações, FIIs, BDRs)
     Object.values(acoesMap).forEach(info => {
-      if (selectedSymbol.startsWith('AC_') && selectedSymbol !== `AC_${info.id}` && selectedSymbol !== `AC_${info.symbol}`) {
-        return;
-      }
-      if (info.quantidade <= 0) return;
+      const isMatch = isSingleAsset
+        ? (selectedSymbol === `AC_${info.id}` || selectedSymbol === `AC_${info.symbol}`)
+        : true;
+      if (!isMatch) return;
+      if (info.quantidade <= 0 && !isSingleAsset) return;
 
       let priceOnDate = info.dateToClose[dateStr];
       if (priceOnDate === undefined) {
@@ -4254,7 +4331,13 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         }
       }
 
-      dayTotal += info.quantidade * priceOnDate;
+      if (isSingleAsset) {
+        dayUnitPrice = priceOnDate;
+        singleQty = info.quantidade;
+        dayTotal = priceOnDate; // Valor unitário da ação na curva do gráfico
+      } else {
+        dayTotal += info.quantidade * priceOnDate;
+      }
     });
 
     const diffVal = idx > 0 ? dayTotal - prevTotal : 0;
@@ -4265,7 +4348,11 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
       date: dateStr,
       total: dayTotal,
       diffVal,
-      diffPct
+      diffPct,
+      isSingleAsset,
+      unitPrice: dayUnitPrice || dayTotal,
+      positionTotal: isSingleAsset ? (dayUnitPrice * singleQty) : dayTotal,
+      quantity: singleQty
     });
   });
 
@@ -4282,7 +4369,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     } else {
       const ref = (typeof B3_MARKET_SERIES_REF !== 'undefined' && B3_MARKET_SERIES_REF['^BVSP'])
         ? B3_MARKET_SERIES_REF['^BVSP']
-        : { pAno: 143950, pMes: 185200, pAtual: 190220 };
+        : { pAno: 126500, pMes: 131800, pAtual: 130200 };
       ibovHistory = generateRealB3HistoryForTicker('^BVSP', ref.pAtual, ref.pAno, ref.pMes);
     }
   }
@@ -4319,7 +4406,7 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
   // Preço de fechamento do Ibovespa para a timeline
   const ibovPriceMap = {};
-  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 143950;
+  const defaultBaseIbov = (ibovHistory.length > 0 && ibovHistory[0].close > 0) ? ibovHistory[0].close : 126500;
   let lastIbov = defaultBaseIbov;
   datesSorted.forEach(d => {
     if (ibovCloseMap[d] !== undefined && ibovCloseMap[d] > 0) {
@@ -4467,6 +4554,9 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     }
   }
 
+  const isSingleAsset = series.length > 0 && series[0].isSingleAsset;
+  const lastItem = series[series.length - 1];
+
   const lineColor = totalChangeVal >= 0 ? '#10b981' : '#ef4444';
   const areaGradient = totalChangeVal >= 0 ? 'url(#greenGradient)' : 'url(#redGradient)';
 
@@ -4479,8 +4569,13 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     <div class="line-chart-card">
       <div class="line-chart-header mb-3">
         <div class="chart-stat-item">
-          <span class="text-muted text-small">${escapeHtml(assetLabel)}</span>
+          <span class="text-muted text-small">${escapeHtml(assetLabel)}${isSingleAsset ? ' (Cotação Unitária)' : ' (Consolidado)'}</span>
           <strong class="stat-main-val">${formatCurrency(lastVal)} <span class="${changeClass} font-normal" style="font-size: 0.85rem;">(${changeSign}${totalChangePct.toFixed(1)}%)</span></strong>
+          ${isSingleAsset && lastItem.quantity > 0 ? `
+          <span class="text-muted" style="font-size: 0.76rem; margin-top: 1px;">
+            Total na Carteira: <strong style="color: #ffffff;">${formatCurrency(lastItem.positionTotal)}</strong> (${lastItem.quantity} cotas)
+          </span>
+          ` : ''}
         </div>
         ${showChartCdi ? `
         <div class="chart-stat-item">
@@ -4616,9 +4711,14 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <span style="color: ${lineColor}; font-weight: 600;">🟢 ${escapeHtml(assetShortLabel)}:</span>
+          <span style="color: ${lineColor}; font-weight: 600;">🟢 ${escapeHtml(assetShortLabel)}${isSingleAsset ? ' (Cotação)' : ''}:</span>
           <strong style="color: #ffffff;">${formatCurrency(item.total)} (${diffSign}${item.diffPct.toFixed(2)}%)</strong>
         </div>
+        ${isSingleAsset && item.quantity > 0 ? `
+        <div style="font-size: 0.73rem; color: #94a3b8; margin: -2px 0 2px 0;">
+          💼 Posição Total: <strong>${formatCurrency(item.positionTotal)}</strong> (${item.quantity} cotas)
+        </div>
+        ` : ''}
         ${showChartCdi ? `
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <span style="color: #60a5fa; font-weight: 600;">🔵 100% CDI:</span>
