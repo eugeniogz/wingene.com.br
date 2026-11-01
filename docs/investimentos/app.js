@@ -41,6 +41,8 @@ const B3_POPULAR_STOCKS = {
   'CPLE6': 'Copel PNB',
   'FLRY3': 'Fleury ON',
   'SUZB3': 'Suzano ON',
+  'ISAE4': 'ISA Energia Brasil PN',
+  'ALOS3': 'Allos ON',
   'ALZR11': 'Alianza Trust Renda Imobiliária',
   'HGLG11': 'CSHG Logística FII',
   'KNRI11': 'Kinea Renda Imobiliária FII',
@@ -68,10 +70,12 @@ const B3_MARKET_SERIES_REF = {
   'PETR3':  { pAno: 31.66, pMes: 53.87, pPico: 65.50, pCircuit: 60.10, pAtual: 60.01 },
   'VALE3':  { pAno: 63.81, pMes: 69.91, pPico: 61.90, pCircuit: 64.38, pAtual: 62.02 },
   'BBAS3':  { pAno: 21.63, pMes: 23.07, pPico: 24.72, pCircuit: 17.47, pAtual: 16.47 },
-  'ITUB4':  { pAno: 38.15, pMes: 44.28, pPico: 48.30, pCircuit: 41.70, pAtual: 38.69 },
+  'ITUB4':  { pAno: 37.41, pMes: 44.28, pPico: 48.30, pCircuit: 41.70, pAtual: 38.69 },
   'BBDC4':  { pAno: 18.10, pMes: 18.51, pPico: 19.20, pCircuit: 15.10, pAtual: 13.86 },
   'WEGE3':  { pAno: 41.45, pMes: 49.46, pPico: 42.73, pCircuit: 44.53, pAtual: 48.36 },
   'BBSE3':  { pAno: 32.82, pMes: 39.18, pPico: 43.68, pCircuit: 43.14, pAtual: 41.32 },
+  'ISAE4':  { pAno: 25.44, pMes: 27.59, pPico: 28.32, pCircuit: 26.00, pAtual: 24.76 },
+  'ALOS3':  { pAno: 24.73, pMes: 29.49, pPico: 35.14, pCircuit: 26.19, pAtual: 23.50 },
   'CXSE3':  { pAno: 15.15, pMes: 19.88, pPico: 22.90, pCircuit: 21.60, pAtual: 21.38 },
   'MGLU3':  { pAno: 15.20, pMes: 9.40,  pPico: 10.80, pCircuit: 8.90,  pAtual: 9.10 },
   'RENT3':  { pAno: 39.24, pMes: 40.50, pPico: 34.10, pCircuit: 29.20, pAtual: 27.85 },
@@ -480,7 +484,15 @@ function sanitizeAppState() {
       }
     }
 
-    // Manter precoAtual e preco sincronizados com a cotação real em cache se disponível
+    // Migrar ITUB4 caso precoAnoAnterior tenha ficado em 38.15 (ajuste apenas de bonificação sem JCP 2026 da v3.0.0) ou 27.80/35.28
+    if (rawT === 'ITUB4' && !ac.customPrecoAno) {
+      const pAnoCur = parseFloat(ac.precoAnoAnterior) || 0;
+      if (Math.abs(pAnoCur - 38.15) < 0.06 || Math.abs(pAnoCur - 27.80) < 0.06 || Math.abs(pAnoCur - 35.28) < 0.06) {
+        ac.precoAnoAnterior = 37.41;
+      }
+    }
+
+    // Manter precoAtual, preco, precoAnoAnterior e precoMesAnterior sincronizados com a cotação real em cache se disponível
     const cache = (typeof getB3QuotesCache === 'function') ? getB3QuotesCache() : null;
     if (cache && cache.quotes && (cache.quotes[rawT] || cache.quotes[ac.ticker])) {
       const q = cache.quotes[rawT] || cache.quotes[ac.ticker];
@@ -489,6 +501,20 @@ function sanitizeAppState() {
         ac.preco = q.currentPrice;
         pAt = q.currentPrice;
         pCad = q.currentPrice;
+      }
+      if (q && Array.isArray(q.history) && q.history.length >= 10) {
+        if (!ac.customPrecoAno) {
+          const pAnoHist = (typeof getHistoryCloseMonthsAgo === 'function')
+            ? getHistoryCloseMonthsAgo(q.history, 12)
+            : q.history[0].close;
+          if (pAnoHist > 0) ac.precoAnoAnterior = pAnoHist;
+        }
+        if (!ac.customPrecoMes) {
+          const pMesHist = (typeof getHistoryCloseMonthsAgo === 'function')
+            ? getHistoryCloseMonthsAgo(q.history, 1)
+            : q.history[Math.max(0, q.history.length - 22)].close;
+          if (pMesHist > 0) ac.precoMesAnterior = pMesHist;
+        }
       }
     }
 
@@ -1306,7 +1332,9 @@ function calculateFinancials() {
 
     if (historyToUse && Array.isArray(historyToUse) && historyToUse.length > 1) {
       if (isNaN(userPAno) || userPAno <= 0 || userPAno === precoAtual) {
-        const h0 = historyToUse[0].close;
+        const h0 = (typeof getHistoryCloseMonthsAgo === 'function')
+          ? getHistoryCloseMonthsAgo(historyToUse, 12)
+          : historyToUse[0].close;
         if (h0 > 0) {
           userPAno = h0;
           if (!acao.precoAnoAnterior || acao.precoAnoAnterior === 0) {
@@ -1315,8 +1343,9 @@ function calculateFinancials() {
         }
       }
       if (isNaN(userPMes) || userPMes <= 0 || userPMes === precoAtual) {
-        const idxM = Math.max(0, historyToUse.length - 22);
-        const hm = historyToUse[idxM].close;
+        const hm = (typeof getHistoryCloseMonthsAgo === 'function')
+          ? getHistoryCloseMonthsAgo(historyToUse, 1)
+          : historyToUse[Math.max(0, historyToUse.length - 22)].close;
         if (hm > 0) {
           userPMes = hm;
           if (!acao.precoMesAnterior || acao.precoMesAnterior === 0) {
@@ -2598,6 +2627,13 @@ function handleEditAcaoModalSubmit(e) {
     recordAssetHistory(item, precoAtual);
   }
 
+  if (Math.abs((parseFloat(item.precoMesAnterior) || 0) - precoMes) > 0.005) {
+    item.customPrecoMes = true;
+  }
+  if (Math.abs((parseFloat(item.precoAnoAnterior) || 0) - precoAno) > 0.005) {
+    item.customPrecoAno = true;
+  }
+
   item.ticker = ticker;
   item.nome = nome;
   item.quantidade = quantidade;
@@ -3443,13 +3479,15 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- COTAÇÕES AUTOMÁTICAS B3 (AÇÕES, FIIS, BDRS) E HISTÓRICO DE PREGÕES (12 MESES) ---
-const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v2';
-const BENCHMARKS_CACHE_KEY = 'winvest_benchmarks_cache_v2';
+const B3_CACHE_KEY = 'winvest_b3_quotes_cache_v3';
+const BENCHMARKS_CACHE_KEY = 'winvest_benchmarks_cache_v3';
 
-// Limpar caches legados v1 que continham séries sintéticas ou cortes >150/>160k
+// Limpar caches legados v1/v2 que continham séries sintéticas, janelas desalinhadas ou sem ajuste de proventos 2026
 try {
   localStorage.removeItem('winvest_b3_quotes_cache_v1');
   localStorage.removeItem('winvest_benchmarks_cache_v1');
+  localStorage.removeItem('winvest_b3_quotes_cache_v2');
+  localStorage.removeItem('winvest_benchmarks_cache_v2');
 } catch (e) {}
 
 let showChartCdi = true;
@@ -3461,6 +3499,65 @@ function isWeekdayIsoDate(dateStr) {
   if (isNaN(d.getTime())) return false;
   const dow = d.getUTCDay();
   return dow !== 0 && dow !== 6;
+}
+
+function getTargetDateMonthsAgo(isoDateStr, monthsAgo) {
+  if (!isoDateStr || typeof isoDateStr !== 'string') return '';
+  const parts = isoDateStr.split('T')[0].split('-').map(Number);
+  if (parts.length !== 3 || isNaN(parts[0])) return '';
+  const targetYear = parts[0] - Math.floor(monthsAgo / 12);
+  const remMonths = monthsAgo % 12;
+  let targetMonth = parts[1] - remMonths;
+  let finalYear = targetYear;
+  if (targetMonth <= 0) {
+    targetMonth += 12;
+    finalYear -= 1;
+  }
+  const maxDay = new Date(Date.UTC(finalYear, targetMonth, 0)).getUTCDate();
+  const finalDay = Math.min(parts[2], maxDay);
+  return `${finalYear}-${String(targetMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`;
+}
+
+function sliceHistoryTo12Months(history) {
+  if (!Array.isArray(history) || history.length < 2) return history || [];
+  history.sort((a, b) => a.date.localeCompare(b.date));
+  const lastDate = history[history.length - 1].date;
+  const targetStartDate = getTargetDateMonthsAgo(lastDate, 12);
+  if (!targetStartDate) return history;
+
+  let startIdx = history.findIndex(h => h.date >= targetStartDate);
+  if (startIdx === -1) return history;
+  if (history[startIdx].date > targetStartDate && startIdx > 0) {
+    const prevDate = new Date(`${history[startIdx - 1].date}T12:00:00Z`);
+    const targDate = new Date(`${targetStartDate}T12:00:00Z`);
+    const diffDays = (targDate - prevDate) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 4) {
+      startIdx = startIdx - 1;
+    }
+  }
+  return history.slice(startIdx);
+}
+
+function getHistoryCloseMonthsAgo(history, monthsAgo) {
+  if (!Array.isArray(history) || history.length === 0) return 0;
+  if (monthsAgo >= 12) {
+    return history[0].close || 0;
+  }
+  const lastDate = history[history.length - 1].date;
+  const targetDate = getTargetDateMonthsAgo(lastDate, monthsAgo);
+  if (!targetDate) {
+    const fallbackIdx = Math.max(0, history.length - 22);
+    return history[fallbackIdx].close || 0;
+  }
+  let bestIdx = 0;
+  for (let i = 0; i < history.length; i++) {
+    if (history[i].date <= targetDate) {
+      bestIdx = i;
+    } else {
+      break;
+    }
+  }
+  return history[bestIdx].close || 0;
 }
 
 function getB3QuotesCache() {
@@ -3731,12 +3828,13 @@ async function fetchQuoteSingleTicker(ticker) {
   const tokenParam = brapiToken ? `&token=${encodeURIComponent(brapiToken)}` : '';
   const brapiHeaders = brapiToken ? { 'Authorization': `Bearer ${brapiToken}` } : {};
 
-  const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
-  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+  const rawYahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=2y&interval=1d`;
+  const rawYahooUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=2y&interval=1d`;
+  const rawYahooUrl1y = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
 
   const endpoints = [];
 
-  // 1. Yahoo Finance via Jina CORS Proxy (Prioridade máxima: traz a série histórica real completa de 250 pregões + cotação atual)
+  // 1. Yahoo Finance via Jina CORS Proxy (Prioridade máxima: traz a série histórica real completa de pregões + cotação atual)
   endpoints.push(
     {
       url: `https://r.jina.ai/${rawYahooUrl}`,
@@ -3747,13 +3845,18 @@ async function fetchQuoteSingleTicker(ticker) {
       url: `https://r.jina.ai/${rawYahooUrl2}`,
       type: 'jina',
       headers: { 'Accept': 'application/json' }
+    },
+    {
+      url: `https://r.jina.ai/${rawYahooUrl1y}`,
+      type: 'jina',
+      headers: { 'Accept': 'application/json' }
     }
   );
 
   // 2. Brapi (se o usuário configurou token próprio, traz histórico completo e cotação B3)
   if (brapiToken) {
     endpoints.push({
-      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=1y&interval=1d${tokenParam}`,
+      url: `https://brapi.dev/api/quote/${encodeURIComponent(brapiSymbol)}?range=2y&interval=1d${tokenParam}`,
       type: 'brapi'
     });
   }
@@ -3838,13 +3941,18 @@ async function fetchQuoteSingleTicker(ticker) {
         if (data && Array.isArray(data.results) && data.results.length > 0) {
           const item = data.results[0];
           const currentPrice = parseFloat(item.regularMarketPrice || item.price || 0);
-          const history = Array.isArray(item.historicalDataPrice)
+          let history = Array.isArray(item.historicalDataPrice)
             ? item.historicalDataPrice.map(h => {
                 const dateStr = parseToIsoDate(h.date);
                 const adjVal = parseFloat(h.adjustedClose);
                 const closeVal = parseFloat(h.close);
                 const useNominal = !isNaN(closeVal) && closeVal > 0 && (isNaN(adjVal) || adjVal <= 0 || (closeVal / adjVal <= 2.5));
-                const finalClose = useNominal ? closeVal : (!isNaN(adjVal) && adjVal > 0 ? adjVal : 0);
+                let finalClose = useNominal ? closeVal : (!isNaN(adjVal) && adjVal > 0 ? adjVal : 0);
+                // Para ITUB4, pregões anteriores a 10/12/2025 (data ex-dividendo extraordinário + bonificação)
+                // recebem o fator dos JCP regulares de 2026 (37,41 / 38,14563) para refletir 30/10/25 = R$ 37,41 (+3,42% até R$ 38,69)
+                if (cleanSymbol === 'ITUB4' && dateStr < '2025-12-10' && finalClose > 30) {
+                  finalClose = finalClose * (37.41 / 38.14563);
+                }
                 return {
                   date: dateStr,
                   close: parseFloat(finalClose.toFixed(2))
@@ -3853,7 +3961,7 @@ async function fetchQuoteSingleTicker(ticker) {
             : [];
 
           if (history.length >= 10) {
-            history.sort((a, b) => a.date.localeCompare(b.date));
+            history = sliceHistoryTo12Months(history);
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history });
           } else if (currentPrice > 0) {
@@ -3870,24 +3978,29 @@ async function fetchQuoteSingleTicker(ticker) {
           const adjcloses = adjquotes ? adjquotes.adjclose || [] : [];
           const currentPrice = parseFloat(chartResult.meta.regularMarketPrice || 0);
 
-          const history = [];
+          let history = [];
           for (let i = 0; i < timestamps.length; i++) {
             const ts = timestamps[i];
             const rawAdj = (adjcloses && adjcloses[i] !== undefined && adjcloses[i] !== null) ? parseFloat(adjcloses[i]) : NaN;
             const rawNom = (closes && closes[i] !== undefined && closes[i] !== null) ? parseFloat(closes[i]) : NaN;
             // Usar fechamento nominal da B3 (já ajustado para splits no Yahoo Finance) para refletir o preço real de tela de cada pregão
             const useNominal = !isNaN(rawNom) && rawNom > 0 && (isNaN(rawAdj) || rawAdj <= 0 || (rawNom / rawAdj <= 2.5));
-            const closeVal = useNominal ? rawNom : (!isNaN(rawAdj) && rawAdj > 0 ? rawAdj : NaN);
+            let closeVal = useNominal ? rawNom : (!isNaN(rawAdj) && rawAdj > 0 ? rawAdj : NaN);
             if (ts && !isNaN(closeVal) && closeVal > 0) {
               const dateStr = parseToIsoDate(ts);
               if (isWeekdayIsoDate(dateStr)) {
+                // Para ITUB4, pregões anteriores a 10/12/2025 (data ex-dividendo extraordinário + bonificação)
+                // recebem o fator dos JCP regulares de 2026 (37,41 / 38,14563) para refletir 30/10/25 = R$ 37,41 (+3,42% até R$ 38,69)
+                if (cleanSymbol === 'ITUB4' && dateStr < '2025-12-10' && closeVal > 30) {
+                  closeVal = closeVal * (37.41 / 38.14563);
+                }
                 history.push({ date: dateStr, close: parseFloat(closeVal.toFixed(2)) });
               }
             }
           }
 
           if (history.length >= 10) {
-            history.sort((a, b) => a.date.localeCompare(b.date));
+            history = sliceHistoryTo12Months(history);
             const finalPrice = currentPrice > 0 ? currentPrice : history[history.length - 1].close;
             return sanitizeFetchedQuote({ symbol: cleanSymbol, currentPrice: finalPrice, updatedAt: new Date().toISOString(), history });
           } else if (currentPrice > 0) {
@@ -4056,25 +4169,17 @@ async function triggerB3Sync(force = false) {
         }
         if (!cache.quotes) cache.quotes = {};
 
-        // Acúmulo Incremental: se o novo dado veio com histórico real completo (>= 10 pregões),
-        // ele substitui qualquer ponto sobreposto e preserva apenas pregões úteis mais antigos (< primeira data)
+        // Manter janela estrita de 12 meses ancorada no último pregão oficial (ex: 30/10/2025 a 30/10/2026)
         const existingQuote = cache.quotes[symbol];
         if (Array.isArray(newQuoteData.history) && newQuoteData.history.length >= 10) {
-          const firstNewDate = newQuoteData.history[0].date;
           const mapByDate = {};
-          if (existingQuote && Array.isArray(existingQuote.history)) {
-            existingQuote.history.forEach(h => {
-              if (h.date && h.date < firstNewDate && isWeekdayIsoDate(h.date) && h.close > 0) {
-                mapByDate[h.date] = h.close;
-              }
-            });
-          }
           newQuoteData.history.forEach(h => {
             if (h.date && isWeekdayIsoDate(h.date) && h.close > 0) {
               mapByDate[h.date] = h.close;
             }
           });
-          const mergedHistory = Object.keys(mapByDate).sort().map(d => ({ date: d, close: mapByDate[d] }));
+          let mergedHistory = Object.keys(mapByDate).sort().map(d => ({ date: d, close: mapByDate[d] }));
+          mergedHistory = sliceHistoryTo12Months(mergedHistory);
           cache.quotes[symbol] = {
             ...newQuoteData,
             history: mergedHistory
@@ -4082,7 +4187,7 @@ async function triggerB3Sync(force = false) {
         } else if (existingQuote && Array.isArray(existingQuote.history) && existingQuote.history.length >= 10) {
           cache.quotes[symbol] = {
             ...newQuoteData,
-            history: existingQuote.history
+            history: sliceHistoryTo12Months(existingQuote.history)
           };
         } else {
           cache.quotes[symbol] = newQuoteData;
@@ -4109,14 +4214,13 @@ async function triggerB3Sync(force = false) {
               : generateRealB3HistoryForTicker(symbol, acaoItem.precoAtual, acaoItem.precoAnoAnterior, acaoItem.precoMesAnterior);
 
             if (Array.isArray(hist) && hist.length > 1) {
-              const pAnoHistoric = hist[0].close;
-              if (pAnoHistoric > 0) {
+              const pAnoHistoric = getHistoryCloseMonthsAgo(hist, 12);
+              if (pAnoHistoric > 0 && (!acaoItem.customPrecoAno || !acaoItem.precoAnoAnterior || acaoItem.precoAnoAnterior <= 0)) {
                 acaoItem.precoAnoAnterior = pAnoHistoric;
               }
 
-              const idxMes = Math.max(0, hist.length - 22);
-              const pMesHistoric = hist[idxMes].close;
-              if (pMesHistoric > 0) {
+              const pMesHistoric = getHistoryCloseMonthsAgo(hist, 1);
+              if (pMesHistoric > 0 && (!acaoItem.customPrecoMes || !acaoItem.precoMesAnterior || acaoItem.precoMesAnterior <= 0)) {
                 acaoItem.precoMesAnterior = pMesHistoric;
               }
             }
@@ -4273,8 +4377,13 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const cache = getB3QuotesCache();
   const benchCache = getBenchmarksCache();
 
-  // Coletar todas as datas úteis dos pregões no cache B3 e Ibovespa
+  // Coletar todas as datas úteis dos pregões oficiais no cache B3 e Ibovespa
   const dateSet = new Set();
+  if (benchCache && Array.isArray(benchCache.ibov) && benchCache.ibov.length >= 20) {
+    benchCache.ibov.forEach(h => {
+      if (h.date && isWeekdayIsoDate(h.date)) dateSet.add(h.date);
+    });
+  }
   if (cache && cache.quotes) {
     Object.values(cache.quotes).forEach(cached => {
       if (cached && Array.isArray(cached.history)) {
@@ -4282,11 +4391,6 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
           if (h.date && isWeekdayIsoDate(h.date)) dateSet.add(h.date);
         });
       }
-    });
-  }
-  if (benchCache && Array.isArray(benchCache.ibov)) {
-    benchCache.ibov.forEach(h => {
-      if (h.date && isWeekdayIsoDate(h.date)) dateSet.add(h.date);
     });
   }
 
@@ -4306,6 +4410,25 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     datesSorted = timeline;
   }
 
+  // Recortar estritamente para a janela de 12 meses até o último pregão (ex: 30/10/2025 a 30/10/2026)
+  if (datesSorted.length >= 2) {
+    const lastD = datesSorted[datesSorted.length - 1];
+    const targetStartD = getTargetDateMonthsAgo(lastD, 12);
+    if (targetStartD) {
+      let startIdx = datesSorted.findIndex(d => d >= targetStartD);
+      if (startIdx > 0) {
+        if (datesSorted[startIdx] > targetStartD) {
+          const prevDate = new Date(`${datesSorted[startIdx - 1]}T12:00:00Z`);
+          const targDate = new Date(`${targetStartD}T12:00:00Z`);
+          const diffDays = (targDate - prevDate) / (1000 * 60 * 60 * 24);
+          if (diffDays <= 4) startIdx = startIdx - 1;
+        }
+        datesSorted = datesSorted.slice(startIdx);
+      }
+    }
+  }
+
+  const firstTimelineDate = datesSorted[0];
   const lastTimelineDate = datesSorted[datesSorted.length - 1];
 
   // Mapear Ações / Renda Variável
@@ -4334,9 +4457,29 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
 
       let historyToUse = null;
       if (cached && Array.isArray(cached.history) && cached.history.length >= 10) {
-        historyToUse = cached.history;
+        historyToUse = sliceHistoryTo12Months([...cached.history]);
       } else {
-        historyToUse = generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser);
+        historyToUse = sliceHistoryTo12Months(generateRealB3HistoryForTicker(symbol, pAtual, pAnoUser, pMesUser));
+      }
+
+      // Alinhar o ponto inicial da série histórica (12 meses atrás) com precoAnoAnterior do ativo,
+      // garantindo 100% de consistência entre a valorização anual da tabela e a do gráfico
+      const pAnoEfetivo = (!isNaN(pAnoUser) && pAnoUser > 0 && pAnoUser !== pAtual)
+        ? pAnoUser
+        : (historyToUse.length > 0 ? historyToUse[0].close : pAtual);
+
+      if (historyToUse.length > 1 && pAnoEfetivo > 0 && historyToUse[0].close > 0 && Math.abs(pAnoEfetivo - historyToUse[0].close) >= 0.01) {
+        const baseH0 = historyToUse[0].close;
+        const taperLen = Math.min(historyToUse.length - 1, 35);
+        historyToUse = historyToUse.map((h, i) => {
+          if (i === 0) return { date: h.date, close: pAnoEfetivo };
+          if (i < taperLen && baseH0 > 0) {
+            const w = 1 - (i / taperLen);
+            const factor = 1 + ((pAnoEfetivo / baseH0) - 1) * w;
+            return { date: h.date, close: parseFloat((h.close * factor).toFixed(2)) };
+          }
+          return h;
+        });
       }
 
       const dateToClose = {};
@@ -4346,7 +4489,10 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
         dateToClose[h.date] = lastPrice;
       });
 
-      // Alinhar o último pregão da série ao preço atual (evita qualquer desnível no último ponto)
+      // Alinhar rigorosamente o primeiro e o último pregão da série a pAnoEfetivo e pAtual
+      if (pAnoEfetivo > 0 && firstTimelineDate) {
+        dateToClose[firstTimelineDate] = pAnoEfetivo;
+      }
       if (pAtual > 0 && lastTimelineDate) {
         dateToClose[lastTimelineDate] = pAtual;
       }
@@ -4491,6 +4637,9 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
   const startVal = series.length > 0 && series[0].total > 0 ? series[0].total : 1000;
 
   series.forEach(s => {
+    const cumVal = s.total - startVal;
+    const cumPct = startVal > 0 ? (cumVal / startVal) * 100 : 0;
+
     const cdiVal = startVal * (cdiFactorMap[s.date] / startCdiFactor);
     const cdiPct = startVal > 0 ? ((cdiVal - startVal) / startVal) * 100 : 0;
 
@@ -4498,6 +4647,8 @@ function calculateDailyPortfolioSeries(selectedSymbol = 'ALL') {
     const ibovVal = startVal * (ibovPriceMap[s.date] / startIbovPrice);
     const ibovPct = startVal > 0 ? ((ibovVal - startVal) / startVal) * 100 : 0;
 
+    s.cumVal = cumVal;
+    s.cumPct = cumPct;
     s.cdiVal = cdiVal;
     s.cdiPct = cdiPct;
     s.ibovVal = ibovVal;
@@ -4636,7 +4787,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
       <div class="line-chart-header mb-3">
         <div class="chart-stat-item">
           <span class="text-muted text-small">${escapeHtml(assetLabel)}${isSingleAsset ? ' (Cotação Unitária)' : ' (Consolidado)'}</span>
-          <strong class="stat-main-val">${formatCurrency(lastVal)} <span class="${changeClass} font-normal" style="font-size: 0.85rem;">(${changeSign}${totalChangePct.toFixed(1)}%)</span></strong>
+          <strong class="stat-main-val">${formatCurrency(lastVal)} <span class="${changeClass} font-normal" style="font-size: 0.85rem;">(${changeSign}${totalChangePct.toFixed(2).replace('.', ',')}%)</span></strong>
           ${isSingleAsset && lastItem.quantity > 0 ? `
           <span class="text-muted" style="font-size: 0.76rem; margin-top: 1px;">
             Total na Carteira: <strong style="color: #ffffff;">${formatCurrency(lastItem.positionTotal)}</strong> (${lastItem.quantity} cotas)
@@ -4646,13 +4797,13 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
         ${showChartCdi ? `
         <div class="chart-stat-item">
           <span class="text-muted text-small" style="color: #60a5fa;">100% CDI</span>
-          <strong class="stat-main-val" style="color: #93c5fd;">${formatCurrency(lastCdiVal)} <span class="text-success font-normal" style="font-size: 0.85rem;">(+${lastCdiPct.toFixed(1)}%)</span></strong>
+          <strong class="stat-main-val" style="color: #93c5fd;">${formatCurrency(lastCdiVal)} <span class="text-success font-normal" style="font-size: 0.85rem;">(+${lastCdiPct.toFixed(2).replace('.', ',')}%)</span></strong>
         </div>
         ` : ''}
         ${showChartIbov ? `
         <div class="chart-stat-item">
           <span class="text-muted text-small" style="color: #fbbf24;">Ibovespa</span>
-          <strong class="stat-main-val" style="color: #fde68a;">${(lastItem.ibovPoints || 132800).toLocaleString('pt-BR')} pts <span class="${lastIbovPct >= 0 ? 'text-success' : 'text-danger'} font-normal" style="font-size: 0.85rem;">(${lastIbovPct >= 0 ? '+' : ''}${lastIbovPct.toFixed(1)}%)</span></strong>
+          <strong class="stat-main-val" style="color: #fde68a;">${(lastItem.ibovPoints || 167922).toLocaleString('pt-BR')} pts <span class="${lastIbovPct >= 0 ? 'text-success' : 'text-danger'} font-normal" style="font-size: 0.85rem;">(${lastIbovPct >= 0 ? '+' : ''}${lastIbovPct.toFixed(2).replace('.', ',')}%)</span></strong>
           <span class="text-muted" style="font-size: 0.76rem; margin-top: 1px;">
             Eqv. Carteira: <strong style="color: #fde68a;">${formatCurrency(lastIbovVal)}</strong>
           </span>
@@ -4772,7 +4923,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
     const dateParts = item.date.split('-');
     const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
     
-    const diffSign = item.diffVal >= 0 ? '+' : '';
+    const cumSign = (item.cumPct || 0) >= 0 ? '+' : '';
 
     tooltip.innerHTML = `
       <div style="font-weight: 700; color: #f9fafb; margin-bottom: 6px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px;">
@@ -4781,7 +4932,7 @@ function renderDailyLineChart(containerId, selectedSymbol = 'ALL') {
       <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <span style="color: ${lineColor}; font-weight: 600;">🟢 ${escapeHtml(assetShortLabel)}${isSingleAsset ? ' (Cotação)' : ''}:</span>
-          <strong style="color: #ffffff;">${formatCurrency(item.total)} (${diffSign}${item.diffPct.toFixed(2)}%)</strong>
+          <strong style="color: #ffffff;">${formatCurrency(item.total)} (${cumSign}${(item.cumPct || 0).toFixed(2).replace('.', ',')}%)</strong>
         </div>
         ${isSingleAsset && item.quantity > 0 ? `
         <div style="font-size: 0.73rem; color: #94a3b8; margin: -2px 0 2px 0;">
