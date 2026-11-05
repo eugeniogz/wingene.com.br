@@ -1,0 +1,3452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundo Cartoon 3D - Simulador de Praça & Parque</title>
+    <!-- Three.js CDN (O botão de exportação offline substituirá esta tag pelo código-fonte completo embutido) -->
+    <script id="three-cdn-script" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* ==========================================================================
+           ESTILOS CSS EMBUTIDOS (100% Compatível Offline sem dependência de CDN CSS)
+           ========================================================================== */
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --warning: #f59e0b;
+            --bg-glass: rgba(17, 24, 39, 0.86);
+            --bg-panel: rgba(31, 41, 55, 0.92);
+            --border-glass: rgba(255, 255, 255, 0.14);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background-color: #111827;
+            color: var(--text-main);
+        }
+
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Barra Superior HUD */
+        .hud-top {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .hud-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            pointer-events: auto;
+            flex-wrap: wrap;
+        }
+
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 10px 16px;
+            box-shadow: var(--shadow-xl);
+        }
+
+        /* Botões */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glass);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.35);
+            background: rgba(55, 65, 81, 0.95);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4338ca, #4f46e5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border: none;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857, #059669);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #d97706, #f59e0b);
+            border: none;
+        }
+
+        /* Indicador de Personagem Ativo */
+        .active-char-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.25); opacity: 0.75; }
+        }
+
+        /* Painel de Controles Inferior */
+        .hud-bottom {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .controls-guide {
+            pointer-events: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            font-size: 0.82rem;
+            color: #d1d5db;
+            max-width: 720px;
+        }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kbd {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-bottom-width: 3px;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.78rem;
+            color: #fff;
+        }
+
+        /* Modal / Menu de Customização */
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            z-index: 30;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            justify-content: flex-end;
+            padding: 20px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-backdrop.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .customizer-drawer {
+            width: 480px;
+            max-width: 100%;
+            height: 100%;
+            background: var(--bg-glass);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .drawer-header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(17, 24, 39, 0.6);
+        }
+
+        .drawer-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tabs-nav {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: rgba(17, 24, 39, 0.5);
+            padding: 6px;
+            gap: 6px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .tab-btn {
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+        }
+
+        .drawer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .drawer-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        .drawer-body::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #93c5fd;
+            font-weight: 700;
+        }
+
+        /* Cards de Seleção */
+        .grid-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .grid-select-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .option-card {
+            background: rgba(17, 24, 39, 0.65);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+
+        .option-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(31, 41, 55, 0.9);
+        }
+
+        .option-card.selected {
+            border-color: #60a5fa;
+            background: rgba(59, 130, 246, 0.22);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .option-icon {
+            font-size: 1.45rem;
+        }
+
+        /* Seletores de Cor */
+        .color-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .color-label {
+            font-size: 0.88rem;
+            color: #d1d5db;
+        }
+
+        .swatches {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .swatch:hover, .swatch.active {
+            transform: scale(1.2);
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 6px;
+        }
+
+        /* Toggles de Acessórios */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 0.84rem;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chip-toggle.active {
+            background: #10b981;
+            border-color: #34d399;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .drawer-footer {
+            padding: 16px 22px;
+            border-top: 1px solid var(--border-glass);
+            background: rgba(17, 24, 39, 0.75);
+            display: flex;
+            gap: 10px;
+        }
+
+        .drawer-footer .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 13px;
+            font-size: 1rem;
+        }
+
+        /* Toast de Notificação */
+        #toast-box {
+            position: absolute;
+            top: 84px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            z-index: 50;
+            background: rgba(16, 185, 129, 0.95);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            box-shadow: var(--shadow-xl);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #toast-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Painel da Caça ao Tesouro */
+        #treasure-ui {
+            position: absolute;
+            top: 80px;
+            right: 16px;
+            width: 280px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 2px solid #f59e0b;
+            border-radius: var(--radius-md);
+            padding: 16px;
+            color: #fff;
+            z-index: 20;
+            display: none;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+            pointer-events: auto;
+        }
+        #treasure-ui h3 {
+            color: #fcd34d;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .treasure-step {
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .treasure-step span.badge {
+            background: #4b5563;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        #step-counter-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            color: #34d399;
+            margin: 10px 0;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 5px;
+        }
+
+        /* Indicador de Tesouro Encontrado */
+        #treasure-found-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.75);
+            z-index: 45;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(31, 41, 55, 0.96));
+            border: 3px solid #fbbf24;
+            border-radius: 22px;
+            padding: 26px 40px;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 0 45px rgba(251, 191, 36, 0.65), var(--shadow-xl);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #treasure-found-banner.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #treasure-found-banner .banner-icon {
+            font-size: 3.4rem;
+            margin-bottom: 6px;
+            display: block;
+            filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8));
+        }
+
+        #treasure-found-banner h2 {
+            font-size: 1.75rem;
+            color: #fde047;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.6);
+        }
+
+        #treasure-found-banner p {
+            font-size: 1.05rem;
+            color: #e5e7eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Container do Renderizador WebGL Three.js -->
+    <div id="canvas-container"></div>
+
+    <!-- Notificação Toast -->
+    <div id="toast-box">Configurações aplicadas!</div>
+
+    <!-- Indicador Central de Tesouro Encontrado -->
+    <div id="treasure-found-banner">
+        <span class="banner-icon">👑🪙✨</span>
+        <h2>Tesouro Encontrado!</h2>
+        <p id="treasure-found-details">Moedas coletadas e baú recolhido!</p>
+    </div>
+
+    <!-- HUD Superior -->
+    <div class="hud-top">
+        <div class="hud-group">
+            <div class="glass-card active-char-badge">
+                <div class="status-dot"></div>
+                <div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Controlando Agora</div>
+                    <div id="hud-char-name" style="font-weight: 700; font-size: 0.95rem;">Menino Cartoon (Principal)</div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-open-customizer" title="Abrir menu de customização de personagens e cenário">
+                <span>🎨</span> Customizar Personagem & Cenário
+            </button>
+
+            <button class="btn" id="btn-switch-char" title="Alternar controle entre personagens na cena (Atalho: Tecla TAB ou Clique no personagem)">
+                <span>🔄</span> Alternar Personagem (TAB)
+            </button>
+
+            <!-- Placar Permanente de Moedas, Pontos e Erros -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 14px; padding: 8px 14px;">
+                <div style="display: flex; align-items: center; gap: 6px;" title="Pontuação Acumulada em Moedas do Tesouro">
+                    <span style="font-size: 1.2rem;">🪙</span>
+                    <div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Moedas (Pontos)</div>
+                        <div id="hud-treasure-coins" style="font-weight: 800; font-size: 0.98rem; color: #facc15;">0</div>
+                    </div>
+                </div>
+                <div style="width: 1px; height: 24px; background: var(--border-glass);"></div>
+                <div style="display: flex; align-items: center; gap: 6px;" title="Total de Erros na Caça ao Tesouro">
+                    <span style="font-size: 1.1rem;">❌</span>
+                    <div>
+                        <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;">Erros</div>
+                        <div id="hud-treasure-errors" style="font-weight: 800; font-size: 0.98rem; color: #f87171;">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-group">
+            <button class="btn btn-warning" id="btn-treasure-hunt" title="Iniciar minigame de andar passo a passo e seguir o mapa">
+                <span>🗺️</span> Caça ao Tesouro
+            </button>
+            <button class="btn btn-success" id="btn-download-offline" title="Gera um arquivo .html único com a biblioteca Three.js embutida para rodar sem internet">
+                <span>📥</span> Baixar Versão 100% Offline (.html)
+            </button>
+        </div>
+    </div>
+
+    <!-- HUD Inferior com Dicas de Controle e Telemetria de Física -->
+    <div class="hud-bottom">
+        <div class="glass-card controls-guide">
+            <div class="key-item"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> ou <span class="kbd">Setas</span> Andar</div>
+            <div class="key-item"><span class="kbd">Shift</span> Correr</div>
+            <div class="key-item"><span class="kbd">Espaço</span> Saltar / Subir Obstáculo</div>
+            <div class="key-item"><span class="kbd">Mouse Arrastar</span> Girar Câmera</div>
+            <div class="key-item"><span class="kbd">Scroll</span> Zoom</div>
+            <div class="key-item"><span class="kbd">1</span>-<span class="kbd">4</span> ou <span class="kbd">Tab</span> Trocar Personagem</div>
+        </div>
+
+        <div class="glass-card" style="font-size: 0.8rem; color: #d1d5db; pointer-events: auto;">
+            <div>Estado: <strong id="hud-physics-state" style="color: #34d399;">No Chão</strong></div>
+            <div>Altura Atual (Y): <strong id="hud-altitude">0.00m</strong></div>
+        </div>
+    </div>
+
+    <!-- Interface Lateral do Minigame Caça ao Tesouro -->
+    <div id="treasure-ui">
+        <h3>🗺️ Mapa do Tesouro</h3>
+        <p style="font-size: 0.78rem; color: #d1d5db; margin-bottom: 12px; text-align: center;">
+            Siga a rota exata da marca no chão. Pular consome 2 passos!
+        </p>
+        <div id="step-counter-display">Passos: 0 / 10</div>
+        <div id="treasure-instructions">
+            <!-- Gerado via JS -->
+        </div>
+        <button class="btn btn-primary" id="btn-cancel-treasure" style="width: 100%; margin-top: 15px; justify-content: center;">
+            Sair do Mapa Livremente
+        </button>
+    </div>
+
+    <!-- Modal / Menu de Customização Inicial e In-Game -->
+    <div class="modal-backdrop" id="customizer-modal">
+        <div class="customizer-drawer">
+            <div class="drawer-header">
+                <h2>✨ Estúdio de Customização 3D</h2>
+                <button class="btn" id="btn-close-modal" style="padding: 6px 12px; font-size: 0.82rem;">Fechar ✕</button>
+            </div>
+
+            <div class="tabs-nav">
+                <button class="tab-btn active" data-tab="tab-char">🧑🐾 Personagem</button>
+                <button class="tab-btn" data-tab="tab-world">🌳☀️ Cenário & Mundo</button>
+            </div>
+
+            <!-- ABA 1: CUSTOMIZAÇÃO DO PERSONAGEM -->
+            <div class="drawer-body" id="tab-char">
+                <div class="form-section">
+                    <div class="section-title">1. Aventureiros Humanos & Animais da Selva</div>
+                    <div class="grid-select-3" id="select-char-type">
+                        <div class="option-card selected" data-value="boy1">
+                            <span class="option-icon">🤠</span>
+                            <span>Caçador A (Explorador)</span>
+                        </div>
+                        <div class="option-card" data-value="boy2">
+                            <span class="option-icon">🧭</span>
+                            <span>Caçador B (Ranger)</span>
+                        </div>
+                        <div class="option-card" data-value="girl1">
+                            <span class="option-icon">🥾</span>
+                            <span>Aventureira A (Safari)</span>
+                        </div>
+                        <div class="option-card" data-value="girl2">
+                            <span class="option-icon">🏹</span>
+                            <span>Aventureira B (Botânica)</span>
+                        </div>
+                        <div class="option-card" data-value="cheetah">
+                            <span class="option-icon">🐆</span>
+                            <span>Guepardo</span>
+                        </div>
+                        <div class="option-card" data-value="fox">
+                            <span class="option-icon">🦊</span>
+                            <span>Raposa</span>
+                        </div>
+                        <div class="option-card" data-value="bear">
+                            <span class="option-icon">🐻</span>
+                            <span>Urso</span>
+                        </div>
+                        <div class="option-card" data-value="giraffe">
+                            <span class="option-icon">🦒</span>
+                            <span>Girafa</span>
+                        </div>
+                        <div class="option-card" data-value="dino">
+                            <span class="option-icon">🦖</span>
+                            <span>Dinossauro</span>
+                        </div>
+                        <div class="option-card" data-value="tiger">
+                            <span class="option-icon">🐅</span>
+                            <span>Tigre</span>
+                        </div>
+                        <div class="option-card" data-value="mammoth">
+                            <span class="option-icon">🦣</span>
+                            <span>Mamute</span>
+                        </div>
+                        <div class="option-card" data-value="snake">
+                            <span class="option-icon">🐍</span>
+                            <span>Cobra da Selva</span>
+                        </div>
+                        <div class="option-card" data-value="elephant">
+                            <span class="option-icon">🐘</span>
+                            <span>Elefante</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">2. Cores & Camuflagem</div>
+
+                    <!-- Cor Principal: Roupa de Caçador ou Pelagem/Escamas -->
+                    <div class="color-row">
+                        <span class="color-label" id="lbl-primary-color">Traje Safari / Adorno</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#a16207" data-target="colorPrimary" data-color="#a16207"></div>
+                            <div class="swatch" style="background:#15803d" data-target="colorPrimary" data-color="#15803d"></div>
+                            <div class="swatch" style="background:#b45309" data-target="colorPrimary" data-color="#b45309"></div>
+                            <div class="swatch" style="background:#ef4444" data-target="colorPrimary" data-color="#ef4444"></div>
+                            <div class="swatch" style="background:#3b82f6" data-target="colorPrimary" data-color="#3b82f6"></div>
+                            <input type="color" id="input-colorPrimary" value="#a16207">
+                        </div>
+                    </div>
+
+                    <!-- Cor Secundária: Calça Cargo ou Listras/Manchas -->
+                    <div class="color-row">
+                        <span class="color-label" id="lbl-secondary-color">Calça Cargo / Manchas</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#3f6212" data-target="colorSecondary" data-color="#3f6212"></div>
+                            <div class="swatch" style="background:#422006" data-target="colorSecondary" data-color="#422006"></div>
+                            <div class="swatch" style="background:#18181b" data-target="colorSecondary" data-color="#18181b"></div>
+                            <div class="swatch" style="background:#78350f" data-target="colorSecondary" data-color="#78350f"></div>
+                            <div class="swatch" style="background:#f3f4f6" data-target="colorSecondary" data-color="#f3f4f6"></div>
+                            <input type="color" id="input-colorSecondary" value="#3f6212">
+                        </div>
+                    </div>
+
+                    <!-- Cor do Cabelo ou Pelagem Principal -->
+                    <div class="color-row">
+                        <span class="color-label" id="lbl-hair-color">Cabelo / Cor do Animal</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#f59e0b" data-target="colorHairFur" data-color="#f59e0b"></div>
+                            <div class="swatch" style="background:#78350f" data-target="colorHairFur" data-color="#78350f"></div>
+                            <div class="swatch" style="background:#16a34a" data-target="colorHairFur" data-color="#16a34a"></div>
+                            <div class="swatch" style="background:#6b7280" data-target="colorHairFur" data-color="#6b7280"></div>
+                            <div class="swatch" style="background:#27272a" data-target="colorHairFur" data-color="#27272a"></div>
+                            <input type="color" id="input-colorHairFur" value="#78350f">
+                        </div>
+                    </div>
+
+                    <!-- Tom de Pele / Focinho / Presas -->
+                    <div class="color-row">
+                        <span class="color-label" id="lbl-skin-color">Tom de Pele / Focinho</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#ffedd5" data-target="colorSkin" data-color="#ffedd5"></div>
+                            <div class="swatch" style="background:#fed7aa" data-target="colorSkin" data-color="#fed7aa"></div>
+                            <div class="swatch" style="background:#fdba74" data-target="colorSkin" data-color="#fdba74"></div>
+                            <div class="swatch" style="background:#c27848" data-target="colorSkin" data-color="#c27848"></div>
+                            <div class="swatch" style="background:#6b3e26" data-target="colorSkin" data-color="#6b3e26"></div>
+                            <input type="color" id="input-colorSkin" value="#fed7aa">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">3. Utensílios de Caçador / Aventureiro da Selva</div>
+                    <div class="checkbox-group">
+                        <div class="chip-toggle active" data-acc="hat">🪖 Chapéu Safari / Explorador</div>
+                        <div class="chip-toggle active" data-acc="glasses">🔭 Binóculos & Óculos Táticos</div>
+                        <div class="chip-toggle active" data-acc="backpack">🎒 Kit Selva (Mochila, Corda, Cantil &Tocha)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 2: CUSTOMIZAÇÃO DO CENÁRIO -->
+            <div class="drawer-body" id="tab-world" style="display: none;">
+                <div class="form-section">
+                    <div class="section-title">1. Escolha do Ambiente</div>
+                    <div class="grid-select-3" id="select-map-type">
+                        <div class="option-card selected" data-value="jungle">
+                            <span class="option-icon">🌴</span>
+                            <span>Selva Tropical</span>
+                            <small style="color:var(--text-muted); font-size:0.72rem;">Ruínas, rio, cipós e feras</small>
+                        </div>
+                        <div class="option-card" data-value="plaza">
+                            <span class="option-icon">⛲</span>
+                            <span>Praça Central</span>
+                            <small style="color:var(--text-muted); font-size:0.72rem;">Chafariz, bancos e calçadas</small>
+                        </div>
+                        <div class="option-card" data-value="park">
+                            <span class="option-icon">🏞️</span>
+                            <span>Parque Arborizado</span>
+                            <small style="color:var(--text-muted); font-size:0.72rem;">Lago com deque e trilha</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">2. Horário do Dia & Iluminação</div>
+                    <div class="grid-select-3" id="select-time-of-day">
+                        <div class="option-card selected" data-value="morning">
+                            <span class="option-icon">☀️</span>
+                            <span>Manhã</span>
+                        </div>
+                        <div class="option-card" data-value="sunset">
+                            <span class="option-icon">🌅</span>
+                            <span>Entardecer</span>
+                        </div>
+                        <div class="option-card" data-value="night">
+                            <span class="option-icon">🌙</span>
+                            <span>Noite</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">3. Densidade de Obstáculos & Vegetação</div>
+                    <div class="grid-select-3" id="select-density">
+                        <div class="option-card" data-value="low">
+                            <span class="option-icon">🌱</span>
+                            <span>Baixa</span>
+                        </div>
+                        <div class="option-card selected" data-value="medium">
+                            <span class="option-icon">🌳</span>
+                            <span>Média</span>
+                        </div>
+                        <div class="option-card" data-value="high">
+                            <span class="option-icon">🌲</span>
+                            <span>Alta</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-title">4. Quantidade de Animais da Selva / Aventureiros (Até 10)</div>
+                    <div class="grid-select" id="select-npc-count">
+                        <div class="option-card" data-value="0">
+                            <span>0 (Apenas Você)</span>
+                        </div>
+                        <div class="option-card" data-value="4">
+                            <span>4 Animais da Selva</span>
+                        </div>
+                        <div class="option-card" data-value="7">
+                            <span>7 Animais da Selva</span>
+                        </div>
+                        <div class="option-card selected" data-value="10">
+                            <span>10 Animais (Selva Completa!)</span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+                        💡 Dica: Clique em qualquer um dos 10 animais da selva (Girafa, Dinossauro, Tigre, Mamute, Elefante, Cobra, etc.) ou aperte <strong>TAB</strong> para assumir o controle dele!
+                    </p>
+                </div>
+            </div>
+
+            <div class="drawer-footer">
+                <button class="btn btn-primary" id="btn-play-now">
+                    🎮 Jogar / Explorar Cenário
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         LÓGICA COMPLETA DO SIMULADOR 3D (THREE.JS, FÍSICA, ANIMAÇÃO E OFFLINE)
+         ========================================================================== -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ====================================================================
+            // 1. CONFIGURAÇÕES E ESTADO GLOBAL DA APLICAÇÃO
+            // ====================================================================
+            const APP_CONFIG = {
+                worldRadius: 48,
+                gravity: 28.0,
+                jumpForceHuman: 10.8,
+                jumpForcePet: 11.6,
+                walkSpeed: 6.5,
+                runSpeed: 11.8,
+                stepUpTolerance: 0.35 // Degraus muito baixos que o personagem sobe automaticamente
+            };
+
+            const state = {
+                // Configuração do personagem atualmente selecionado
+                charConfig: {
+                    type: 'boy1', // 'boy1'|'boy2'|'girl1'|'girl2'|'cheetah'|'fox'|'bear'|'giraffe'|'dino'|'tiger'|'mammoth'|'snake'|'elephant'
+                    colorPrimary: '#a16207',
+                    colorSecondary: '#3f6212',
+                    colorHairFur: '#78350f',
+                    colorSkin: '#fed7aa',
+                    hat: true,
+                    glasses: true,
+                    backpack: true
+                },
+                // Configuração do mundo (Inicia na Selva com 10 animais para visualização imediata!)
+                worldConfig: {
+                    mapType: 'jungle',      // 'jungle' | 'plaza' | 'park'
+                    timeOfDay: 'morning',   // 'morning' | 'sunset' | 'night'
+                    density: 'medium',      // 'low' | 'medium' | 'high'
+                    npcCount: 10
+                },
+                // Entidades em cena
+                characters: [],
+                activeCharIndex: 0,
+                colliders: [],     // Lista de obstáculos físicos { type:'cylinder'|'box', x, z, r, w, d, height, climbable, label }
+                lampLights: [],    // Luzes dos postes para acender à noite
+                fountainDrops: [], // Partículas de água do chafariz
+                // Controles de Teclado e Câmera
+                keys: {
+                    forward: false,
+                    backward: false,
+                    left: false,
+                    right: false,
+                    shift: false,
+                    space: false
+                },
+                camera: {
+                    yaw: 0.4,
+                    pitch: 0.38,
+                    distance: 9.5,
+                    isDragging: false,
+                    prevMouseX: 0,
+                    prevMouseY: 0,
+                    currentLookAt: new THREE.Vector3(0, 1.2, 0)
+                },
+                // --- Estado da Caça ao Tesouro ---
+                treasure: {
+                    active: false,
+                    startPos: { x: 5, z: 12 },
+                    startYaw: 0,
+                    stepSize: 1.8, 
+                    currentSteps: 0,
+                    maxSteps: 10,
+                    isAnimating: false,
+                    animProgress: 0,
+                    targetPos: new THREE.Vector3(),
+                    targetYaw: 0,
+                    startAnimPos: new THREE.Vector3(),
+                    startAnimYaw: 0,
+                    jumpArcHeight: 0,
+                    sequencePlayed: [],
+                    // Sequência de 10 passos precisos (Frente=1, Virar+Andar=1, Pulo=2)
+                    requiredSequence: ['F', 'F', 'R', 'F', 'J', 'F', 'L', 'F', 'F'],
+                    markerMesh: null,
+                    errors: 0,
+                    totalCoinsScore: 0,
+                    totalErrors: 0,
+                    coins: []
+                }
+            };
+
+            // ====================================================================
+            // 2. INICIALIZAÇÃO DO THREE.JS (CENA, CÂMERA, RENDERER E LUZES)
+            // ====================================================================
+            const container = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.0085);
+
+            const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 220);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Grupos organizadores da cena
+            const worldGroup = new THREE.Group();
+            const charactersGroup = new THREE.Group();
+            scene.add(worldGroup);
+            scene.add(charactersGroup);
+
+            // Iluminação Global
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x4b5563, 0.65);
+            hemiLight.position.set(0, 50, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.15);
+            dirLight.position.set(35, 55, 30);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 140;
+            const dCam = 52;
+            dirLight.shadow.camera.left = -dCam;
+            dirLight.shadow.camera.right = dCam;
+            dirLight.shadow.camera.top = dCam;
+            dirLight.shadow.camera.bottom = -dCam;
+            dirLight.shadow.bias = -0.0005;
+            scene.add(dirLight);
+
+            // Astro celeste (Sol / Lua)
+            const celestialGeo = new THREE.SphereGeometry(4.5, 24, 24);
+            const celestialMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const celestialMesh = new THREE.Mesh(celestialGeo, celestialMat);
+            scene.add(celestialMesh);
+
+            // Anel indicador sob o personagem controlado pelo jogador
+            const ringGeo = new THREE.RingGeometry(0.62, 0.82, 32);
+            ringGeo.rotateX(-Math.PI / 2);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x34d399,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.85,
+                depthTest: false // Sempre visível mesmo atrás de obstáculos
+            });
+            const selectionRing = new THREE.Mesh(ringGeo, ringMat);
+            selectionRing.position.y = 0.03;
+            selectionRing.renderOrder = 998;
+            scene.add(selectionRing);
+
+            // ====================================================================
+            // 2.5 SISTEMA DE OCLUSÃO DE CÂMERA (FADE TRANSPARENTE DE OBSTÁCULOS)
+            // ====================================================================
+            const occlusionRaycaster = new THREE.Raycaster();
+            const fadedMeshes = new Map(); // Guarda malhas do cenário que estão transparentes no momento
+
+            // Detecta árvores/pedras/ruínas entre a câmera e o jogador e aplica transparência suave
+            function updateCameraOcclusionFade(activeChar, dt) {
+                if (!activeChar) return;
+
+                const targetPos = activeChar.mesh.position.clone();
+                targetPos.y += activeChar.isHuman ? 1.15 : 0.7;
+
+                const dir = new THREE.Vector3().subVectors(targetPos, camera.position);
+                const distToChar = dir.length();
+                if (distToChar < 0.5) return;
+                dir.normalize();
+
+                occlusionRaycaster.set(camera.position, dir);
+                occlusionRaycaster.far = Math.max(0.2, distToChar - 0.55);
+
+                const hits = occlusionRaycaster.intersectObjects(worldGroup.children, true);
+                const currentlyBlocking = new Set();
+
+                for (let i = 0; i < hits.length; i++) {
+                    const hitMesh = hits[i].object;
+                    if (!hitMesh.isMesh || hitMesh.userData.isGroundOrWater) continue;
+
+                    // Se bater numa folha, galho ou pedra, deixa todo o objeto pai (ex: a árvore inteira) transparente
+                    let topObj = hitMesh;
+                    while (topObj.parent && topObj.parent !== worldGroup) {
+                        topObj = topObj.parent;
+                    }
+
+                    topObj.traverse(child => {
+                        if (child.isMesh && !child.userData.isGroundOrWater) {
+                            currentlyBlocking.add(child);
+                            if (!fadedMeshes.has(child)) {
+                                // Clona o material na primeira vez para não afetar todas as outras árvores do mapa
+                                if (!child.userData.hasUniqueMat) {
+                                    child.material = child.material.clone();
+                                    child.userData.hasUniqueMat = true;
+                                }
+                                fadedMeshes.set(child, {
+                                    currentOpacity: 1.0,
+                                    targetOpacity: 0.25
+                                });
+                                child.material.transparent = true;
+                            } else {
+                                fadedMeshes.get(child).targetOpacity = 0.25;
+                            }
+                        }
+                    });
+                }
+
+                // Atualiza suavemente a opacidade dos objetos bloqueadores e restaura os que saíram da frente
+                fadedMeshes.forEach((data, mesh) => {
+                    if (!currentlyBlocking.has(mesh)) {
+                        data.targetOpacity = 1.0;
+                    }
+                    data.currentOpacity += (data.targetOpacity - data.currentOpacity) * Math.min(1, dt * 10);
+                    mesh.material.opacity = data.currentOpacity;
+                    mesh.material.depthWrite = data.currentOpacity > 0.85;
+
+                    if (data.targetOpacity === 1.0 && data.currentOpacity > 0.98) {
+                        mesh.material.opacity = 1.0;
+                        mesh.material.transparent = false;
+                        mesh.material.depthWrite = true;
+                        fadedMeshes.delete(mesh);
+                    }
+                });
+            }
+
+            // ====================================================================
+            // 3. FÁBRICA PROCEDURAL DE PERSONAGENS CARTOON (HUMANOS E PETS)
+            // ====================================================================
+            function createCartoonCharacterMesh(cfg) {
+                const root = new THREE.Group();
+                const isHuman = (cfg.type === 'boy1' || cfg.type === 'boy2' || cfg.type === 'girl1' || cfg.type === 'girl2');
+
+                // Materiais reutilizáveis com visual Cartoon suave
+                const matPrimary = new THREE.MeshStandardMaterial({ color: cfg.colorPrimary, roughness: 0.55 });
+                const matSecondary = new THREE.MeshStandardMaterial({ color: cfg.colorSecondary, roughness: 0.65 });
+                const matHairFur = new THREE.MeshStandardMaterial({ color: cfg.colorHairFur, roughness: 0.6 });
+                const matSkin = new THREE.MeshStandardMaterial({ color: cfg.colorSkin, roughness: 0.5 });
+                const matDark = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.3 });
+                const matWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+                const matGold = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.6, roughness: 0.3 });
+
+                const parts = {};
+
+                if (isHuman) {
+                    const isBoy = (cfg.type === 'boy1' || cfg.type === 'boy2');
+                    const isGirl = !isBoy;
+                    const isType2 = (cfg.type === 'boy2' || cfg.type === 'girl2');
+
+                    // Pernas e Botas de Expedição (Pivô no quadril: y = 0.72)
+                    const legGeo = new THREE.CylinderGeometry(0.11, 0.10, 0.62, 12);
+                    legGeo.translate(0, -0.31, 0);
+                    const bootGeo = new THREE.BoxGeometry(0.24, 0.16, 0.34);
+
+                    parts.leftLeg = new THREE.Group();
+                    parts.leftLeg.position.set(-0.18, 0.72, 0);
+                    const leftLegMesh = new THREE.Mesh(legGeo, matSecondary);
+                    leftLegMesh.castShadow = true;
+                    const leftBoot = new THREE.Mesh(bootGeo, matDark);
+                    leftBoot.position.set(0, -0.64, 0.04);
+                    parts.leftLeg.add(leftLegMesh, leftBoot);
+                    root.add(parts.leftLeg);
+
+                    parts.rightLeg = new THREE.Group();
+                    parts.rightLeg.position.set(0.18, 0.72, 0);
+                    const rightLegMesh = new THREE.Mesh(legGeo, matSecondary);
+                    rightLegMesh.castShadow = true;
+                    const rightBoot = new THREE.Mesh(bootGeo, matDark);
+                    rightBoot.position.set(0, -0.64, 0.04);
+                    parts.rightLeg.add(rightLegMesh, rightBoot);
+                    root.add(parts.rightLeg);
+
+                    // Tronco e Vestuário de Caçador / Aventureiro da Selva
+                    const torsoGroup = new THREE.Group();
+                    torsoGroup.position.set(0, 1.08, 0);
+
+                    const torsoGeo = new THREE.BoxGeometry(isBoy && isType2 ? 0.68 : 0.62, 0.72, 0.36);
+                    const torsoMesh = new THREE.Mesh(torsoGeo, matPrimary);
+                    torsoMesh.castShadow = true;
+                    torsoMesh.receiveShadow = true;
+                    torsoGroup.add(torsoMesh);
+
+                    // Colete Tático de Caçador / Bolsos de Expedição no peito
+                    const vestMat = new THREE.MeshStandardMaterial({ color: 0x713f12, roughness: 0.75 });
+                    const pocketGeo = new THREE.BoxGeometry(0.18, 0.2, 0.06);
+                    const leftChestPocket = new THREE.Mesh(pocketGeo, vestMat);
+                    leftChestPocket.position.set(-0.16, 0.12, 0.19);
+                    const rightChestPocket = new THREE.Mesh(pocketGeo, vestMat);
+                    rightChestPocket.position.set(0.16, 0.12, 0.19);
+                    torsoGroup.add(leftChestPocket, rightChestPocket);
+
+                    // Bandoleira transversal de couro no peito
+                    const strapGeo = new THREE.BoxGeometry(0.1, 0.76, 0.4);
+                    const strapMesh = new THREE.Mesh(strapGeo, matDark);
+                    strapMesh.rotation.z = 0.55;
+                    torsoGroup.add(strapMesh);
+
+                    // Cinto de Utilidades da Selva com Fivela Dourada
+                    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.11, 0.39), matDark);
+                    belt.position.set(0, -0.26, 0);
+                    const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.05), matGold);
+                    buckle.position.set(0, -0.26, 0.19);
+                    torsoGroup.add(belt, buckle);
+
+                    if (cfg.type === 'girl1') {
+                        // Aventureira 1: Saia/Bermuda Cargo de Safari
+                        const skirtGeo = new THREE.ConeGeometry(0.46, 0.36, 16);
+                        const skirtMesh = new THREE.Mesh(skirtGeo, matSecondary);
+                        skirtMesh.position.set(0, -0.28, 0);
+                        skirtMesh.castShadow = true;
+                        torsoGroup.add(skirtMesh);
+                    } else {
+                        const hipGeo = new THREE.BoxGeometry(0.63, 0.2, 0.37);
+                        const hipMesh = new THREE.Mesh(hipGeo, matSecondary);
+                        hipMesh.position.set(0, -0.32, 0);
+                        torsoGroup.add(hipMesh);
+                    }
+
+                    // Acessório: Kit Sobrevivência na Selva (Mochila + Saco de Dormir + Cantil + Facão/Bússola)
+                    if (cfg.backpack) {
+                        const packGroup = new THREE.Group();
+                        const packGeo = new THREE.BoxGeometry(0.48, 0.54, 0.26);
+                        const packMat = new THREE.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 });
+                        const packMesh = new THREE.Mesh(packGeo, packMat);
+                        packMesh.position.set(0, 0.02, -0.29);
+                        packMesh.castShadow = true;
+                        packGroup.add(packMesh);
+
+                        // Rolo de Saco de Dormir / Barraca preso no topo da mochila
+                        const rollMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.6 });
+                        const rollGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.52, 12);
+                        rollGeo.rotateZ(Math.PI / 2);
+                        const rollMesh = new THREE.Mesh(rollGeo, rollMat);
+                        rollMesh.position.set(0, 0.34, -0.28);
+                        packGroup.add(rollMesh);
+
+                        // Corda de Escalada enrolada na lateral da mochila
+                        const ropeGeo = new THREE.TorusGeometry(0.12, 0.035, 8, 16);
+                        ropeGeo.rotateY(Math.PI / 2);
+                        const ropeMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+                        const ropeMesh = new THREE.Mesh(ropeGeo, ropeMat);
+                        ropeMesh.position.set(-0.26, 0.0, -0.28);
+                        packGroup.add(ropeMesh);
+
+                        // Cantil de Água Verde pendurado no cinto direito
+                        const canteenMat = new THREE.MeshStandardMaterial({ color: 0x047857, roughness: 0.4 });
+                        const canteen = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.22, 10), canteenMat);
+                        canteen.position.set(0.36, -0.28, 0.05);
+                        packGroup.add(canteen);
+
+                        // Bainha de Facão Explorador na cintura esquerda
+                        const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.1), vestMat);
+                        sheath.position.set(-0.36, -0.34, 0.0);
+                        sheath.rotation.x = 0.25;
+                        packGroup.add(sheath);
+
+                        torsoGroup.add(packGroup);
+                    }
+
+                    // Acessório: Binóculos de Caçador pendurados no peito (quando óculos/binóculos está ativo)
+                    if (cfg.glasses) {
+                        const binoGroup = new THREE.Group();
+                        binoGroup.position.set(0, 0.05, 0.24);
+                        const barrelGeo = new THREE.CylinderGeometry(0.055, 0.07, 0.18, 10);
+                        barrelGeo.rotateX(Math.PI / 2);
+                        const bL = new THREE.Mesh(barrelGeo, matDark);
+                        bL.position.set(-0.07, 0, 0);
+                        const bR = new THREE.Mesh(barrelGeo, matDark);
+                        bR.position.set(0.07, 0, 0);
+                        const bBridge = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.06), matGold);
+                        binoGroup.add(bL, bR, bBridge);
+                        torsoGroup.add(binoGroup);
+                    }
+
+                    root.add(torsoGroup);
+                    parts.torso = torsoGroup;
+
+                    // Braços e Mãos (Pivô no ombro: y = 1.36)
+                    const armGeo = new THREE.CylinderGeometry(0.095, 0.085, 0.56, 12);
+                    armGeo.translate(0, -0.28, 0);
+                    const handGeo = new THREE.SphereGeometry(0.1, 10, 10);
+
+                    // Braço Esquerdo
+                    parts.leftArm = new THREE.Group();
+                    parts.leftArm.position.set(-0.42, 1.36, 0);
+                    const leftArmMesh = new THREE.Mesh(armGeo, (cfg.type === 'girl1' ? matSkin : matPrimary));
+                    leftArmMesh.castShadow = true;
+                    const leftHand = new THREE.Mesh(handGeo, matSkin);
+                    leftHand.position.set(0, -0.56, 0);
+                    parts.leftArm.add(leftArmMesh, leftHand);
+                    root.add(parts.leftArm);
+
+                    // Braço Direito (Com Lanterna/Bússola de Explorador se o Kit Selva estiver ativo)
+                    parts.rightArm = new THREE.Group();
+                    parts.rightArm.position.set(0.42, 1.36, 0);
+                    const rightArmMesh = new THREE.Mesh(armGeo, (cfg.type === 'girl1' ? matSkin : matPrimary));
+                    rightArmMesh.castShadow = true;
+                    const rightHand = new THREE.Mesh(handGeo, matSkin);
+                    rightHand.position.set(0, -0.56, 0);
+                    parts.rightArm.add(rightArmMesh, rightHand);
+
+                    if (cfg.backpack) {
+                        // Bastão / Luneta ou Tocha de Exploração na mão direita
+                        const staffGeo = new THREE.CylinderGeometry(0.03, 0.03, 1.15, 8);
+                        const staffMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.8 });
+                        const staff = new THREE.Mesh(staffGeo, staffMat);
+                        staff.rotation.x = Math.PI / 2;
+                        staff.position.set(0, -0.56, 0.35);
+                        const compassTop = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), matGold);
+                        compassTop.position.set(0, -0.56, 0.92);
+                        parts.rightArm.add(staff, compassTop);
+                    }
+                    root.add(parts.rightArm);
+
+                    // Cabeça Cartoon (Pivô no pescoço: y = 1.82)
+                    const headGroup = new THREE.Group();
+                    headGroup.position.set(0, 1.82, 0);
+
+                    // Formatos de rosto diferentes:
+                    // Boy 1: Rosto oval estilizado
+                    // Boy 2: Queixo um pouco mais quadrado e expressivo
+                    // Girl 1: Rosto delicado arredondado
+                    // Girl 2: Rosto esguio/oval mais refinado
+                    let headGeo;
+                    if (cfg.type === 'boy2') {
+                        headGeo = new THREE.SphereGeometry(0.36, 18, 18);
+                        headGeo.scale(1.04, 0.98, 0.98);
+                    } else if (cfg.type === 'girl2') {
+                        headGeo = new THREE.SphereGeometry(0.35, 20, 20);
+                        headGeo.scale(0.96, 1.05, 0.96);
+                    } else {
+                        headGeo = new THREE.SphereGeometry(0.36, 20, 20);
+                    }
+
+                    const headMesh = new THREE.Mesh(headGeo, matSkin);
+                    headMesh.castShadow = true;
+                    headGroup.add(headMesh);
+
+                    // Nariz pequeno e elegante (sem bochechas esféricas salientes)
+                    const noseRadius = (cfg.type === 'boy2') ? 0.045 : 0.038;
+                    const nose = new THREE.Mesh(new THREE.SphereGeometry(noseRadius, 10, 10), matSkin);
+                    nose.position.set(0, -0.02, 0.36);
+                    headGroup.add(nose);
+
+                    // Olhos com formatos e estilos expressivos diferentes para cada um dos 4 personagens
+                    const eyeWhiteGeo = new THREE.SphereGeometry(0.065, 12, 12);
+                    if (isGirl) {
+                        eyeWhiteGeo.scale(1.05, 1.25, 0.55); // Olhos maiores estilo anime/cartoon
+                    } else {
+                        eyeWhiteGeo.scale(1.0, 1.1, 0.55);
+                    }
+
+                    const pupilGeo = new THREE.SphereGeometry(isGirl ? 0.038 : 0.032, 10, 10);
+                    const gleamGeo = new THREE.SphereGeometry(0.012, 6, 6);
+
+                    // Olho Esquerdo
+                    const leftEye = new THREE.Mesh(eyeWhiteGeo, matWhite);
+                    leftEye.position.set(-0.135, 0.04, 0.34);
+                    const leftPupil = new THREE.Mesh(pupilGeo, matDark);
+                    leftPupil.position.set(-0.135, 0.04, 0.375);
+                    const leftGleam = new THREE.Mesh(gleamGeo, matWhite);
+                    leftGleam.position.set(-0.12, 0.06, 0.395);
+
+                    // Olho Direito
+                    const rightEye = new THREE.Mesh(eyeWhiteGeo, matWhite);
+                    rightEye.position.set(0.135, 0.04, 0.34);
+                    const rightPupil = new THREE.Mesh(pupilGeo, matDark);
+                    rightPupil.position.set(0.135, 0.04, 0.375);
+                    const rightGleam = new THREE.Mesh(gleamGeo, matWhite);
+                    rightGleam.position.set(0.15, 0.06, 0.395);
+
+                    // Sobrancelhas expressivas
+                    const browGeo = new THREE.BoxGeometry(0.13, 0.032, 0.03);
+                    const leftBrow = new THREE.Mesh(browGeo, matHairFur);
+                    leftBrow.position.set(-0.135, 0.16, 0.35);
+                    leftBrow.rotation.z = isBoy ? -0.08 : 0.05;
+                    const rightBrow = new THREE.Mesh(browGeo, matHairFur);
+                    rightBrow.position.set(0.135, 0.16, 0.35);
+                    rightBrow.rotation.z = isBoy ? 0.08 : -0.05;
+
+                    headGroup.add(leftEye, leftPupil, leftGleam, rightEye, rightPupil, rightGleam, leftBrow, rightBrow);
+
+                    // Cabelo base (Calota recuada para não cobrir os olhos)
+                    const hairCapGeo = new THREE.SphereGeometry(0.38, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.56);
+                    const hairCap = new THREE.Mesh(hairCapGeo, matHairFur);
+                    hairCap.position.set(0, 0.05, -0.02);
+                    hairCap.rotation.x = -0.35;
+                    headGroup.add(hairCap);
+
+                    // Detalhes de penteado quando está sem chapéu
+                    if (!cfg.hat) {
+                        if (cfg.type === 'boy1') {
+                            const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.32, 8), matHairFur);
+                            tuft.position.set(0, 0.42, 0.12);
+                            tuft.rotation.x = 0.45;
+                            headGroup.add(tuft);
+                        } else if (cfg.type === 'boy2') {
+                            for (let c = 0; c < 5; c++) {
+                                const curl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), matHairFur);
+                                curl.position.set((c - 2) * 0.11, 0.34 + (c % 2) * 0.04, 0.12);
+                                headGroup.add(curl);
+                            }
+                        } else if (cfg.type === 'girl1') {
+                            const pL = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), matHairFur);
+                            pL.position.set(-0.38, 0.1, -0.08);
+                            const pR = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), matHairFur);
+                            pR.position.set(0.38, 0.1, -0.08);
+                            headGroup.add(pL, pR);
+                        } else if (cfg.type === 'girl2') {
+                            const bun = new THREE.Mesh(new THREE.SphereGeometry(0.19, 12, 12), matHairFur);
+                            bun.position.set(0, 0.46, -0.1);
+                            headGroup.add(bun);
+                        }
+                    }
+
+                    // Acessório: Chapéu Safari / Caçador de Aba Larga (Pith Helmet)
+                    if (cfg.hat) {
+                        const safariHat = new THREE.Group();
+                        const hatMat = new THREE.MeshStandardMaterial({ color: 0xd6d3d1, roughness: 0.65 });
+                        const bandMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
+
+                        // Aba larga oval de proteção solar
+                        const brimGeo = new THREE.CylinderGeometry(0.58, 0.60, 0.04, 24);
+                        const brim = new THREE.Mesh(brimGeo, hatMat);
+                        brim.position.set(0, 0.17, 0);
+                        brim.castShadow = true;
+
+                        // Domo rígido estilo Safari com faixa de couro
+                        const domeGeo = new THREE.SphereGeometry(0.39, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.52);
+                        const dome = new THREE.Mesh(domeGeo, hatMat);
+                        dome.position.set(0, 0.16, 0);
+                        dome.castShadow = true;
+
+                        const bandGeo = new THREE.CylinderGeometry(0.395, 0.40, 0.07, 20);
+                        const band = new THREE.Mesh(bandGeo, bandMat);
+                        band.position.set(0, 0.21, 0);
+
+                        const topButton = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), bandMat);
+                        topButton.position.set(0, 0.54, 0);
+
+                        safariHat.add(brim, dome, band, topButton);
+                        safariHat.position.set(0, 0.04, -0.02);
+                        safariHat.rotation.x = -0.1;
+                        headGroup.add(safariHat);
+                    }
+
+                    // Acessório: Óculos de Sol Táticos
+                    if (cfg.glasses) {
+                        const glassesGroup = new THREE.Group();
+                        const lensGeo = new THREE.BoxGeometry(0.22, 0.14, 0.05);
+                        const leftLens = new THREE.Mesh(lensGeo, matDark);
+                        leftLens.position.set(-0.135, 0.04, 0.40);
+                        const rightLens = new THREE.Mesh(lensGeo, matDark);
+                        rightLens.position.set(0.135, 0.04, 0.40);
+                        const bridgeGeo = new THREE.BoxGeometry(0.08, 0.03, 0.04);
+                        const bridge = new THREE.Mesh(bridgeGeo, matGold);
+                        bridge.position.set(0, 0.06, 0.40);
+                        glassesGroup.add(leftLens, rightLens, bridge);
+                        headGroup.add(glassesGroup);
+                    }
+
+                    root.add(headGroup);
+                    parts.head = headGroup;
+
+                } else {
+                    // ================================================================
+                    // FÁBRICA PROCEDURAL DOS 9 ANIMAIS DA SELVA (E PETS)
+                    // ================================================================
+                    const t = cfg.type;
+
+                    // Paletas padrão inteligentes por espécie (combinadas com as cores do menu)
+                    const speciesDefaults = {
+                        cheetah:  { body: 0xfacc15, detail: 0x18181b, snout: 0xfef08a },
+                        fox:      { body: 0xea580c, detail: 0xffffff, snout: 0x18181b },
+                        bear:     { body: 0x5c3a21, detail: 0x3b2313, snout: 0xd6b492 },
+                        giraffe:  { body: 0xfbbf24, detail: 0x92400e, snout: 0xfde68a },
+                        dino:     { body: 0x16a34a, detail: 0x14532d, snout: 0x4ade80 },
+                        tiger:    { body: 0xf97316, detail: 0x18181b, snout: 0xffffff },
+                        mammoth:  { body: 0x6b4423, detail: 0x452811, snout: 0xfef9c3 },
+                        snake:    { body: 0x15803d, detail: 0xfacc15, snout: 0x4ade80 },
+                        elephant: { body: 0x9ca3af, detail: 0x6b7280, snout: 0xfef9c3 }
+                    }[t] || { body: cfg.colorHairFur, detail: cfg.colorSecondary, snout: cfg.colorSkin };
+
+                    const matBody = new THREE.MeshStandardMaterial({ color: speciesDefaults.body, roughness: 0.65 });
+                    const matDetail = new THREE.MeshStandardMaterial({ color: speciesDefaults.detail, roughness: 0.7 });
+                    const matSnout = new THREE.MeshStandardMaterial({ color: speciesDefaults.snout, roughness: 0.5 });
+                    const matIvory = new THREE.MeshStandardMaterial({ color: 0xfefce8, roughness: 0.3 });
+
+                    if (t === 'snake') {
+                        // ---------------- 1. COBRA DA SELVA (NAJA ARTICULADA) ----------------
+                        const bodyGroup = new THREE.Group();
+                        bodyGroup.position.set(0, 0.22, 0);
+                        root.add(bodyGroup);
+                        parts.torso = bodyGroup;
+                        parts.snakeSegments = [];
+
+                        // Segmentos sinuosos pelo chão
+                        for (let s = 0; s < 6; s++) {
+                            const segRadius = 0.22 - s * 0.025;
+                            const seg = new THREE.Mesh(new THREE.SphereGeometry(segRadius, 12, 12), s % 2 === 0 ? matBody : matDetail);
+                            seg.scale.set(1, 0.75, 1.35);
+                            seg.position.set(0, 0, -s * 0.32);
+                            seg.castShadow = true;
+                            bodyGroup.add(seg);
+                            parts.snakeSegments.push(seg);
+                        }
+
+                        // Pescoço erguido e Capelo de Naja
+                        const headGroup = new THREE.Group();
+                        headGroup.position.set(0, 0.68, 0.32);
+                        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.19, 0.62, 10), matBody);
+                        neck.position.set(0, -0.25, -0.08);
+                        neck.rotation.x = 0.25;
+                        const hood = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 12), matDetail);
+                        hood.scale.set(1.25, 1.1, 0.35);
+                        hood.position.set(0, -0.1, -0.06);
+                        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.38), matBody);
+                        headMesh.castShadow = true;
+
+                        // Língua bifurcada vermelha
+                        const tongueMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                        const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.24), tongueMat);
+                        tongue.position.set(0, -0.04, 0.26);
+
+                        const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
+                        const lEye = new THREE.Mesh(eyeGeo, matGold);
+                        lEye.position.set(-0.11, 0.06, 0.14);
+                        const rEye = new THREE.Mesh(eyeGeo, matGold);
+                        rEye.position.set(0.11, 0.06, 0.14);
+
+                        headGroup.add(neck, hood, headMesh, tongue, lEye, rEye);
+                        root.add(headGroup);
+                        parts.head = headGroup;
+
+                        // Patas dummy invisíveis para manter compatibilidade com o animador
+                        parts.frontLeftLeg = new THREE.Group();
+                        parts.frontRightLeg = new THREE.Group();
+                        parts.backLeftLeg = new THREE.Group();
+                        parts.backRightLeg = new THREE.Group();
+
+                    } else if (t === 'dino') {
+                        // ---------------- 2. DINOSSAURO T-REX CARTOON ----------------
+                        const bodyGroup = new THREE.Group();
+                        bodyGroup.position.set(0, 1.05, 0);
+
+                        const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.85, 1.15), matBody);
+                        torsoMesh.rotation.x = -0.35;
+                        torsoMesh.castShadow = true;
+                        bodyGroup.add(torsoMesh);
+
+                        // Cristas dorsais nas costas do Dinossauro
+                        for (let s = 0; s < 4; s++) {
+                            const plate = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.28, 4), matDetail);
+                            plate.position.set(0, 0.45 - s * 0.12, 0.2 - s * 0.28);
+                            plate.rotation.x = -0.35;
+                            bodyGroup.add(plate);
+                        }
+
+                        // Bracinhos curtos de T-Rex
+                        const tinyArmGeo = new THREE.BoxGeometry(0.12, 0.12, 0.32);
+                        const lArm = new THREE.Mesh(tinyArmGeo, matBody);
+                        lArm.position.set(-0.42, 0.05, 0.55);
+                        const rArm = new THREE.Mesh(tinyArmGeo, matBody);
+                        rArm.position.set(0.42, 0.05, 0.55);
+                        bodyGroup.add(lArm, rArm);
+
+                        root.add(bodyGroup);
+                        parts.torso = bodyGroup;
+
+                        // Pernas fortes traseiras
+                        const legGeo = new THREE.CylinderGeometry(0.18, 0.14, 0.75, 10);
+                        legGeo.translate(0, -0.37, 0);
+                        const makeDinoLeg = (x) => {
+                            const g = new THREE.Group();
+                            g.position.set(x, 0.75, 0.0);
+                            const m = new THREE.Mesh(legGeo, matBody);
+                            m.castShadow = true;
+                            const foot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.42), matDetail);
+                            foot.position.set(0, -0.7, 0.08);
+                            g.add(m, foot);
+                            root.add(g);
+                            return g;
+                        };
+                        parts.frontLeftLeg = makeDinoLeg(-0.32);
+                        parts.frontRightLeg = makeDinoLeg(0.32);
+                        parts.backLeftLeg = new THREE.Group();
+                        parts.backRightLeg = new THREE.Group();
+
+                        // Cabeça grande e mandíbula de T-Rex
+                        const headGroup = new THREE.Group();
+                        headGroup.position.set(0, 1.68, 0.58);
+                        const skull = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.52, 0.76), matBody);
+                        skull.castShadow = true;
+                        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.18, 0.68), matSnout);
+                        jaw.position.set(0, -0.28, 0.04);
+                        const eyeGeo = new THREE.SphereGeometry(0.065, 8, 8);
+                        const lEye = new THREE.Mesh(eyeGeo, matGold);
+                        lEye.position.set(-0.31, 0.12, 0.15);
+                        const rEye = new THREE.Mesh(eyeGeo, matGold);
+                        rEye.position.set(0.31, 0.12, 0.15);
+                        headGroup.add(skull, jaw, lEye, rEye);
+                        root.add(headGroup);
+                        parts.head = headGroup;
+
+                        // Cauda grossa de Dinossauro
+                        const tailGroup = new THREE.Group();
+                        tailGroup.position.set(0, 0.85, -0.55);
+                        const tailMesh = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.35, 8), matBody);
+                        tailMesh.rotation.x = -Math.PI / 2 + 0.2;
+                        tailMesh.position.set(0, 0, -0.55);
+                        tailGroup.add(tailMesh);
+                        root.add(tailGroup);
+                        parts.tail = tailGroup;
+
+                    } else {
+                        // ---------------- 3. QUADRÚPEDES DA SELVA ----------------
+                        // (Guepardo, Raposa, Urso, Girafa, Tigre, Mamute e Elefante)
+                        const isElephant = (t === 'elephant');
+                        const isBear = (t === 'bear');
+                        const isHeavy = (isBear || t === 'mammoth' || isElephant);
+                        const isGiraffe = (t === 'giraffe');
+                        const isPachyderm = (t === 'mammoth' || isElephant);
+
+                        // Ajustes de escala aprimorados: Elefante gigante e Urso aumentado
+                        const scaleMultiplier = isElephant ? 1.55 : (isBear ? 1.25 : 1.0);
+
+                        const legHeight = (isGiraffe ? 1.15 : (isHeavy ? 0.62 : 0.52)) * scaleMultiplier;
+                        const bodyY = (legHeight / scaleMultiplier) + (isHeavy ? 0.35 : 0.22);
+
+                        const bodyGroup = new THREE.Group();
+                        bodyGroup.position.set(0, bodyY, 0);
+
+                        const bodyW = (isHeavy ? 0.88 : 0.56) * scaleMultiplier;
+                        const bodyH = (isHeavy ? 0.76 : 0.48) * scaleMultiplier;
+                        const bodyD = (isHeavy ? 1.35 : 1.08) * scaleMultiplier;
+
+                        const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(bodyW, bodyH, bodyD), matBody);
+                        torsoMesh.castShadow = true;
+                        torsoMesh.receiveShadow = true;
+                        bodyGroup.add(torsoMesh);
+
+                        // Padrões de Pelagem (Listras de Tigre ou Pintas de Guepardo/Girafa)
+                        if (t === 'tiger' || t === 'cheetah' || t === 'giraffe') {
+                            for (let k = -2; k <= 2; k++) {
+                                const stripe = new THREE.Mesh(
+                                    new THREE.BoxGeometry(bodyW + 0.03, bodyH * 0.75, t === 'tiger' ? 0.08 : 0.16),
+                                    matDetail
+                                );
+                                stripe.position.set(0, 0.04, k * 0.2);
+                                bodyGroup.add(stripe);
+                            }
+                        }
+
+                        // Corcova lanosa característica do Mamute
+                        if (t === 'mammoth') {
+                            const hump = new THREE.Mesh(new THREE.SphereGeometry(0.48, 12, 12), matDetail);
+                            hump.position.set(0, 0.32, 0.22);
+                            bodyGroup.add(hump);
+                        }
+
+                        root.add(bodyGroup);
+                        parts.torso = bodyGroup;
+
+                        // 4 Patas Articuladas
+                        const legRad = (isHeavy ? 0.16 : 0.09) * scaleMultiplier;
+                        const pawGeo = new THREE.CylinderGeometry(legRad, legRad * 0.85, legHeight, 10);
+                        pawGeo.translate(0, -legHeight / 2, 0);
+
+                        const makeQuadLeg = (x, z) => {
+                            const g = new THREE.Group();
+                            g.position.set(x, legHeight, z);
+                            const m = new THREE.Mesh(pawGeo, matBody);
+                            m.castShadow = true;
+                            g.add(m);
+                            root.add(g);
+                            return g;
+                        };
+
+                        const offX = bodyW * 0.36;
+                        const offZ = bodyD * 0.35;
+                        parts.frontLeftLeg = makeQuadLeg(-offX, offZ);
+                        parts.frontRightLeg = makeQuadLeg(offX, offZ);
+                        parts.backLeftLeg = makeQuadLeg(-offX, -offZ);
+                        parts.backRightLeg = makeQuadLeg(offX, -offZ);
+
+                        // Pescoço e Cabeça
+                        const headGroup = new THREE.Group();
+                        if (isGiraffe) {
+                            headGroup.position.set(0, bodyY + 1.35, offZ + 0.28);
+                            const neckGeo = new THREE.CylinderGeometry(0.15, 0.24, 1.45, 10);
+                            const neckMesh = new THREE.Mesh(neckGeo, matBody);
+                            neckMesh.position.set(0, -0.65, -0.18);
+                            neckMesh.rotation.x = 0.22;
+                            neckMesh.castShadow = true;
+                            headGroup.add(neckMesh);
+
+                            const hornGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.22, 8);
+                            const hL = new THREE.Mesh(hornGeo, matDetail);
+                            hL.position.set(-0.1, 0.28, 0);
+                            const hR = new THREE.Mesh(hornGeo, matDetail);
+                            hR.position.set(0.1, 0.28, 0);
+                            headGroup.add(hL, hR);
+                        } else {
+                            headGroup.position.set(0, (bodyY + 0.36) * (isElephant ? 1.25 : 1.0), (offZ + 0.28) * scaleMultiplier);
+                        }
+
+                        const headSize = (isHeavy ? 0.62 : 0.46) * scaleMultiplier;
+                        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(headSize, headSize * 0.92, headSize), matBody);
+                        headMesh.castShadow = true;
+                        headGroup.add(headMesh);
+
+                        if (isPachyderm) {
+                            // Tromba longa e Orelhas largas de Elefante / Mamute
+                            const trunkGroup = new THREE.Group();
+                            for (let trk = 0; trk < 4; trk++) {
+                                const seg = new THREE.Mesh(new THREE.CylinderGeometry((0.13 - trk * 0.02) * (isElephant ? 1.35 : 1.0), (0.11 - trk * 0.02) * (isElephant ? 1.35 : 1.0), 0.26, 10), matBody);
+                                seg.position.set(0, (-0.15 - trk * 0.2) * (isElephant ? 1.25 : 1.0), (0.34 + trk * 0.06) * (isElephant ? 1.25 : 1.0));
+                                seg.rotation.x = 0.25 * trk;
+                                trunkGroup.add(seg);
+                            }
+                            headGroup.add(trunkGroup);
+
+                            // Orelhas de abano
+                            const earW = 0.52 * (isElephant ? 1.45 : 1.0);
+                            const earH = 0.58 * (isElephant ? 1.45 : 1.0);
+                            const earGeo = new THREE.BoxGeometry(earW, earH, 0.08);
+                            const lEar = new THREE.Mesh(earGeo, matDetail);
+                            lEar.position.set(-headSize * 0.78, 0.0, -0.05);
+                            lEar.rotation.y = -0.35;
+                            const rEar = new THREE.Mesh(earGeo, matDetail);
+                            rEar.position.set(headSize * 0.78, 0.0, -0.05);
+                            rEar.rotation.y = 0.35;
+                            headGroup.add(lEar, rEar);
+
+                            // Presas de Marfim
+                            const tuskLen = (t === 'mammoth') ? 0.85 : 0.65;
+                            const tuskGeo = new THREE.ConeGeometry(0.065 * (isElephant ? 1.3 : 1.0), tuskLen, 10);
+                            tuskGeo.rotateX(Math.PI * 0.62);
+                            const lTusk = new THREE.Mesh(tuskGeo, matIvory);
+                            lTusk.position.set(-0.28, -0.28, 0.58);
+                            const rTusk = new THREE.Mesh(tuskGeo, matIvory);
+                            rTusk.position.set(0.28, -0.28, 0.58);
+                            headGroup.add(lTusk, rTusk);
+                        } else {
+                            // Focinho padrão para Felinos, Raposa, Urso e Girafa
+                            const snoutW = (t === 'fox') ? 0.2 : 0.28 * (isBear ? 1.35 : 1.0);
+                            const snoutL = (t === 'fox') ? 0.34 : 0.24 * (isBear ? 1.35 : 1.0);
+                            const snoutMesh = new THREE.Mesh(new THREE.BoxGeometry(snoutW, 0.2 * (isBear ? 1.2 : 1.0), snoutL), matSnout);
+                            snoutMesh.position.set(0, -0.06, headSize * 0.55);
+                            headGroup.add(snoutMesh);
+
+                            // Orelhas
+                            const earGeo = (t === 'fox')
+                                ? new THREE.ConeGeometry(0.14, 0.32, 4)
+                                : new THREE.SphereGeometry(0.12 * (isBear ? 1.3 : 1.0), 8, 8);
+                            const lEar = new THREE.Mesh(earGeo, matDetail);
+                            lEar.position.set(-headSize * 0.38, headSize * 0.5, 0);
+                            const rEar = new THREE.Mesh(earGeo, matDetail);
+                            rEar.position.set(headSize * 0.38, headSize * 0.5, 0);
+                            headGroup.add(lEar, rEar);
+                        }
+
+                        // Olhos expressivos do animal
+                        const eyeGeo = new THREE.SphereGeometry(0.055 * scaleMultiplier, 8, 8);
+                        const lEye = new THREE.Mesh(eyeGeo, matDark);
+                        lEye.position.set(-headSize * 0.28, 0.08, headSize * 0.51);
+                        const rEye = new THREE.Mesh(eyeGeo, matDark);
+                        rEye.position.set(headSize * 0.28, 0.08, headSize * 0.51);
+                        headGroup.add(lEye, rEye);
+
+                        root.add(headGroup);
+                        parts.head = headGroup;
+
+                        // Cauda animada
+                        const tailGroup = new THREE.Group();
+                        tailGroup.position.set(0, bodyY + 0.1, -bodyD / 2);
+                        const tailLen = (t === 'bear') ? 0.28 : (t === 'fox' ? 0.65 : 0.55);
+                        const tailRad = (t === 'fox') ? 0.15 : 0.06 * scaleMultiplier;
+                        const tailGeo = new THREE.CylinderGeometry(tailRad * 0.7, tailRad, tailLen, 8);
+                        tailGeo.translate(0, tailLen / 2, 0);
+                        const tailMesh = new THREE.Mesh(tailGeo, t === 'fox' ? matSnout : matDetail);
+                        tailMesh.rotation.x = -0.85;
+                        tailGroup.add(tailMesh);
+                        root.add(tailGroup);
+                        parts.tail = tailGroup;
+                    }
+                }
+
+                return { mesh: root, parts, isHuman };
+            }
+
+            // ====================================================================
+            // 4. CONSTRUÇÃO DO CENÁRIO 3D E OBSTÁCULOS DE COLISÃO
+            // ====================================================================
+            function clearGroup(group) {
+                while (group.children.length > 0) {
+                    const obj = group.children[0];
+                    group.remove(obj);
+                }
+            }
+
+            function addCylinderCollider(x, z, r, height, climbable, label) {
+                state.colliders.push({ type: 'cylinder', x, z, r, height, climbable, label });
+            }
+
+            function addBoxCollider(x, z, w, d, height, climbable, label) {
+                state.colliders.push({ type: 'box', x, z, w, d, height, climbable, label });
+            }
+
+            // Cria uma árvore Low-Poly (Palmeira da Selva, Árvore Gigante com Cipós, Ipê, Pinheiro ou Carvalho)
+            function buildTree(x, z, style = 'oak') {
+                const tree = new THREE.Group();
+                tree.position.set(x, 0, z);
+
+                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+
+                if (style === 'palm') {
+                    // Palmeira Tropical Curvada da Selva com Cocos
+                    const segs = 5;
+                    for (let i = 0; i < segs; i++) {
+                        const segGeo = new THREE.CylinderGeometry(0.28 - i * 0.03, 0.34 - i * 0.03, 0.95, 8);
+                        const seg = new THREE.Mesh(segGeo, trunkMat);
+                        seg.position.set(i * 0.12, 0.45 + i * 0.85, 0);
+                        seg.rotation.z = -0.12;
+                        seg.castShadow = true;
+                        tree.add(seg);
+                    }
+                    const topX = 0.52, topY = 4.6;
+                    const palmLeafMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.65, flatShading: true });
+                    for (let f = 0; f < 6; f++) {
+                        const ang = (f / 6) * Math.PI * 2;
+                        const frondGeo = new THREE.BoxGeometry(0.45, 0.1, 2.2);
+                        frondGeo.translate(0, 0, 1.1);
+                        const frond = new THREE.Mesh(frondGeo, palmLeafMat);
+                        frond.position.set(topX, topY, 0);
+                        frond.rotation.y = ang;
+                        frond.rotation.x = 0.38;
+                        frond.castShadow = true;
+                        tree.add(frond);
+                    }
+                    worldGroup.add(tree);
+                    addCylinderCollider(x, z, 0.45, 5.0, false, 'Palmeira da Selva');
+                    return;
+                }
+
+                if (style === 'jungle_giant') {
+                    // Árvore Centenária da Selva com Cipós Pendurados
+                    const giantTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, 4.2, 9), trunkMat);
+                    giantTrunk.position.y = 2.1;
+                    giantTrunk.castShadow = true;
+                    tree.add(giantTrunk);
+
+                    const jungleLeafMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.75, flatShading: true });
+                    const canopy = new THREE.Mesh(new THREE.DodecahedronGeometry(2.8, 1), jungleLeafMat);
+                    canopy.scale.set(1.2, 0.75, 1.2);
+                    canopy.position.set(0, 4.6, 0);
+                    canopy.castShadow = true;
+                    tree.add(canopy);
+
+                    // Cipós pendurados
+                    const vineMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.8 });
+                    for (let v = 0; v < 4; v++) {
+                        const vang = (v / 4) * Math.PI * 2 + 0.4;
+                        const vine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 6), vineMat);
+                        vine.position.set(Math.cos(vang) * 1.8, 3.1, Math.sin(vang) * 1.8);
+                        tree.add(vine);
+                    }
+                    worldGroup.add(tree);
+                    addCylinderCollider(x, z, 0.78, 6.0, false, 'Árvore Gigante da Selva');
+                    return;
+                }
+
+                const trunkGeo = new THREE.CylinderGeometry(0.32, 0.48, 2.6, 8);
+                trunkGeo.translate(0, 1.3, 0);
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.castShadow = true;
+                trunk.receiveShadow = true;
+                tree.add(trunk);
+
+                let leafColor = 0x22c55e;
+                if (style === 'ipe_yellow') leafColor = 0xfacc15;
+                if (style === 'ipe_pink') leafColor = 0xf472b6;
+                if (style === 'pine') leafColor = 0x15803d;
+
+                const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.75, flatShading: true });
+
+                if (style === 'pine') {
+                    for (let i = 0; i < 3; i++) {
+                        const coneGeo = new THREE.ConeGeometry(1.9 - i * 0.42, 2.3, 8);
+                        const cone = new THREE.Mesh(coneGeo, leafMat);
+                        cone.position.y = 2.6 + i * 1.35;
+                        cone.castShadow = true;
+                        cone.receiveShadow = true;
+                        tree.add(cone);
+                    }
+                } else {
+                    const mainCrown = new THREE.Mesh(new THREE.DodecahedronGeometry(1.85, 1), leafMat);
+                    mainCrown.position.set(0, 3.6, 0);
+                    mainCrown.castShadow = true;
+                    tree.add(mainCrown);
+
+                    const subCrown1 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.25, 1), leafMat);
+                    subCrown1.position.set(1.1, 3.1, 0.6);
+                    subCrown1.castShadow = true;
+                    tree.add(subCrown1);
+
+                    const subCrown2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.15, 1), leafMat);
+                    subCrown2.position.set(-1.0, 3.2, -0.5);
+                    subCrown2.castShadow = true;
+                    tree.add(subCrown2);
+                }
+
+                worldGroup.add(tree);
+                // Tronco bloqueia passagem (altura 5.0m -> não saltável)
+                addCylinderCollider(x, z, 0.52, 5.0, false, 'Tronco de Árvore');
+            }
+
+            // Cria um banco de praça (Obstáculo Saltável e Subível!)
+            function buildBench(x, z, rotY = 0) {
+                const bench = new THREE.Group();
+                bench.position.set(x, 0, z);
+                bench.rotation.y = rotY;
+
+                const woodMat = new THREE.MeshStandardMaterial({ color: 0xb45309, roughness: 0.7 });
+                const ironMat = new THREE.MeshStandardMaterial({ color: 0x27272a, metalness: 0.5, roughness: 0.4 });
+
+                const isRotated = Math.abs(Math.sin(rotY)) > 0.7;
+                const width = 2.4;
+                const depth = 0.85;
+                const seatHeight = 0.62;
+
+                // Assento
+                const seatGeo = new THREE.BoxGeometry(width, 0.12, depth);
+                const seat = new THREE.Mesh(seatGeo, woodMat);
+                seat.position.y = seatHeight - 0.06;
+                seat.castShadow = true;
+                seat.receiveShadow = true;
+                bench.add(seat);
+
+                // Encosto
+                const backGeo = new THREE.BoxGeometry(width, 0.45, 0.1);
+                const back = new THREE.Mesh(backGeo, woodMat);
+                back.position.set(0, seatHeight + 0.22, -depth / 2 + 0.06);
+                back.castShadow = true;
+                bench.add(back);
+
+                // Pés de ferro
+                const legGeo = new THREE.BoxGeometry(0.14, seatHeight, depth * 0.85);
+                const leftLeg = new THREE.Mesh(legGeo, ironMat);
+                leftLeg.position.set(-width * 0.38, seatHeight / 2, 0);
+                const rightLeg = new THREE.Mesh(legGeo, ironMat);
+                rightLeg.position.set(width * 0.38, seatHeight / 2, 0);
+                bench.add(leftLeg, rightLeg);
+
+                worldGroup.add(bench);
+
+                const colW = isRotated ? depth : width;
+                const colD = isRotated ? width : depth;
+                addBoxCollider(x, z, colW, colD, seatHeight, true, 'Banco da Praça');
+            }
+
+            // Cria um poste de iluminação pública (acende à noite)
+            function buildLampPost(x, z) {
+                const post = new THREE.Group();
+                post.position.set(x, 0, z);
+
+                const metalMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.6, roughness: 0.4 });
+                const poleGeo = new THREE.CylinderGeometry(0.12, 0.18, 4.4, 10);
+                poleGeo.translate(0, 2.2, 0);
+                const pole = new THREE.Mesh(poleGeo, metalMat);
+                pole.castShadow = true;
+                post.add(pole);
+
+                const bulbMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+                const bulbGeo = new THREE.SphereGeometry(0.32, 12, 12);
+                const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+                bulb.position.set(0, 4.5, 0);
+                post.add(bulb);
+
+                // Luz pontual para o modo noturno
+                const pointLight = new THREE.PointLight(0xfde047, 0, 18, 1.8);
+                pointLight.position.set(0, 4.3, 0);
+                post.add(pointLight);
+                state.lampLights.push({ light: pointLight, bulbMat });
+
+                worldGroup.add(post);
+                addCylinderCollider(x, z, 0.25, 4.5, false, 'Poste de Luz');
+            }
+
+            // Cria tronco caído ou pedra saltável (Obstáculos de Parkour no Parque/Praça)
+            function buildJumpableObstacle(x, z, kind = 'rock_low') {
+                if (kind === 'log') {
+                    // Tronco caído horizontal
+                    const w = 2.6, d = 0.72, h = 0.68;
+                    const logMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.85 });
+                    const logGeo = new THREE.CylinderGeometry(h / 2, h / 2, w, 12);
+                    logGeo.rotateZ(Math.PI / 2);
+                    const logMesh = new THREE.Mesh(logGeo, logMat);
+                    logMesh.position.set(x, h / 2, z);
+                    logMesh.castShadow = true;
+                    logMesh.receiveShadow = true;
+                    worldGroup.add(logMesh);
+                    addBoxCollider(x, z, w, d, h, true, 'Tronco Caído');
+                } else if (kind === 'rock_low') {
+                    // Pedra baixa achatada (saltável)
+                    const r = 1.05, h = 0.75;
+                    const rockMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.8, flatShading: true });
+                    const rockGeo = new THREE.CylinderGeometry(r * 0.82, r, h, 9);
+                    rockGeo.translate(0, h / 2, 0);
+                    const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+                    rockMesh.position.set(x, 0, z);
+                    rockMesh.castShadow = true;
+                    rockMesh.receiveShadow = true;
+                    worldGroup.add(rockMesh);
+                    addCylinderCollider(x, z, r, h, true, 'Pedra Baixa');
+                } else if (kind === 'rock_step') {
+                    // Pedra média para salto duplo / plataforma
+                    const r = 1.2, h = 1.25;
+                    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.85, flatShading: true });
+                    const rockGeo = new THREE.CylinderGeometry(r * 0.8, r, h, 8);
+                    rockGeo.translate(0, h / 2, 0);
+                    const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+                    rockMesh.position.set(x, 0, z);
+                    rockMesh.castShadow = true;
+                    rockMesh.receiveShadow = true;
+                    worldGroup.add(rockMesh);
+                    addCylinderCollider(x, z, r, h, true, 'Rocha Plataforma');
+                } else if (kind === 'rock_tall') {
+                    // Rocha monolítica alta (bloqueio total)
+                    const r = 1.45, h = 2.9;
+                    const rockMat = new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.9, flatShading: true });
+                    const rockGeo = new THREE.DodecahedronGeometry(r, 1);
+                    rockGeo.scale(1, 1.4, 1);
+                    const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+                    rockMesh.position.set(x, h * 0.45, z);
+                    rockMesh.castShadow = true;
+                    rockMesh.receiveShadow = true;
+                    worldGroup.add(rockMesh);
+                    addCylinderCollider(x, z, r * 0.9, h, false, 'Rocha Grande');
+                } else if (kind === 'fence') {
+                    // Cerca baixa de madeira saltável
+                    const w = 3.2, d = 0.35, h = 0.72;
+                    const fenceGroup = new THREE.Group();
+                    fenceGroup.position.set(x, 0, z);
+                    const woodMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.75 });
+
+                    const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.22, h, 0.22), woodMat);
+                    post1.position.set(-w * 0.42, h / 2, 0);
+                    const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.22, h, 0.22), woodMat);
+                    post2.position.set(w * 0.42, h / 2, 0);
+                    const rail1 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.14, 0.12), woodMat);
+                    rail1.position.set(0, h * 0.78, 0);
+                    const rail2 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.14, 0.12), woodMat);
+                    rail2.position.set(0, h * 0.38, 0);
+
+                    post1.castShadow = post2.castShadow = rail1.castShadow = rail2.castShadow = true;
+                    fenceGroup.add(post1, post2, rail1, rail2);
+                    worldGroup.add(fenceGroup);
+                    addBoxCollider(x, z, w, d, h, true, 'Cerca Baixa');
+                }
+            }
+
+            // Reconstrói todo o cenário 3D com base nas escolhas do usuário
+            function buildWorldEnvironment() {
+                clearGroup(worldGroup);
+                fadedMeshes.clear();
+                state.colliders = [];
+                state.lampLights = [];
+                state.fountainDrops = [];
+                state.treasure.coins = [];
+
+                const { mapType, density } = state.worldConfig;
+                const R = APP_CONFIG.worldRadius;
+
+                // 1. Terreno Principal
+                const groundGeo = new THREE.CylinderGeometry(R + 2, R + 4, 2, 64);
+                groundGeo.translate(0, -1, 0);
+                let groundColor = 0x22c55e;
+                if (mapType === 'plaza') groundColor = 0x4ade80;
+                if (mapType === 'jungle') groundColor = 0x15803d; // Verde denso de selva tropical
+
+                const groundMat = new THREE.MeshStandardMaterial({ color: groundColor, roughness: 0.94 });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.receiveShadow = true;
+                ground.userData.isGroundOrWater = true; // Nunca fica transparente na oclusão
+                worldGroup.add(ground);
+
+                // Cercado periférico decorativo nos limites do mapa
+                const borderPosts = 36;
+                const fencePostGeo = new THREE.CylinderGeometry(0.18, 0.18, 1.3, 8);
+                const fencePostMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+                for (let i = 0; i < borderPosts; i++) {
+                    const ang = (i / borderPosts) * Math.PI * 2;
+                    const px = Math.cos(ang) * R;
+                    const pz = Math.sin(ang) * R;
+                    const pMesh = new THREE.Mesh(fencePostGeo, fencePostMat);
+                    pMesh.position.set(px, 0.65, pz);
+                    pMesh.castShadow = true;
+                    worldGroup.add(pMesh);
+                }
+
+                if (mapType === 'jungle') {
+                    // ==============================================================
+                    // CENÁRIO NOVO: SELVA TROPICAL COM RUÍNAS ASTECAS, RIO E PONTE
+                    // ==============================================================
+                    const ruinMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.9, flatShading: true });
+                    const mossMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.95 });
+
+                    // Templo / Altar em Degraus no Centro da Selva (Escalável com saltos!)
+                    const step1 = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.65, 7.5), ruinMat);
+                    step1.position.set(0, 0.325, -12);
+                    step1.castShadow = step1.receiveShadow = true;
+
+                    const step2 = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.65, 4.8), mossMat);
+                    step2.position.set(0, 0.975, -12);
+                    step2.castShadow = step2.receiveShadow = true;
+
+                    worldGroup.add(step1, step2);
+                    addBoxCollider(0, -12, 7.5, 7.5, 0.65, true, 'Degrau da Ruína da Selva');
+                    addBoxCollider(0, -12, 4.8, 4.8, 1.30, true, 'Topo do Altar Antigo');
+
+                    // Rio Amazônico / Tropical cortando o centro da Selva
+                    const riverMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.15, metalness: 0.25 });
+                    const river = new THREE.Mesh(new THREE.BoxGeometry(R * 1.85, 0.07, 6.8), riverMat);
+                    river.position.set(0, 0.035, 2.5);
+                    worldGroup.add(river);
+
+                    // Ponte Suspensa de Troncos sobre o Rio da Selva (Subível!)
+                    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
+                    const bridge = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.45, 8.2), bridgeMat);
+                    bridge.position.set(0, 0.225, 2.5);
+                    bridge.castShadow = bridge.receiveShadow = true;
+                    worldGroup.add(bridge);
+                    addBoxCollider(0, 2.5, 4.5, 8.2, 0.45, true, 'Ponte de Troncos da Selva');
+
+                    // Totens / Tochas Tiki que iluminam a Selva à noite
+                    const tikiCoords = [[-4.5, -8], [4.5, -8], [-3.2, 7.5], [3.2, 7.5], [-14, -4], [14, -4]];
+                    tikiCoords.forEach(([tx, tz]) => buildLampPost(tx, tz));
+
+                } else if (mapType === 'plaza') {
+                    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9ca3af, roughness: 0.85 });
+                    const waterMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.15, metalness: 0.2 });
+
+                    // Calçadas em cruz e praça circular central
+                    const centerPavement = new THREE.Mesh(new THREE.CylinderGeometry(12, 12, 0.06, 40), stoneMat);
+                    centerPavement.position.y = 0.03;
+                    centerPavement.receiveShadow = true;
+                    worldGroup.add(centerPavement);
+
+                    // Chafariz Central
+                    const fountainBase = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.4, 0.72, 28), stoneMat);
+                    fountainBase.position.y = 0.36;
+                    fountainBase.castShadow = fountainBase.receiveShadow = true;
+                    worldGroup.add(fountainBase);
+
+                    const fountainWater = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.7, 0.65, 24), waterMat);
+                    fountainWater.position.y = 0.38;
+                    worldGroup.add(fountainWater);
+
+                    const centerPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.95, 2.2, 16), stoneMat);
+                    centerPillar.position.y = 1.1;
+                    centerPillar.castShadow = true;
+                    worldGroup.add(centerPillar);
+
+                    const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 0.7, 0.45, 20), stoneMat);
+                    topBowl.position.y = 2.2;
+                    topBowl.castShadow = true;
+                    worldGroup.add(topBowl);
+
+                    // Colisores do Chafariz: Borda externa permite subir (0.72m), pilar central bloqueia (2.5m)
+                    addCylinderCollider(0, 0, 4.25, 0.72, true, 'Borda do Chafariz');
+                    addCylinderCollider(0, 0, 1.35, 2.6, false, 'Pilar do Chafariz');
+
+                    // Partículas animadas de água no chafariz
+                    const dropGeo = new THREE.SphereGeometry(0.11, 6, 6);
+                    const dropMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+                    for (let i = 0; i < 24; i++) {
+                        const drop = new THREE.Mesh(dropGeo, dropMat);
+                        const angle = (i / 24) * Math.PI * 2;
+                        state.fountainDrops.push({
+                            mesh: drop,
+                            angle,
+                            progress: Math.random(),
+                            speed: 0.7 + Math.random() * 0.4
+                        });
+                        worldGroup.add(drop);
+                    }
+
+                    // Bancos da Praça ao redor do Chafariz
+                    buildBench(0, -8.5, 0);
+                    buildBench(0, 8.5, Math.PI);
+                    buildBench(-8.5, 0, Math.PI / 2);
+                    buildBench(8.5, 0, -Math.PI / 2);
+
+                    // Postes de luz nas diagonais da praça
+                    const lampCoords = [
+                        [-7.5, -7.5], [7.5, -7.5], [-7.5, 7.5], [7.5, 7.5],
+                        [-20, -3.5], [20, 3.5], [-3.5, 20], [3.5, -20]
+                    ];
+                    lampCoords.forEach(([lx, lz]) => buildLampPost(lx, lz));
+
+                } else {
+                    // ==============================================================
+                    // CENÁRIO B: PARQUE ARBORIZADO COM TRILHA, LAGO E DEQUE
+                    // ==============================================================
+                    const dirtMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.95 });
+                    const trailRing = new THREE.Mesh(new THREE.RingGeometry(13.5, 17.5, 48), dirtMat);
+                    trailRing.rotation.x = -Math.PI / 2;
+                    trailRing.position.y = 0.03;
+                    trailRing.receiveShadow = true;
+                    worldGroup.add(trailRing);
+
+                    // Lago cristalino no centro-leste
+                    const lakeWaterMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.1, metalness: 0.3 });
+                    const lakeMesh = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 8.5, 0.08, 36), lakeWaterMat);
+                    lakeMesh.position.set(0, 0.04, 0);
+                    worldGroup.add(lakeMesh);
+
+                    // Ponte / Deque de Madeira que cruza o lago (Plataforma subível a 0.45m!)
+                    const deckMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.8 });
+                    const deckMesh = new THREE.Mesh(new THREE.BoxGeometry(18.5, 0.45, 3.6), deckMat);
+                    deckMesh.position.set(0, 0.225, 0);
+                    deckMesh.castShadow = true;
+                    deckMesh.receiveShadow = true;
+                    worldGroup.add(deckMesh);
+                    addBoxCollider(0, 0, 18.5, 3.6, 0.45, true, 'Ponte de Madeira');
+
+                    // Pedras decorativas de travessia e bancos rústicos
+                    buildBench(-12, -8, 0.5);
+                    buildBench(12, 8, -2.5);
+                    buildLampPost(-11, 4);
+                    buildLampPost(11, -4);
+                    buildLampPost(0, 15);
+                    buildLampPost(0, -15);
+                }
+
+                // 2. Circuito fixo de Obstáculos Saltáveis perto do jogador (Para testar pulo imediatamente!)
+                buildJumpableObstacle(6.5, -5.5, 'rock_low');
+                buildJumpableObstacle(9.2, -5.5, 'rock_step');
+                buildJumpableObstacle(-6.5, 6.0, 'log');
+                buildJumpableObstacle(-11.5, -5.5, 'fence');
+
+                // --- ELEMENTOS DA CAÇA AO TESOURO ---
+                // Marca inicial no chão
+                const markerGeo = new THREE.RingGeometry(0.8, 1.2, 16);
+                markerGeo.rotateX(-Math.PI / 2);
+                const markerMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                state.treasure.markerMesh = new THREE.Mesh(markerGeo, markerMat);
+                state.treasure.markerMesh.position.set(state.treasure.startPos.x, 0.05, state.treasure.startPos.z);
+                worldGroup.add(state.treasure.markerMesh);
+
+                // 3. Geração Procedural de Árvores e Obstáculos conforme Densidade escolhida
+                const counts = {
+                    low:    { trees: 18, obstacles: 10 },
+                    medium: { trees: 38, obstacles: 24 },
+                    high:   { trees: 64, obstacles: 38 }
+                }[density] || { trees: 38, obstacles: 24 };
+
+                const treeStyles = mapType === 'jungle'
+                    ? ['palm', 'jungle_giant', 'palm', 'oak', 'ipe_yellow']
+                    : ['oak', 'ipe_yellow', 'ipe_pink', 'pine'];
+                const obsStyles = ['rock_low', 'rock_step', 'log', 'fence', 'rock_tall'];
+
+                // Função auxiliar para verificar se posição está livre
+                const isSpotFree = (x, z, minClearance = 3.2) => {
+                    const distCenter = Math.hypot(x, z);
+                    if (distCenter < 11.5 || distCenter > R - 3.5) return false;
+                    // Evita bloquear as avenidas principais na praça
+                    if (mapType === 'plaza' && (Math.abs(x) < 3.4 || Math.abs(z) < 3.4)) return false;
+                    for (const c of state.colliders) {
+                        const rad = c.type === 'cylinder' ? c.r : Math.max(c.w, c.d) * 0.6;
+                        if (Math.hypot(x - c.x, z - c.z) < rad + minClearance) return false;
+                    }
+                    return true;
+                };
+
+                for (let i = 0; i < counts.trees; i++) {
+                    for (let attempt = 0; attempt < 15; attempt++) {
+                        const ang = Math.random() * Math.PI * 2;
+                        const dist = 12 + Math.random() * (R - 16);
+                        const tx = Math.cos(ang) * dist;
+                        const tz = Math.sin(ang) * dist;
+                        if (isSpotFree(tx, tz, 3.0)) {
+                            const style = treeStyles[i % treeStyles.length];
+                            buildTree(tx, tz, style);
+                            break;
+                        }
+                    }
+                }
+
+                for (let i = 0; i < counts.obstacles; i++) {
+                    for (let attempt = 0; attempt < 15; attempt++) {
+                        const ang = Math.random() * Math.PI * 2;
+                        const dist = 11.5 + Math.random() * (R - 15);
+                        const ox = Math.cos(ang) * dist;
+                        const oz = Math.sin(ang) * dist;
+                        if (isSpotFree(ox, oz, 2.8)) {
+                            const kind = obsStyles[i % obsStyles.length];
+                            buildJumpableObstacle(ox, oz, kind);
+                            break;
+                        }
+                    }
+                }
+
+                applyTimeOfDayLighting();
+            }
+
+            // Configura iluminação, cor do céu, neblina e acendimento dos postes conforme o horário
+            function applyTimeOfDayLighting() {
+                const time = state.worldConfig.timeOfDay;
+
+                if (time === 'morning') {
+                    scene.background.setHex(0x87ceeb);
+                    scene.fog.color.setHex(0x87ceeb);
+                    hemiLight.color.setHex(0xffffff);
+                    hemiLight.groundColor.setHex(0x4b5563);
+                    hemiLight.intensity = 0.68;
+
+                    dirLight.color.setHex(0xfffbeb);
+                    dirLight.intensity = 1.15;
+                    dirLight.position.set(35, 58, 30);
+
+                    celestialMesh.position.set(60, 85, -50);
+                    celestialMat.color.setHex(0xfef08a);
+
+                    state.lampLights.forEach(l => {
+                        l.light.intensity = 0;
+                        l.bulbMat.color.setHex(0xd1d5db);
+                    });
+
+                } else if (time === 'sunset') {
+                    scene.background.setHex(0xfd7e53);
+                    scene.fog.color.setHex(0xfd7e53);
+                    hemiLight.color.setHex(0xfed7aa);
+                    hemiLight.groundColor.setHex(0x3f2e21);
+                    hemiLight.intensity = 0.58;
+
+                    dirLight.color.setHex(0xf97316);
+                    dirLight.intensity = 1.25;
+                    dirLight.position.set(-55, 24, -35);
+
+                    celestialMesh.position.set(-85, 26, -60);
+                    celestialMat.color.setHex(0xfb923c);
+
+                    state.lampLights.forEach(l => {
+                        l.light.intensity = 0.8;
+                        l.bulbMat.color.setHex(0xfef08a);
+                    });
+
+                } else if (time === 'night') {
+                    scene.background.setHex(0x0f172a);
+                    scene.fog.color.setHex(0x0f172a);
+                    hemiLight.color.setHex(0x3b82f6);
+                    hemiLight.groundColor.setHex(0x090d16);
+                    hemiLight.intensity = 0.28;
+
+                    dirLight.color.setHex(0x93c5fd);
+                    dirLight.intensity = 0.35;
+                    dirLight.position.set(-30, 60, -25);
+
+                    celestialMesh.position.set(-50, 80, -45);
+                    celestialMat.color.setHex(0xe2e8f0);
+
+                    state.lampLights.forEach(l => {
+                        l.light.intensity = 2.2;
+                        l.bulbMat.color.setHex(0xfef08a);
+                    });
+                }
+            }
+
+            // ====================================================================
+            // 5. GERENCIAMENTO DE PERSONAGENS, AVENTUREIROS E ANIMAIS DA SELVA
+            // ====================================================================
+            const TYPE_LABELS = {
+                boy1: 'Caçador Explorador A',
+                boy2: 'Caçador Ranger B',
+                girl1: 'Aventureira Safari A',
+                girl2: 'Aventureira Botânica B',
+                cheetah: 'Guepardo Veloz',
+                fox: 'Raposa Astuta',
+                bear: 'Urso Pardo da Selva',
+                giraffe: 'Girafa Gigante',
+                dino: 'Dinossauro T-Rex',
+                tiger: 'Tigre de Bengala',
+                mammoth: 'Mamute Lanoso',
+                snake: 'Cobra Naja da Selva',
+                elephant: 'Elefante Real'
+            };
+
+            function spawnCharactersInScene() {
+                clearGroup(charactersGroup);
+                state.characters = [];
+                state.activeCharIndex = 0;
+
+                // 1. Personagem Principal configurado pelo jogador
+                const mainChar = createCharacterInstance(
+                    { ...state.charConfig },
+                    0, -4.5,
+                    `${TYPE_LABELS[state.charConfig.type] || 'Aventureiro'} (Principal)`
+                );
+                state.characters.push(mainChar);
+
+                // 2. Lista de até 10 Animais da Selva e Caçadores passeando pelo cenário (Sem elefante marrom, substituído por Tigre)
+                const jungleNpcTemplates = [
+                    { type: 'tiger',    colorPrimary: '#f97316', colorSecondary: '#18181b', colorHairFur: '#f97316', colorSkin: '#ffffff', hat: false, glasses: false, backpack: false, name: 'Tigre Shere Khan (Selva)' },
+                    { type: 'giraffe',  colorPrimary: '#fbbf24', colorSecondary: '#92400e', colorHairFur: '#fbbf24', colorSkin: '#fde68a', hat: false, glasses: false, backpack: false, name: 'Girafa Melman (Selva)' },
+                    { type: 'dino',     colorPrimary: '#16a34a', colorSecondary: '#14532d', colorHairFur: '#16a34a', colorSkin: '#4ade80', hat: false, glasses: false, backpack: false, name: 'Dinossauro Rex (Selva)' },
+                    { type: 'elephant', colorPrimary: '#9ca3af', colorSecondary: '#6b7280', colorHairFur: '#9ca3af', colorSkin: '#fef9c3', hat: false, glasses: false, backpack: false, name: 'Elefante Golias (Selva)' },
+                    { type: 'mammoth',  colorPrimary: '#6b4423', colorSecondary: '#452811', colorHairFur: '#6b4423', colorSkin: '#fef9c3', hat: false, glasses: false, backpack: false, name: 'Mamute Manny (Selva)' },
+                    { type: 'cheetah',  colorPrimary: '#facc15', colorSecondary: '#18181b', colorHairFur: '#facc15', colorSkin: '#fef08a', hat: false, glasses: false, backpack: false, name: 'Guepardo Flash (Selva)' },
+                    { type: 'bear',     colorPrimary: '#5c3a21', colorSecondary: '#3b2313', colorHairFur: '#5c3a21', colorSkin: '#d6b492', hat: false, glasses: false, backpack: false, name: 'Urso Baloo (Selva)' },
+                    { type: 'fox',      colorPrimary: '#ea580c', colorSecondary: '#ffffff', colorHairFur: '#ea580c', colorSkin: '#18181b', hat: false, glasses: false, backpack: false, name: 'Raposa Koda (Selva)' },
+                    { type: 'snake',    colorPrimary: '#15803d', colorSecondary: '#facc15', colorHairFur: '#15803d', colorSkin: '#4ade80', hat: false, glasses: false, backpack: false, name: 'Cobra Kaa (Selva)' },
+                    { type: 'girl1',    colorPrimary: '#15803d', colorSecondary: '#422006', colorHairFur: '#27272a', colorSkin: '#ffedd5', hat: true,  glasses: true,  backpack: true,  name: 'Aventureira Lara (Caçadora)' }
+                ];
+
+                const count = Math.min(10, parseInt(state.worldConfig.npcCount, 10) || 0);
+                for (let i = 0; i < count; i++) {
+                    const tpl = jungleNpcTemplates[i % jungleNpcTemplates.length];
+                    const angle = (i / Math.max(1, count)) * Math.PI * 2 + 0.35;
+                    const dist = 8.0 + (i % 3) * 4.2;
+                    const sx = Math.cos(angle) * dist;
+                    const sz = Math.sin(angle) * dist;
+                    const npc = createCharacterInstance(tpl, sx, sz, tpl.name);
+                    state.characters.push(npc);
+                }
+
+                updateActiveCharacterHUD();
+            }
+
+            function createCharacterInstance(cfg, x, z, name) {
+                const built = createCartoonCharacterMesh(cfg);
+                built.mesh.position.set(x, 0, z);
+                charactersGroup.add(built.mesh);
+
+                // Raio de colisão físico ajustado proporcionalmente para animais grandes (Elefante e Urso)
+                let charRadius = 0.42;
+                if (!built.isHuman) {
+                    if (cfg.type === 'elephant') charRadius = 1.15;
+                    else if (cfg.type === 'bear' || cfg.type === 'mammoth') charRadius = 0.85;
+                    else if (cfg.type === 'giraffe' || cfg.type === 'dino' || cfg.type === 'tiger') charRadius = 0.70;
+                    else charRadius = 0.48;
+                }
+
+                return {
+                    name,
+                    config: { ...cfg },
+                    mesh: built.mesh,
+                    parts: built.parts,
+                    isHuman: built.isHuman,
+                    radius: charRadius,
+                    velY: 0,
+                    onGround: true,
+                    groundSurfaceLabel: 'Chão',
+                    animTime: Math.random() * 10,
+                    currentSpeed: 0,
+                    aiTimer: 1 + Math.random() * 2,
+                    aiState: 'walk',
+                    aiTargetAngle: Math.random() * Math.PI * 2
+                };
+            }
+
+            // Reconstrução da malha ativa
+            function rebuildActiveCharacterMesh() {
+                const activeChar = state.characters[state.activeCharIndex];
+                if (!activeChar) return;
+
+                const oldPos = activeChar.mesh.position.clone();
+                const oldRot = activeChar.mesh.rotation.y;
+                charactersGroup.remove(activeChar.mesh);
+
+                activeChar.config = { ...state.charConfig };
+                activeChar.name = `${TYPE_LABELS[state.charConfig.type] || 'Personagem'} (${state.activeCharIndex === 0 ? 'Principal' : '#' + (state.activeCharIndex + 1)})`;
+
+                const built = createCartoonCharacterMesh(activeChar.config);
+                built.mesh.position.copy(oldPos);
+                built.mesh.rotation.y = oldRot;
+                charactersGroup.add(built.mesh);
+
+                activeChar.mesh = built.mesh;
+                activeChar.parts = built.parts;
+                activeChar.isHuman = built.isHuman;
+
+                updateActiveCharacterHUD();
+            }
+
+            // Alterna o controle entre os personagens na cena (Tecla TAB ou clique 3D)
+            function switchActiveCharacter(targetIndex = null) {
+                if (state.characters.length <= 1) {
+                    showToast("Adicione Amigos/Pets no menu 'Cenário & Mundo' para alternar entre eles!");
+                    return;
+                }
+                if (targetIndex !== null) {
+                    state.activeCharIndex = targetIndex;
+                } else {
+                    state.activeCharIndex = (state.activeCharIndex + 1) % state.characters.length;
+                }
+
+                const activeChar = state.characters[state.activeCharIndex];
+                // Sincroniza o estado do menu com a aparência do personagem recém-selecionado
+                state.charConfig = { ...activeChar.config };
+                syncMenuUIFromState();
+                updateActiveCharacterHUD();
+                showToast(`Agora controlando: ${activeChar.name}`);
+            }
+
+            function updateActiveCharacterHUD() {
+                const activeChar = state.characters[state.activeCharIndex];
+                if (!activeChar) return;
+                document.getElementById('hud-char-name').textContent = activeChar.name;
+            }
+
+            // ====================================================================
+            // 6. SISTEMA DE FÍSICA, COLISÃO (HORIZONTAL/VERTICAL) E ANIMAÇÃO
+            // ====================================================================
+            function updateCharacterPhysicsAndMovement(char, dt, isPlayerControlled) {
+                let moveX = 0;
+                let moveZ = 0;
+                let wantsJump = false;
+                let isRunning = false;
+
+                if (isPlayerControlled) {
+                    // Direção relativa à câmera em 3ª pessoa
+                    let inputFwd = (state.keys.forward ? 1 : 0) - (state.keys.backward ? 1 : 0);
+                    let inputSide = (state.keys.right ? 1 : 0) - (state.keys.left ? 1 : 0);
+
+                    if (inputFwd !== 0 || inputSide !== 0) {
+                        const len = Math.hypot(inputFwd, inputSide);
+                        inputFwd /= len;
+                        inputSide /= len;
+
+                        const sinYaw = Math.sin(state.camera.yaw);
+                        const cosYaw = Math.cos(state.camera.yaw);
+
+                        // Vetor frontal da câmera projetado no plano XZ
+                        const fwdX = -sinYaw;
+                        const fwdZ = -cosYaw;
+                        const rightX = cosYaw;
+                        const rightZ = -sinYaw;
+
+                        moveX = fwdX * inputFwd + rightX * inputSide;
+                        moveZ = fwdZ * inputFwd + rightZ * inputSide;
+                    }
+
+                    isRunning = state.keys.shift;
+                    wantsJump = state.keys.space;
+                } else {
+                    // Comportamento autônomo suave para NPCs e Pets na praça
+                    char.aiTimer -= dt;
+                    if (char.aiTimer <= 0) {
+                        char.aiState = Math.random() < 0.68 ? 'walk' : 'idle';
+                        char.aiTimer = 2.0 + Math.random() * 3.5;
+                        char.aiTargetAngle += (Math.random() - 0.5) * 2.2;
+                    }
+
+                    // Se chegar perto da borda do mapa, vira de volta para o centro
+                    if (Math.hypot(char.mesh.position.x, char.mesh.position.z) > APP_CONFIG.worldRadius - 5) {
+                        char.aiTargetAngle = Math.atan2(-char.mesh.position.x, -char.mesh.position.z);
+                        char.aiState = 'walk';
+                    }
+
+                    if (char.aiState === 'walk') {
+                        moveX = Math.sin(char.aiTargetAngle) * 0.55;
+                        moveZ = Math.cos(char.aiTargetAngle) * 0.55;
+                    }
+                }
+
+                const baseSpeed = isRunning ? APP_CONFIG.runSpeed : APP_CONFIG.walkSpeed;
+                const petMultiplier = char.isHuman ? 1.0 : 1.12;
+                const targetSpeed = Math.hypot(moveX, moveZ) * baseSpeed * petMultiplier;
+                char.currentSpeed = targetSpeed;
+
+                // Rotação suave do personagem na direção do movimento
+                if (targetSpeed > 0.1) {
+                    const desiredAngle = Math.atan2(moveX, moveZ);
+                    let diff = desiredAngle - char.mesh.rotation.y;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    char.mesh.rotation.y += diff * Math.min(1, dt * 12);
+                }
+
+                // Salto
+                if (wantsJump && char.onGround) {
+                    char.velY = char.isHuman ? APP_CONFIG.jumpForceHuman : APP_CONFIG.jumpForcePet;
+                    char.onGround = false;
+                }
+
+                // Aplicação de Gravidade e Deslocamento Vertical
+                char.velY -= APP_CONFIG.gravity * dt;
+                let nextY = char.mesh.position.y + char.velY * dt;
+                let nextX = char.mesh.position.x + moveX * baseSpeed * petMultiplier * dt;
+                let nextZ = char.mesh.position.z + moveZ * baseSpeed * petMultiplier * dt;
+
+                // ----------------------------------------------------------------
+                // RESOLUÇÃO DE COLISÃO 3D (Obstáculos Baixos Subíveis vs Altos)
+                // ----------------------------------------------------------------
+                let supportHeight = 0;
+                let supportLabel = 'No Chão';
+                const cr = char.radius;
+
+                for (let i = 0; i < state.colliders.length; i++) {
+                    const col = state.colliders[i];
+
+                    if (col.type === 'cylinder') {
+                        const dx = nextX - col.x;
+                        const dz = nextZ - col.z;
+                        const dist = Math.hypot(dx, dz);
+                        const minDist = col.r + cr;
+
+                        if (dist < minDist) {
+                            // Se o personagem já está acima do topo do obstáculo (ou subindo um degrau baixo)
+                            if (col.climbable && (char.mesh.position.y >= col.height - APP_CONFIG.stepUpTolerance || nextY >= col.height - 0.12)) {
+                                if (col.height > supportHeight) {
+                                    supportHeight = col.height;
+                                    supportLabel = `Sobre ${col.label}`;
+                                }
+                            } else {
+                                // Empurra lateralmente para fora do cilindro
+                                const nx = dist > 0.0001 ? dx / dist : 1;
+                                const nz = dist > 0.0001 ? dz / dist : 0;
+                                nextX = col.x + nx * minDist;
+                                nextZ = col.z + nz * minDist;
+                                if (!isPlayerControlled) char.aiTargetAngle += Math.PI * 0.6;
+                            }
+                        }
+                    } else if (col.type === 'box') {
+                        const halfW = col.w / 2 + cr;
+                        const halfD = col.d / 2 + cr;
+                        const dx = nextX - col.x;
+                        const dz = nextZ - col.z;
+
+                        if (Math.abs(dx) < halfW && Math.abs(dz) < halfD) {
+                            // Verifica se pousa sobre o banco, ponte, cerca ou tronco
+                            if (col.climbable && (char.mesh.position.y >= col.height - APP_CONFIG.stepUpTolerance || nextY >= col.height - 0.12)) {
+                                if (col.height > supportHeight) {
+                                    supportHeight = col.height;
+                                    supportLabel = `Sobre ${col.label}`;
+                                }
+                            } else {
+                                // Resolve pelo eixo de menor penetração (AABB Push-out)
+                                const overlapX = halfW - Math.abs(dx);
+                                const overlapZ = halfD - Math.abs(dz);
+                                if (overlapX < overlapZ) {
+                                    nextX += dx >= 0 ? overlapX : -overlapX;
+                                } else {
+                                    nextZ += dz >= 0 ? overlapZ : -overlapZ;
+                                }
+                                if (!isPlayerControlled) char.aiTargetAngle += Math.PI * 0.6;
+                            }
+                        }
+                    }
+                }
+
+                // Colisão entre personagens na cena (evita sobreposição)
+                for (let j = 0; j < state.characters.length; j++) {
+                    const other = state.characters[j];
+                    if (other === char) continue;
+                    const dx = nextX - other.mesh.position.x;
+                    const dz = nextZ - other.mesh.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    const minDist = cr + other.radius;
+                    if (dist < minDist && Math.abs(nextY - other.mesh.position.y) < 1.2) {
+                        const nx = dist > 0.001 ? dx / dist : 1;
+                        const nz = dist > 0.001 ? dz / dist : 0;
+                        nextX = other.mesh.position.x + nx * minDist;
+                        nextZ = other.mesh.position.z + nz * minDist;
+                    }
+                }
+
+                // Limite circular da borda do mapa
+                const distFromOrigin = Math.hypot(nextX, nextZ);
+                const maxAllowed = APP_CONFIG.worldRadius - 0.8;
+                if (distFromOrigin > maxAllowed) {
+                    nextX = (nextX / distFromOrigin) * maxAllowed;
+                    nextZ = (nextZ / distFromOrigin) * maxAllowed;
+                }
+
+                // Aterrissagem no chão ou sobre plataforma/obstáculo
+                if (nextY <= supportHeight) {
+                    nextY = supportHeight;
+                    char.velY = 0;
+                    char.onGround = true;
+                    char.groundSurfaceLabel = supportLabel;
+                } else {
+                    char.onGround = false;
+                    char.groundSurfaceLabel = 'No Ar (Saltando)';
+                }
+
+                char.mesh.position.set(nextX, nextY, nextZ);
+
+                // Atualiza Animação Procedural Cartoon
+                animateCharacterLimbs(char, dt);
+            }
+
+            // Animação Procedural de Braços, Pernas, Patas, Rabo e Respiração
+            function animateCharacterLimbs(char, dt) {
+                const p = char.parts;
+                const speedRatio = char.currentSpeed / APP_CONFIG.walkSpeed;
+
+                if (char.currentSpeed > 0.15) {
+                    char.animTime += dt * (7.5 + speedRatio * 4.5);
+                } else {
+                    char.animTime += dt * 2.2;
+                }
+
+                const t = char.animTime;
+
+                if (char.isHuman) {
+                    if (!char.onGround) {
+                        // Pose de Salto Cartoon
+                        p.leftLeg.rotation.x = -0.45;
+                        p.rightLeg.rotation.x = 0.35;
+                        p.leftArm.rotation.x = -2.2;
+                        p.rightArm.rotation.x = -2.2;
+                    } else if (char.currentSpeed > 0.15) {
+                        // Ciclo de Caminhada / Corrida
+                        const amp = Math.min(1.1, 0.55 * speedRatio);
+                        p.leftLeg.rotation.x = Math.sin(t) * amp;
+                        p.rightLeg.rotation.x = -Math.sin(t) * amp;
+                        p.leftArm.rotation.x = -Math.sin(t) * amp * 0.9;
+                        p.rightArm.rotation.x = Math.sin(t) * amp * 0.9;
+                        p.torso.position.y = 1.08 + Math.abs(Math.sin(t * 2)) * 0.045;
+                        p.head.rotation.z = Math.sin(t) * 0.04;
+                    } else {
+                        // Respiração suave (Idle)
+                        p.leftLeg.rotation.x *= 0.85;
+                        p.rightLeg.rotation.x *= 0.85;
+                        p.leftArm.rotation.x = Math.sin(t) * 0.04;
+                        p.rightArm.rotation.x = -Math.sin(t) * 0.04;
+                        p.torso.position.y = 1.08 + Math.sin(t) * 0.015;
+                        p.head.rotation.z *= 0.85;
+                    }
+                } else {
+                    // Animação dos 9 Animais da Selva (Cobra, Dinossauro Bípede e Quadrúpedes)
+                    if (p.snakeSegments) {
+                        // Movimento ondulatório de serpente para a Cobra
+                        for (let s = 0; s < p.snakeSegments.length; s++) {
+                            p.snakeSegments[s].position.x = Math.sin(t * 1.8 - s * 0.9) * (char.currentSpeed > 0.1 ? 0.16 : 0.03);
+                        }
+                        if (p.head) p.head.position.x = Math.sin(t * 1.8) * 0.08;
+                    } else if (!char.onGround) {
+                        p.frontLeftLeg.rotation.x = -0.55;
+                        p.frontRightLeg.rotation.x = -0.55;
+                        p.backLeftLeg.rotation.x = 0.55;
+                        p.backRightLeg.rotation.x = 0.55;
+                    } else if (char.currentSpeed > 0.15) {
+                        const amp = Math.min(0.95, 0.55 * speedRatio);
+                        p.frontLeftLeg.rotation.x = Math.sin(t) * amp;
+                        p.backRightLeg.rotation.x = Math.sin(t) * amp;
+                        p.frontRightLeg.rotation.x = -Math.sin(t) * amp;
+                        p.backLeftLeg.rotation.x = -Math.sin(t) * amp;
+                    } else {
+                        p.frontLeftLeg.rotation.x *= 0.85;
+                        p.frontRightLeg.rotation.x *= 0.85;
+                        p.backLeftLeg.rotation.x *= 0.85;
+                        p.backRightLeg.rotation.x *= 0.85;
+                    }
+                    // Rabo abanando alegremente
+                    if (p.tail) {
+                        p.tail.rotation.z = Math.sin(t * 2.0) * 0.35;
+                    }
+                }
+            }
+
+            // ====================================================================
+            // 7. CONTROLE DE CÂMERA ORBITAL EM 3ª PESSOA E EVENTOS DE ENTRADA
+            // ====================================================================
+            function updateThirdPersonCamera(activeChar, dt) {
+                if (!activeChar) return;
+
+                const targetPos = activeChar.mesh.position.clone();
+                targetPos.y += activeChar.isHuman ? 1.45 : 0.85;
+
+                // Interpolação suave do foco da câmera
+                state.camera.currentLookAt.lerp(targetPos, Math.min(1, dt * 12));
+
+                const dist = state.camera.distance;
+                const yaw = state.camera.yaw;
+                const pitch = state.camera.pitch;
+
+                const camX = state.camera.currentLookAt.x + dist * Math.sin(yaw) * Math.cos(pitch);
+                const camY = Math.max(0.6, state.camera.currentLookAt.y + dist * Math.sin(pitch));
+                const camZ = state.camera.currentLookAt.z + dist * Math.cos(yaw) * Math.cos(pitch);
+
+                camera.position.set(camX, camY, camZ);
+                camera.lookAt(state.camera.currentLookAt);
+
+                // Atualiza o anel indicador nos pés do personagem ativo
+                selectionRing.position.set(
+                    activeChar.mesh.position.x,
+                    activeChar.mesh.position.y + 0.03,
+                    activeChar.mesh.position.z
+                );
+
+                // Atualiza telemetria de física no HUD inferior
+                document.getElementById('hud-physics-state').textContent = activeChar.groundSurfaceLabel;
+                document.getElementById('hud-altitude').textContent = `${activeChar.mesh.position.y.toFixed(2)}m`;
+            }
+
+            // ====================================================================
+            // 7.5. LÓGICA DO MINIGAME CAÇA AO TESOURO
+            // ====================================================================
+            function generateTreasureRoute() {
+                const actions = ['F', 'L', 'R', 'J']; // Frente, Esquerda, Direita, Pulo
+                const route = [];
+                let steps = 0;
+                while (steps < 10) {
+                    let act = actions[Math.floor(Math.random() * actions.length)];
+                    let cost = (act === 'J') ? 2 : 1;
+                    if (steps + cost > 10) {
+                        act = 'F';
+                        cost = 1;
+                    }
+                    route.push(act);
+                    steps += cost;
+                }
+                return route;
+            }
+
+            function updateTreasureUI() {
+                const tr = state.treasure;
+                const score = tr.sequencePlayed.length - (tr.errors || 0);
+                document.getElementById('step-counter-display').innerHTML = `Passos: ${tr.currentSteps} / 10<br><span style="font-size:0.78rem; color:#fcd34d;">🪙 Moedas: ${score} | ❌ Erros: ${tr.errors || 0}</span>`;
+
+                // Atualiza também o contador permanente no topo da tela
+                const hudCoins = document.getElementById('hud-treasure-coins');
+                const hudErrors = document.getElementById('hud-treasure-errors');
+                if (hudCoins) hudCoins.textContent = tr.totalCoinsScore + (tr.active ? Math.max(0, score) : 0);
+                if (hudErrors) hudErrors.textContent = tr.totalErrors + (tr.active ? (tr.errors || 0) : 0);
+
+                const container = document.getElementById('treasure-instructions');
+                container.innerHTML = '';
+                
+                const labels = { 'F': 'Frente', 'B': 'Voltar', 'L': 'Vira Esquerda', 'R': 'Vira Direita', 'J': 'Pular Obstáculo' };
+                const keyMap = { 'F':'W', 'B':'S', 'L':'A', 'R':'D', 'J':'Espaço' };
+                
+                state.treasure.requiredSequence.forEach((reqAct, idx) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'treasure-step';
+                    
+                    let statusHtml = '<span class="badge" style="background:#6b7280">Pendente</span>';
+                    if (idx < state.treasure.sequencePlayed.length) {
+                        const playedAct = state.treasure.sequencePlayed[idx];
+                        if (playedAct === reqAct) {
+                            statusHtml = '<span class="badge" style="background:#10b981">OK</span>';
+                        } else {
+                            statusHtml = '<span class="badge" style="background:#ef4444">Erro</span>';
+                        }
+                    }
+                    
+                    stepDiv.innerHTML = `${statusHtml} [${keyMap[reqAct]}] ${labels[reqAct]} ${reqAct==='J'?'(Custa 2)':''}`;
+                    container.appendChild(stepDiv);
+                });
+            }
+
+            function processTreasureStep(action) {
+                const char = state.characters[0];
+                const tr = state.treasure;
+                
+                const stepCost = (action === 'J') ? 2 : 1;
+                if (tr.currentSteps + stepCost > tr.maxSteps) {
+                    showToast('O contador de 10 passos acabaria! Fim do trajeto.');
+                    return;
+                }
+
+                tr.sequencePlayed.push(action);
+                tr.currentSteps += stepCost;
+                
+                tr.isAnimating = true;
+                tr.animProgress = 0;
+                tr.startAnimPos.copy(char.mesh.position);
+                tr.startAnimYaw = char.mesh.rotation.y;
+                tr.jumpArcHeight = (action === 'J') ? 1.5 : 0;
+                
+                tr.targetPos.copy(char.mesh.position);
+                tr.targetYaw = tr.startAnimYaw;
+
+                if (action === 'L') { tr.targetYaw += Math.PI / 2; state.camera.yaw += Math.PI / 2; }
+                if (action === 'R') { tr.targetYaw -= Math.PI / 2; state.camera.yaw -= Math.PI / 2; }
+                if (action === 'B') { tr.targetYaw += Math.PI; state.camera.yaw += Math.PI; }
+
+                // Anda para frente na nova direção
+                const moveDist = tr.stepSize * stepCost;
+                tr.targetPos.x += Math.sin(tr.targetYaw) * moveDist;
+                tr.targetPos.z += Math.cos(tr.targetYaw) * moveDist;
+
+                updateTreasureUI();
+            }
+
+            // Dispara automaticamente o prêmio ao concluir o 10º passo (sem precisar de baú ou passo extra)
+            function triggerTreasureFound(charPos) {
+                const tr = state.treasure;
+                const hits = tr.sequencePlayed.length;
+                const errs = tr.errors || 0;
+                const finalScore = Math.max(0, hits - errs);
+
+                // Soma ao contador permanente de moedas e erros do jogador
+                tr.totalCoinsScore += finalScore;
+                tr.totalErrors += errs;
+                tr.active = false;
+
+                document.getElementById('hud-treasure-coins').textContent = tr.totalCoinsScore;
+                document.getElementById('hud-treasure-errors').textContent = tr.totalErrors;
+                document.getElementById('treasure-ui').style.display = 'none';
+
+                // Faz saltar moedas douradas diretamente do local onde o personagem terminou
+                spawnTreasureCoins(charPos, Math.max(12, finalScore * 4));
+                showTreasureFoundBanner(finalScore, hits, errs);
+                showToast(`🪙 Tesouro Encontrado! +${finalScore} Moedas (Erros: ${errs})`);
+            }
+
+            // Cria moedas douradas 3D saltando no local encontrado
+            function spawnTreasureCoins(originPos, coinCount = 30) {
+                const tr = state.treasure;
+                const coinGeo = new THREE.CylinderGeometry(0.17, 0.17, 0.05, 16);
+                const coinMat = new THREE.MeshStandardMaterial({
+                    color: 0xfacc15,
+                    metalness: 0.85,
+                    roughness: 0.2,
+                    emissive: 0xb45309,
+                    emissiveIntensity: 0.35
+                });
+
+                for (let i = 0; i < coinCount; i++) {
+                    const coin = new THREE.Mesh(coinGeo, coinMat);
+                    coin.position.set(
+                        originPos.x + (Math.random() - 0.5) * 0.6,
+                        originPos.y + 0.35,
+                        originPos.z + (Math.random() - 0.5) * 0.6
+                    );
+                    coin.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    coin.castShadow = true;
+                    worldGroup.add(coin);
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const horizSpeed = 1.5 + Math.random() * 3.2;
+                    tr.coins.push({
+                        mesh: coin,
+                        vx: Math.cos(angle) * horizSpeed,
+                        vy: 6.8 + Math.random() * 5.2,
+                        vz: Math.sin(angle) * horizSpeed,
+                        rotX: (Math.random() - 0.5) * 14,
+                        rotY: (Math.random() - 0.5) * 14,
+                        age: 0,
+                        maxAge: 2.6 + Math.random() * 0.6
+                    });
+                }
+            }
+
+            function showTreasureFoundBanner(score, hits, errors) {
+                const banner = document.getElementById('treasure-found-banner');
+                const details = document.getElementById('treasure-found-details');
+                details.textContent = `🪙 Moedas Ganhas: +${score} pts (Acertos: ${hits} | Erros: ${errors}) • Total Acumulado: ${state.treasure.totalCoinsScore} 🪙`;
+                banner.classList.add('show');
+                clearTimeout(showTreasureFoundBanner._timer);
+                showTreasureFoundBanner._timer = setTimeout(() => {
+                    banner.classList.remove('show');
+                }, 4200);
+            }
+
+            function toggleTreasureHunt() {
+                const tr = state.treasure;
+                tr.active = !tr.active;
+                
+                if (tr.active) {
+                    tr.requiredSequence = generateTreasureRoute(); // GERA MAPA NOVO E ALEATÓRIO
+                    switchActiveCharacter(0);
+                    const char = state.characters[0];
+                    tr.currentSteps = 0;
+                    tr.sequencePlayed = [];
+                    tr.errors = 0; // Reinicia o contador de erros da rodada
+
+                    // Limpa moedas remanescentes se houver
+                    if (tr.coins && tr.coins.length > 0) {
+                        tr.coins.forEach(c => worldGroup.remove(c.mesh));
+                        tr.coins = [];
+                    }
+                    document.getElementById('treasure-found-banner').classList.remove('show');
+                    
+                    char.velY = 0;
+                    char.onGround = true;
+                    char.mesh.position.set(tr.startPos.x, 0, tr.startPos.z);
+                    char.mesh.rotation.y = tr.startYaw;
+                    
+                    state.camera.yaw = tr.startYaw + Math.PI;
+                    state.camera.pitch = 0.4;
+                    
+                    document.getElementById('treasure-ui').style.display = 'block';
+                    updateTreasureUI();
+                    showToast("Siga as instruções rigidamente! Movimento passo a passo.");
+                } else {
+                    document.getElementById('treasure-ui').style.display = 'none';
+                    updateTreasureUI();
+                    showToast("Mapa guardado. Movimento livre restaurado.");
+                }
+            }
+
+            // Eventos de Teclado (WASD, Setas, Shift, Espaço e Tab)
+            window.addEventListener('keydown', (e) => {
+                const code = e.code;
+
+                // Intercepta controles para o Modo Caça ao Tesouro (Grade passo a passo)
+                if (state.treasure.active && state.activeCharIndex === 0 && !state.treasure.isAnimating) {
+                    if (state.treasure.currentSteps >= state.treasure.maxSteps) return;
+                    
+                    let action = null;
+                    if (code === 'KeyW' || code === 'ArrowUp') action = 'F';
+                    else if (code === 'KeyS' || code === 'ArrowDown') action = 'B';
+                    else if (code === 'KeyA' || code === 'ArrowLeft') action = 'L';
+                    else if (code === 'KeyD' || code === 'ArrowRight') action = 'R';
+                    else if (code === 'Space') { action = 'J'; e.preventDefault(); }
+                    
+                    if (action) {
+                        const expectedAction = state.treasure.requiredSequence[state.treasure.sequencePlayed.length];
+                        if (action !== expectedAction) {
+                            state.treasure.errors = (state.treasure.errors || 0) + 1;
+                            updateTreasureUI();
+                            showToast(`❌ Tecla incorreta! -1 Ponto (Total de Erros: ${state.treasure.errors})`);
+                            return; // Bloqueia o movimento mas conta como erro
+                        }
+                        processTreasureStep(action);
+                        return; // Cancela andada física normal
+                    }
+                }
+
+                if (code === 'KeyW' || code === 'ArrowUp') state.keys.forward = true;
+                if (code === 'KeyS' || code === 'ArrowDown') state.keys.backward = true;
+                if (code === 'KeyA' || code === 'ArrowLeft') state.keys.left = true;
+                if (code === 'KeyD' || code === 'ArrowRight') state.keys.right = true;
+                if (code === 'ShiftLeft' || code === 'ShiftRight') state.keys.shift = true;
+                if (code === 'Space') {
+                    state.keys.space = true;
+                    // Evita rolar a página se o foco estiver num botão
+                    if (document.activeElement === document.body) e.preventDefault();
+                }
+                if (code === 'Tab') {
+                    e.preventDefault();
+                    switchActiveCharacter();
+                }
+
+                // Seleção rápida de personagens pelas teclas 1, 2, 3 e 4
+                if (code === 'Digit1' && state.characters.length >= 1) {
+                    switchActiveCharacter(0);
+                } else if (code === 'Digit2' && state.characters.length >= 2) {
+                    switchActiveCharacter(1);
+                } else if (code === 'Digit3' && state.characters.length >= 3) {
+                    switchActiveCharacter(2);
+                } else if (code === 'Digit4' && state.characters.length >= 4) {
+                    switchActiveCharacter(3);
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const code = e.code;
+                if (code === 'KeyW' || code === 'ArrowUp') state.keys.forward = false;
+                if (code === 'KeyS' || code === 'ArrowDown') state.keys.backward = false;
+                if (code === 'KeyA' || code === 'ArrowLeft') state.keys.left = false;
+                if (code === 'KeyD' || code === 'ArrowRight') state.keys.right = false;
+                if (code === 'ShiftLeft' || code === 'ShiftRight') state.keys.shift = false;
+                if (code === 'Space') state.keys.space = false;
+            });
+
+            // Eventos de Mouse (Arrastar para girar câmera, Clique para selecionar personagem, Scroll para zoom)
+            const raycaster = new THREE.Raycaster();
+            const mouseVec = new THREE.Vector2();
+            let mouseDownPos = { x: 0, y: 0 };
+
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                if (e.button === 0 || e.button === 2) {
+                    state.camera.isDragging = true;
+                    state.camera.prevMouseX = e.clientX;
+                    state.camera.prevMouseY = e.clientY;
+                    mouseDownPos = { x: e.clientX, y: e.clientY };
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!state.camera.isDragging) return;
+                const dx = e.clientX - state.camera.prevMouseX;
+                const dy = e.clientY - state.camera.prevMouseY;
+                state.camera.prevMouseX = e.clientX;
+                state.camera.prevMouseY = e.clientY;
+
+                state.camera.yaw -= dx * 0.0065;
+                state.camera.pitch = Math.max(0.08, Math.min(1.25, state.camera.pitch + dy * 0.0055));
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!state.camera.isDragging) return;
+                state.camera.isDragging = false;
+
+                // Se foi um clique rápido sem arrastar a câmera, testa se clicou em algum personagem na cena
+                const moveDist = Math.hypot(e.clientX - mouseDownPos.x, e.clientY - mouseDownPos.y);
+                if (moveDist < 6) {
+                    mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                    raycaster.setFromCamera(mouseVec, camera);
+
+                    for (let i = 0; i < state.characters.length; i++) {
+                        const hits = raycaster.intersectObjects(state.characters[i].mesh.children, true);
+                        if (hits.length > 0) {
+                            switchActiveCharacter(i);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                state.camera.distance = Math.max(3.8, Math.min(24.0, state.camera.distance + e.deltaY * 0.01));
+            }, { passive: false });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // ====================================================================
+            // 8. INTERFACE DE USUÁRIO (MENU DE CUSTOMIZAÇÃO E EXPORTAÇÃO OFFLINE)
+            // ====================================================================
+            function showToast(msg) {
+                const toast = document.getElementById('toast-box');
+                toast.textContent = msg;
+                toast.classList.add('show');
+                clearTimeout(showToast._timer);
+                showToast._timer = setTimeout(() => toast.classList.remove('show'), 2800);
+            }
+
+            // Sincroniza os botões do menu com o estado atual do personagem
+            function syncMenuUIFromState() {
+                const c = state.charConfig;
+                document.querySelectorAll('#select-char-type .option-card').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.value === c.type);
+                });
+
+                document.getElementById('input-colorPrimary').value = c.colorPrimary;
+                document.getElementById('input-colorSecondary').value = c.colorSecondary;
+                document.getElementById('input-colorHairFur').value = c.colorHairFur;
+                document.getElementById('input-colorSkin').value = c.colorSkin;
+
+                const isHuman = (c.type === 'boy1' || c.type === 'boy2' || c.type === 'girl1' || c.type === 'girl2');
+                document.getElementById('lbl-primary-color').textContent = isHuman ? 'Cor da Camisa / Suéter' : 'Cor da Coleira';
+                document.getElementById('lbl-secondary-color').textContent = isHuman ? 'Cor da Calça / Saia / Bota' : 'Manchas / Orelhas';
+                document.getElementById('lbl-hair-color').textContent = isHuman ? 'Cor do Cabelo' : 'Cor da Pelagem';
+                document.getElementById('lbl-skin-color').textContent = isHuman ? 'Tom de Pele' : 'Cor do Focinho';
+
+                document.querySelectorAll('.chip-toggle').forEach(chip => {
+                    const key = chip.dataset.acc;
+                    chip.classList.toggle('active', !!c[key]);
+                });
+            }
+
+            function initMenuEvents() {
+                const modal = document.getElementById('customizer-modal');
+
+                document.getElementById('btn-open-customizer').addEventListener('click', () => {
+                    modal.classList.remove('hidden');
+                });
+
+                // Controles de UI da Caça ao Tesouro
+                document.getElementById('btn-treasure-hunt').addEventListener('click', toggleTreasureHunt);
+                document.getElementById('btn-cancel-treasure').addEventListener('click', toggleTreasureHunt);
+
+                const closeModal = () => {
+                    modal.classList.add('hidden');
+                    showToast("Pronto para explorar! Use WASD + Mouse e Espaço para saltar.");
+                };
+
+                document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+                document.getElementById('btn-play-now').addEventListener('click', closeModal);
+
+                document.getElementById('btn-switch-char').addEventListener('click', () => {
+                    switchActiveCharacter();
+                });
+
+                // Alternância de Abas no Menu
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        const target = btn.dataset.tab;
+                        document.getElementById('tab-char').style.display = target === 'tab-char' ? 'flex' : 'none';
+                        document.getElementById('tab-world').style.display = target === 'tab-world' ? 'flex' : 'none';
+                    });
+                });
+
+                // Escolha do Tipo de Personagem
+                document.querySelectorAll('#select-char-type .option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        state.charConfig.type = card.dataset.value;
+                        syncMenuUIFromState();
+                        rebuildActiveCharacterMesh();
+                    });
+                });
+
+                // Swatches de Cores Rápidas
+                document.querySelectorAll('.swatch').forEach(sw => {
+                    sw.addEventListener('click', () => {
+                        const targetProp = sw.dataset.target;
+                        const colorHex = sw.dataset.color;
+                        state.charConfig[targetProp] = colorHex;
+                        document.getElementById(`input-${targetProp}`).value = colorHex;
+                        rebuildActiveCharacterMesh();
+                    });
+                });
+
+                // Inputs de Cor Personalizada
+                ['colorPrimary', 'colorSecondary', 'colorHairFur', 'colorSkin'].forEach(prop => {
+                    document.getElementById(`input-${prop}`).addEventListener('input', (e) => {
+                        state.charConfig[prop] = e.target.value;
+                        rebuildActiveCharacterMesh();
+                    });
+                });
+
+                // Acessórios (Boné, Óculos, Mochila)
+                document.querySelectorAll('.chip-toggle').forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        const key = chip.dataset.acc;
+                        state.charConfig[key] = !state.charConfig[key];
+                        chip.classList.toggle('active', state.charConfig[key]);
+                        rebuildActiveCharacterMesh();
+                    });
+                });
+
+                // Opções do Mundo: Tipo de Ambiente
+                document.querySelectorAll('#select-map-type .option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('#select-map-type .option-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        state.worldConfig.mapType = card.dataset.value;
+                        buildWorldEnvironment();
+                        spawnCharactersInScene();
+                    });
+                });
+
+                // Opções do Mundo: Horário do Dia
+                document.querySelectorAll('#select-time-of-day .option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('#select-time-of-day .option-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        state.worldConfig.timeOfDay = card.dataset.value;
+                        applyTimeOfDayLighting();
+                    });
+                });
+
+                // Opções do Mundo: Densidade de Obstáculos
+                document.querySelectorAll('#select-density .option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('#select-density .option-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        state.worldConfig.density = card.dataset.value;
+                        buildWorldEnvironment();
+                    });
+                });
+
+                // Opções do Mundo: Quantidade de NPCs/Pets
+                document.querySelectorAll('#select-npc-count .option-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        document.querySelectorAll('#select-npc-count .option-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        state.worldConfig.npcCount = parseInt(card.dataset.value, 10);
+                        spawnCharactersInScene();
+                    });
+                });
+
+                // ================================================================
+                // GERADOR DE PACOTE 100% OFFLINE (EMBUTINDO THREE.JS INLINE)
+                // ================================================================
+                const btnOffline = document.getElementById('btn-download-offline');
+                btnOffline.addEventListener('click', async () => {
+                    const originalText = btnOffline.innerHTML;
+                    btnOffline.disabled = true;
+                    btnOffline.innerHTML = '<span>⏳</span> Empacotando Three.js para Offline...';
+
+                    try {
+                        let threeSourceCode = '';
+                        const scriptTag = document.getElementById('three-cdn-script');
+
+                        // Se já estivermos rodando da versão offline baixada, o script já está inline
+                        if (scriptTag && !scriptTag.src && scriptTag.textContent.length > 1000) {
+                            threeSourceCode = scriptTag.textContent;
+                        } else {
+                            const res = await fetch('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+                            if (!res.ok) throw new Error('Falha ao buscar Three.js da CDN');
+                            threeSourceCode = await res.text();
+                        }
+
+                        // Clona o documento atual, limpa o container WebGL para salvar o HTML limpo e injeta o Three.js inline
+                        const docClone = document.documentElement.cloneNode(true);
+                        const cloneCanvasContainer = docClone.querySelector('#canvas-container');
+                        if (cloneCanvasContainer) cloneCanvasContainer.innerHTML = '';
+
+                        const cloneBtnOffline = docClone.querySelector('#btn-download-offline');
+                        if (cloneBtnOffline) {
+                            cloneBtnOffline.disabled = false;
+                            cloneBtnOffline.innerHTML = '<span>✅</span> Versão 100% Offline Pronta (Baixar Cópia)';
+                        }
+
+                        const cloneScript = docClone.querySelector('#three-cdn-script');
+                        if (cloneScript) {
+                            cloneScript.removeAttribute('src');
+                            cloneScript.textContent = `/* Three.js r128 Embutido Localmente para Execução 100% Offline */\n` + threeSourceCode;
+                        }
+
+                        const finalHtml = '<!DOCTYPE html>\n' + docClone.outerHTML;
+                        const blob = new Blob([finalHtml], { type: 'text/html;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'parque_3d_offline.html';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        showToast('Download concluído! O arquivo parque_3d_offline.html roda 100% sem internet.');
+                    } catch (err) {
+                        console.error(err);
+                        showToast('Erro ao embutir CDN. Verifique sua conexão atual para gerar o pacote offline.');
+                    } finally {
+                        btnOffline.disabled = false;
+                        btnOffline.innerHTML = originalText;
+                    }
+                });
+            }
+
+            // ====================================================================
+            // 9. LOOP PRINCIPAL DE ANIMAÇÃO E RENDERIZAÇÃO
+            // ====================================================================
+            const clock = new THREE.Clock();
+
+            function animate() {
+                requestAnimationFrame(animate);
+
+                const dt = Math.min(clock.getDelta(), 0.1);
+
+                // Atualiza partículas do chafariz se estivermos na Praça Central
+                for (let i = 0; i < state.fountainDrops.length; i++) {
+                    const d = state.fountainDrops[i];
+                    d.progress = (d.progress + dt * d.speed) % 1;
+                    const p = d.progress;
+                    const r = 0.3 + p * 2.8;
+                    const y = 2.4 + Math.sin(p * Math.PI) * 1.4 - p * 1.6;
+                    d.mesh.position.set(Math.cos(d.angle) * r, y, Math.sin(d.angle) * r);
+                }
+
+                // Atualiza física e animação de todos os personagens na cena
+                const tr = state.treasure;
+                for (let i = 0; i < state.characters.length; i++) {
+                    const char = state.characters[i];
+                    const isPlayer = (i === state.activeCharIndex);
+
+                    if (isPlayer && tr.active) {
+                        // Modo Caça ao Tesouro: movimentação passo a passo interpolada
+                        if (tr.isAnimating) {
+                            tr.animProgress += dt * 2.8;
+                            const p = Math.min(1, tr.animProgress);
+                            char.mesh.position.lerpVectors(tr.startAnimPos, tr.targetPos, p);
+                            char.mesh.position.y = Math.sin(p * Math.PI) * tr.jumpArcHeight;
+                            char.mesh.rotation.y = tr.startAnimYaw + (tr.targetYaw - tr.startAnimYaw) * p;
+                            char.currentSpeed = APP_CONFIG.walkSpeed;
+                            char.onGround = (tr.jumpArcHeight === 0 || p >= 1);
+                            animateCharacterLimbs(char, dt);
+
+                            if (p >= 1) {
+                                char.mesh.position.copy(tr.targetPos);
+                                char.mesh.position.y = 0;
+                                char.mesh.rotation.y = tr.targetYaw;
+                                char.currentSpeed = 0;
+                                char.onGround = true;
+                                tr.isAnimating = false;
+
+                                // Assim que conclui a animação do 10º passo, dispara imediatamente as moedas e o prêmio!
+                                if (tr.currentSteps >= tr.maxSteps) {
+                                    triggerTreasureFound(char.mesh.position);
+                                }
+                            }
+                        } else {
+                            char.currentSpeed = 0;
+                            char.onGround = true;
+                            animateCharacterLimbs(char, dt);
+                        }
+                    } else {
+                        updateCharacterPhysicsAndMovement(char, dt, isPlayer);
+                    }
+                }
+
+                const activeChar = state.characters[state.activeCharIndex];
+                updateThirdPersonCamera(activeChar, dt);
+                updateCameraOcclusionFade(activeChar, dt);
+
+                // Atualiza física das moedas douradas saltando (gravidade, quique no chão e rotação)
+                if (tr.coins && tr.coins.length > 0) {
+                    for (let i = tr.coins.length - 1; i >= 0; i--) {
+                        const c = tr.coins[i];
+                        c.age += dt;
+                        c.vy -= 20.0 * dt; // Gravidade nas moedas
+                        c.mesh.position.x += c.vx * dt;
+                        c.mesh.position.y += c.vy * dt;
+                        c.mesh.position.z += c.vz * dt;
+
+                        // Quica no chão
+                        if (c.mesh.position.y < 0.14) {
+                            c.mesh.position.y = 0.14;
+                            c.vy = Math.abs(c.vy) * 0.55;
+                            c.vx *= 0.78;
+                            c.vz *= 0.78;
+                        }
+
+                        c.mesh.rotation.x += c.rotX * dt;
+                        c.mesh.rotation.y += c.rotY * dt;
+
+                        // Encolhe nos instantes finais antes de desaparecer
+                        const remaining = c.maxAge - c.age;
+                        if (remaining < 0.5) {
+                            const sc = Math.max(0.01, remaining / 0.5);
+                            c.mesh.scale.set(sc, sc, sc);
+                        }
+
+                        if (c.age >= c.maxAge) {
+                            worldGroup.remove(c.mesh);
+                            tr.coins.splice(i, 1);
+                        }
+                    }
+                }
+
+                renderer.render(scene, camera);
+            }
+
+            // Inicialização no carregamento da janela
+            window.onload = function () {
+                initMenuEvents();
+                syncMenuUIFromState();
+                buildWorldEnvironment();
+                spawnCharactersInScene();
+                animate();
+            };
+        })();
+    </script>
+</body>
+</html>
