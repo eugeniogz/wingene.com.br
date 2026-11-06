@@ -1361,11 +1361,38 @@ function calculateFinancials() {
     const valorTotalMesAnt = qty * precoMesAnt;
     const valorTotalAnoAnt = qty * precoAnoAnt;
 
+    // Proventos e Dividendos por Ação (informados manualmente ou sugeridos dos fundamentos)
+    const divMesPorAcao = (acao.dividendosMes !== undefined && acao.dividendosMes !== null && !isNaN(parseFloat(acao.dividendosMes)))
+      ? parseFloat(acao.dividendosMes)
+      : (acao.dividendosMesPorAcao !== undefined && !isNaN(parseFloat(acao.dividendosMesPorAcao)) ? parseFloat(acao.dividendosMesPorAcao) : 0);
+
+    let divAnoPorAcao = 0;
+    if (acao.dividendosAno !== undefined && acao.dividendosAno !== null && !isNaN(parseFloat(acao.dividendosAno))) {
+      divAnoPorAcao = parseFloat(acao.dividendosAno);
+    } else if (acao.dividendosAnoPorAcao !== undefined && !isNaN(parseFloat(acao.dividendosAnoPorAcao))) {
+      divAnoPorAcao = parseFloat(acao.dividendosAnoPorAcao);
+    } else if (acao.fundamentals && acao.fundamentals.dividendPerShare && !isNaN(parseFloat(acao.fundamentals.dividendPerShare))) {
+      divAnoPorAcao = parseFloat(acao.fundamentals.dividendPerShare);
+    } else if (acao.fundamentals && acao.fundamentals.dividendYield && !isNaN(parseFloat(acao.fundamentals.dividendYield)) && precoAnoAnt > 0) {
+      divAnoPorAcao = parseFloat((precoAnoAnt * (parseFloat(acao.fundamentals.dividendYield) / 100)).toFixed(2));
+    }
+
+    const totalDivMes = divMesPorAcao * qty;
+    const totalDivAno = divAnoPorAcao * qty;
+
+    // Variação de capital pura (apenas oscilação de preço da cotação)
     const diffMesVal = valorTotalAtual - valorTotalMesAnt;
     const diffMesPct = precoMesAnt > 0 ? ((precoAtual - precoMesAnt) / precoMesAnt) * 100 : (valorTotalMesAnt > 0 ? (diffMesVal / valorTotalMesAnt) * 100 : 0);
 
     const diffAnoVal = valorTotalAtual - valorTotalAnoAnt;
     const diffAnoPct = precoAnoAnt > 0 ? ((precoAtual - precoAnoAnt) / precoAnoAnt) * 100 : (valorTotalAnoAnt > 0 ? (diffAnoVal / valorTotalAnoAnt) * 100 : 0);
+
+    // Retorno Total considerando a variação do preço + dividendos recebidos no período
+    const diffMesComDivVal = diffMesVal + totalDivMes;
+    const diffMesComDivPct = precoMesAnt > 0 ? ((precoAtual - precoMesAnt + divMesPorAcao) / precoMesAnt) * 100 : (valorTotalMesAnt > 0 ? (diffMesComDivVal / valorTotalMesAnt) * 100 : 0);
+
+    const diffAnoComDivVal = diffAnoVal + totalDivAno;
+    const diffAnoComDivPct = precoAnoAnt > 0 ? ((precoAtual - precoAnoAnt + divAnoPorAcao) / precoAnoAnt) * 100 : (valorTotalAnoAnt > 0 ? (diffAnoComDivVal / valorTotalAnoAnt) * 100 : 0);
 
     const meta = parseFloat(acao.meta) || 0;
 
@@ -1377,10 +1404,18 @@ function calculateFinancials() {
       valorTotalMesAnt,
       precoAnoAnt,
       valorTotalAnoAnt,
+      divMesPorAcao,
+      divAnoPorAcao,
+      totalDivMes,
+      totalDivAno,
       diffMesVal,
       diffMesPct,
+      diffMesComDivVal,
+      diffMesComDivPct,
       diffAnoVal,
       diffAnoPct,
+      diffAnoComDivVal,
+      diffAnoComDivPct,
       meta
     };
   });
@@ -1389,10 +1424,18 @@ function calculateFinancials() {
   const totalAcoesMesAnt = acoesProcessadas.reduce((acc, i) => acc + i.valorTotalMesAnt, 0);
   const totalAcoesAnoAnt = acoesProcessadas.reduce((acc, i) => acc + i.valorTotalAnoAnt, 0);
 
+  const totalDivAcoesMes = acoesProcessadas.reduce((acc, i) => acc + (i.totalDivMes || 0), 0);
+  const totalDivAcoesAno = acoesProcessadas.reduce((acc, i) => acc + (i.totalDivAno || 0), 0);
+
   const diffAcoesMesVal = totalAcoesAtual - totalAcoesMesAnt;
   const diffAcoesMesPct = totalAcoesMesAnt > 0 ? (diffAcoesMesVal / totalAcoesMesAnt) * 100 : 0;
+  const diffAcoesMesComDivVal = diffAcoesMesVal + totalDivAcoesMes;
+  const diffAcoesMesComDivPct = totalAcoesMesAnt > 0 ? (diffAcoesMesComDivVal / totalAcoesMesAnt) * 100 : 0;
+
   const diffAcoesAnoVal = totalAcoesAtual - totalAcoesAnoAnt;
   const diffAcoesAnoPct = totalAcoesAnoAnt > 0 ? (diffAcoesAnoVal / totalAcoesAnoAnt) * 100 : 0;
+  const diffAcoesAnoComDivVal = diffAcoesAnoVal + totalDivAcoesAno;
+  const diffAcoesAnoComDivPct = totalAcoesAnoAnt > 0 ? (diffAcoesAnoComDivVal / totalAcoesAnoAnt) * 100 : 0;
 
   // --- PATRIMÔNIO TOTAL CONSOLIDADO ---
   const patrimonioTotal = totalRfAtual + totalAcoesAtual;
@@ -1401,8 +1444,13 @@ function calculateFinancials() {
 
   const diffTotalMesVal = patrimonioTotal - patrimonioMesAnt;
   const diffTotalMesPct = patrimonioMesAnt > 0 ? (diffTotalMesVal / patrimonioMesAnt) * 100 : 0;
+  const diffTotalMesComDivVal = diffTotalMesVal + totalDivAcoesMes;
+  const diffTotalMesComDivPct = patrimonioMesAnt > 0 ? (diffTotalMesComDivVal / patrimonioMesAnt) * 100 : 0;
+
   const diffTotalAnoVal = patrimonioTotal - patrimonioAnoAnt;
   const diffTotalAnoPct = patrimonioAnoAnt > 0 ? (diffTotalAnoVal / patrimonioAnoAnt) * 100 : 0;
+  const diffTotalAnoComDivVal = diffTotalAnoVal + totalDivAcoesAno;
+  const diffTotalAnoComDivPct = patrimonioAnoAnt > 0 ? (diffTotalAnoComDivVal / patrimonioAnoAnt) * 100 : 0;
 
   // Adicionar percentual individual e alocação de rebalanceamento de Ações
   const acoesComPercentual = acoesProcessadas.map(acao => {
@@ -1459,18 +1507,28 @@ function calculateFinancials() {
     totalAcoes: totalAcoesAtual,
     totalAcoesMesAnt: totalAcoesMesAnt,
     totalAcoesAnoAnt: totalAcoesAnoAnt,
+    totalDivAcoesMes,
+    totalDivAcoesAno,
     diffAcoesMesVal,
     diffAcoesMesPct,
+    diffAcoesMesComDivVal,
+    diffAcoesMesComDivPct,
     diffAcoesAnoVal,
     diffAcoesAnoPct,
+    diffAcoesAnoComDivVal,
+    diffAcoesAnoComDivPct,
 
     patrimonioTotal,
     patrimonioMesAnt,
     patrimonioAnoAnt,
     diffTotalMesVal,
     diffTotalMesPct,
+    diffTotalMesComDivVal,
+    diffTotalMesComDivPct,
     diffTotalAnoVal,
     diffTotalAnoPct,
+    diffTotalAnoComDivVal,
+    diffTotalAnoComDivPct,
 
     pctRendaFixa: patrimonioTotal > 0 ? (totalRfAtual / patrimonioTotal) * 100 : 0,
     pctAcoes: patrimonioTotal > 0 ? (totalAcoesAtual / patrimonioTotal) * 100 : 0,
@@ -1645,9 +1703,15 @@ function renderEvolucaoTab(fin) {
         <td><span class="row-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span> Grupo Ações</td>
         <td class="text-right">${formatCurrency(fin.totalAcoes)}</td>
         <td class="text-right">${formatDiffVal(fin.diffAcoesMesVal)}</td>
-        <td class="text-right">${formatDiffPct(fin.diffAcoesMesPct)}</td>
+        <td class="text-right">
+          ${formatDiffPct(fin.diffAcoesMesPct)}
+          ${fin.totalDivAcoesMes > 0 ? `<br><small class="text-muted" title="Retorno mensal considerando dividendos">c/ Div: <strong style="color: #60a5fa;">${formatDiffPct(fin.diffAcoesMesComDivPct)}</strong></small>` : ''}
+        </td>
         <td class="text-right">${formatDiffVal(fin.diffAcoesAnoVal)}</td>
-        <td class="text-right">${formatDiffPct(fin.diffAcoesAnoPct)}</td>
+        <td class="text-right">
+          ${formatDiffPct(fin.diffAcoesAnoPct)}
+          ${fin.totalDivAcoesAno > 0 ? `<br><small class="text-muted" title="Retorno anual considerando dividendos">c/ Div: <strong style="color: #60a5fa;">${formatDiffPct(fin.diffAcoesAnoComDivPct)}</strong></small>` : ''}
+        </td>
       </tr>
 
       <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO GRUPOS -->
@@ -1702,10 +1766,12 @@ function renderEvolucaoTab(fin) {
               <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
                 <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
                 <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffAcoesMesVal, fin.diffAcoesMesPct)}</div>
+                ${fin.totalDivAcoesMes > 0 ? `<div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.72rem; color: #93c5fd; display: flex; justify-content: space-between; align-items: center;"><span>c/ Proventos:</span><strong>${formatDiffPct(fin.diffAcoesMesComDivPct)}</strong></div>` : ''}
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
                 <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
                 <div style="margin-top: 2px;">${formatDiffBadgeCombined(fin.diffAcoesAnoVal, fin.diffAcoesAnoPct)}</div>
+                ${fin.totalDivAcoesAno > 0 ? `<div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.72rem; color: #93c5fd; display: flex; justify-content: space-between; align-items: center;"><span>c/ Proventos:</span><strong>${formatDiffPct(fin.diffAcoesAnoComDivPct)}</strong></div>` : ''}
               </div>
             </div>
           </div>
@@ -1767,10 +1833,10 @@ function renderEvolucaoTab(fin) {
   const tbodyAcoes = document.getElementById('tbodyEvolucaoAcoes');
   if (tbodyAcoes) {
     if (fin.acoes.length === 0) {
-      tbodyAcoes.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">Nenhuma ação cadastrada.</td></tr>`;
+      tbodyAcoes.innerHTML = `<tr><td colspan="10" class="text-center text-muted py-4">Nenhuma ação cadastrada.</td></tr>`;
     } else {
       tbodyAcoes.innerHTML = fin.acoes.map((item, idx) => `
-        <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar esta ação">
+        <tr class="col-desktop-row clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar esta ação ou ajustar proventos">
           <td>
             <div class="ticker-badge" style="border-left-color: ${getPaletteColor(idx)}">
               <strong>${item.ticker}</strong>
@@ -1781,12 +1847,20 @@ function renderEvolucaoTab(fin) {
           <td class="text-right"><strong>${formatCurrency(item.valorTotal)}</strong></td>
           <td class="text-right">${formatDiffVal(item.diffMesVal)}</td>
           <td class="text-right">${formatDiffPct(item.diffMesPct)}</td>
+          <td class="text-right" title="Proventos no mês: ${formatCurrency(item.divMesPorAcao)}/ação (Total recebido: ${formatCurrency(item.totalDivMes)})">
+            <span style="font-weight: 700; color: #60a5fa;">${formatDiffPct(item.diffMesComDivPct)}</span>
+            ${item.divMesPorAcao > 0 ? `<br><small class="text-muted" style="font-size: 0.7rem;">+${formatCurrency(item.divMesPorAcao)}/un</small>` : ''}
+          </td>
           <td class="text-right">${formatDiffVal(item.diffAnoVal)}</td>
           <td class="text-right">${formatDiffPct(item.diffAnoPct)}</td>
+          <td class="text-right" title="Proventos no ano: ${formatCurrency(item.divAnoPorAcao)}/ação (Total recebido: ${formatCurrency(item.totalDivAno)})">
+            <span style="font-weight: 700; color: #60a5fa;">${formatDiffPct(item.diffAnoComDivPct)}</span>
+            ${item.divAnoPorAcao > 0 ? `<br><small class="text-muted" style="font-size: 0.7rem;">+${formatCurrency(item.divAnoPorAcao)}/un</small>` : ''}
+          </td>
         </tr>
         <!-- CARDS EXCLUSIVOS MOBILE PARA EVOLUÇÃO AÇÕES -->
         <tr class="col-mobile-row">
-          <td colspan="8" style="padding: 0 0 10px 0 !important; border: none;">
+          <td colspan="10" style="padding: 0 0 10px 0 !important; border: none;">
             <div class="mobile-asset-card clickable-row" onclick="openEditAcaoModal('${item.id}')" title="Clique para editar esta ação">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -1805,10 +1879,18 @@ function renderEvolucaoTab(fin) {
                 <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
                   <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Mensal</div>
                   <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffMesVal, item.diffMesPct)}</div>
+                  <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.72rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span class="text-muted">c/ Proventos:</span>
+                    <strong style="color: #60a5fa;">${formatDiffPct(item.diffMesComDivPct)}</strong>
+                  </div>
                 </div>
                 <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 8px;">
                   <div class="text-muted" style="font-size:0.68rem; font-weight:600; text-transform:uppercase;">Var. Anual</div>
                   <div style="margin-top: 2px;">${formatDiffBadgeCombined(item.diffAnoVal, item.diffAnoPct)}</div>
+                  <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); font-size: 0.72rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span class="text-muted">c/ Proventos:</span>
+                    <strong style="color: #60a5fa;">${formatDiffPct(item.diffAnoComDivPct)}</strong>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2173,6 +2255,8 @@ function openAddAcaoModal() {
   document.getElementById('modalAcaoNome').value = '';
   document.getElementById('modalAcaoQtd').value = '0';
   document.getElementById('modalAcaoPreco').value = '';
+  if (document.getElementById('modalAcaoDivMes')) document.getElementById('modalAcaoDivMes').value = '';
+  if (document.getElementById('modalAcaoDivAno')) document.getElementById('modalAcaoDivAno').value = '';
   document.getElementById('modalAcaoMeta').value = '0';
   if (document.getElementById('modalAcaoComentario')) {
     document.getElementById('modalAcaoComentario').value = '';
@@ -2205,6 +2289,13 @@ function handleAddAcaoModalSubmit(e) {
   const rawMeta = document.getElementById('modalAcaoMeta') ? document.getElementById('modalAcaoMeta').value.trim() : '';
   let meta = rawMeta === '' ? 0 : parsePtBrFloat(rawMeta);
   if (isNaN(meta) || meta < 0) meta = 0;
+
+  const rawDivMes = document.getElementById('modalAcaoDivMes') ? document.getElementById('modalAcaoDivMes').value.trim() : '';
+  const rawDivAno = document.getElementById('modalAcaoDivAno') ? document.getElementById('modalAcaoDivAno').value.trim() : '';
+  let dividendosMes = rawDivMes === '' ? 0 : parsePtBrFloat(rawDivMes);
+  if (isNaN(dividendosMes) || dividendosMes < 0) dividendosMes = 0;
+  let dividendosAno = rawDivAno === '' ? null : parsePtBrFloat(rawDivAno);
+  if (dividendosAno !== null && (isNaN(dividendosAno) || dividendosAno < 0)) dividendosAno = 0;
 
   const comentario = document.getElementById('modalAcaoComentario') ? document.getElementById('modalAcaoComentario').value.trim() : '';
   const currentDate = new Date().toLocaleDateString('pt-BR');
@@ -2244,6 +2335,8 @@ function handleAddAcaoModalSubmit(e) {
     precoAtual: preco,
     precoMesAnterior: preco,
     precoAnoAnterior: preco,
+    dividendosMes,
+    dividendosAno,
     meta,
     comentario,
     data: currentDate,
@@ -2435,6 +2528,35 @@ function openEditAcaoModal(id) {
     document.getElementById('editModalAcaoComentario').value = item.comentario || '';
   }
 
+  // Preencher proventos e dividendos recebidos (Mês e Ano)
+  const divMesVal = (item.dividendosMes !== undefined && item.dividendosMes !== null && !isNaN(parseFloat(item.dividendosMes)))
+    ? parseFloat(item.dividendosMes)
+    : 0;
+
+  let divAnoVal = '';
+  let isSuggestedAno = false;
+  if (item.dividendosAno !== undefined && item.dividendosAno !== null && !isNaN(parseFloat(item.dividendosAno))) {
+    divAnoVal = parseFloat(item.dividendosAno);
+  } else if (item.fundamentals && item.fundamentals.dividendPerShare && !isNaN(parseFloat(item.fundamentals.dividendPerShare))) {
+    divAnoVal = parseFloat(item.fundamentals.dividendPerShare);
+    isSuggestedAno = true;
+  } else if (item.fundamentals && item.fundamentals.dividendYield && !isNaN(parseFloat(item.fundamentals.dividendYield))) {
+    const pAnoRef = item.precoAnoAnterior || currentP;
+    if (pAnoRef > 0) {
+      divAnoVal = parseFloat((pAnoRef * (parseFloat(item.fundamentals.dividendYield) / 100)).toFixed(2));
+      isSuggestedAno = true;
+    }
+  }
+
+  if (document.getElementById('editModalAcaoDivMes')) {
+    document.getElementById('editModalAcaoDivMes').value = divMesVal > 0 ? divMesVal : '';
+  }
+  if (document.getElementById('editModalAcaoDivAno')) {
+    document.getElementById('editModalAcaoDivAno').value = (divAnoVal !== '' && divAnoVal > 0) ? divAnoVal : '';
+  }
+
+  updateEditModalAcaoDivHints(item.quantidade || 0, isSuggestedAno ? divAnoVal : null);
+
   // Preencher resumo de saúde e indicadores no modal de edição
   const healthContainer = document.getElementById('editModalAcaoHealthSummary');
   if (healthContainer) {
@@ -2553,6 +2675,40 @@ function openHealthFromEditModal() {
   }
 }
 
+function updateEditModalAcaoDivHints(forcedQtd, suggestedAnoVal) {
+  const qtdInput = document.getElementById('editModalAcaoQtd');
+  const divMesInput = document.getElementById('editModalAcaoDivMes');
+  const divAnoInput = document.getElementById('editModalAcaoDivAno');
+  const divMesHint = document.getElementById('editModalAcaoDivMesHint');
+  const divAnoHint = document.getElementById('editModalAcaoDivAnoHint');
+  const suggestionBox = document.getElementById('editModalAcaoDivSuggestion');
+
+  const rawQtd = qtdInput ? qtdInput.value.trim() : '';
+  const qty = forcedQtd !== undefined ? forcedQtd : (rawQtd === '' ? 0 : parsePtBrFloat(rawQtd) || 0);
+
+  const rawDivMes = divMesInput ? divMesInput.value.trim() : '';
+  const divMes = rawDivMes === '' ? 0 : parsePtBrFloat(rawDivMes) || 0;
+
+  const rawDivAno = divAnoInput ? divAnoInput.value.trim() : '';
+  const divAno = rawDivAno === '' ? 0 : parsePtBrFloat(rawDivAno) || 0;
+
+  if (divMesHint) {
+    divMesHint.textContent = `Total no mês: ${formatCurrency(divMes * qty)}`;
+  }
+  if (divAnoHint) {
+    divAnoHint.textContent = `Total no ano: ${formatCurrency(divAno * qty)}`;
+  }
+
+  if (suggestionBox) {
+    if (suggestedAnoVal && suggestedAnoVal > 0) {
+      suggestionBox.style.display = 'block';
+      suggestionBox.innerHTML = `💡 Sugestão anual: <strong>R$ ${formatCurrency(suggestedAnoVal)}/ação</strong> identificada a partir dos fundamentos/dividendos da empresa.`;
+    } else {
+      suggestionBox.style.display = 'none';
+    }
+  }
+}
+
 function closeEditAcaoModal() {
   if (document.activeElement && typeof document.activeElement.blur === 'function') {
     document.activeElement.blur();
@@ -2609,6 +2765,13 @@ function handleEditAcaoModalSubmit(e) {
   let precoAno = precoAnoInput !== '' ? parsePtBrFloat(precoAnoInput) : precoAtual;
   if (isNaN(precoAno) || precoAno < 0) precoAno = precoAtual;
 
+  const rawDivMes = document.getElementById('editModalAcaoDivMes') ? document.getElementById('editModalAcaoDivMes').value.trim() : '';
+  const rawDivAno = document.getElementById('editModalAcaoDivAno') ? document.getElementById('editModalAcaoDivAno').value.trim() : '';
+  let dividendosMes = rawDivMes === '' ? 0 : parsePtBrFloat(rawDivMes);
+  if (isNaN(dividendosMes) || dividendosMes < 0) dividendosMes = 0;
+  let dividendosAno = rawDivAno === '' ? null : parsePtBrFloat(rawDivAno);
+  if (dividendosAno !== null && (isNaN(dividendosAno) || dividendosAno < 0)) dividendosAno = 0;
+
   if (!ticker) {
     showToast('Informe o Código / Ticker da ação.', 'error');
     return;
@@ -2641,6 +2804,8 @@ function handleEditAcaoModalSubmit(e) {
   item.precoAtual = precoAtual;
   item.precoMesAnterior = precoMes;
   item.precoAnoAnterior = precoAno;
+  item.dividendosMes = dividendosMes;
+  item.dividendosAno = dividendosAno;
   item.meta = meta;
   item.comentario = comentario;
   item.data = new Date().toLocaleDateString('pt-BR');
@@ -3332,14 +3497,14 @@ Por favor, faça um diagnóstico completo, analise a saúde da minha carteira de
 - **Variação Anual do Patrimônio**: ${formatDiffValText(fin.diffTotalAnoVal)} (${formatDiffPctText(fin.diffTotalAnoPct)})
 - **Variação Mensal (Renda Fixa)**: ${formatDiffValText(fin.diffRfMesVal)} (${formatDiffPctText(fin.diffRfMesPct)})
 - **Variação Anual (Renda Fixa)**: ${formatDiffValText(fin.diffRfAnoVal)} (${formatDiffPctText(fin.diffRfAnoPct)})
-- **Variação Mensal (Ações)**: ${formatDiffValText(fin.diffAcoesMesVal)} (${formatDiffPctText(fin.diffAcoesMesPct)})
-- **Variação Anual (Ações)**: ${formatDiffValText(fin.diffAcoesAnoVal)} (${formatDiffPctText(fin.diffAcoesAnoPct)})
+- **Variação Mensal (Ações)**: ${formatDiffValText(fin.diffAcoesMesVal)} (${formatDiffPctText(fin.diffAcoesMesPct)})${fin.totalDivAcoesMes > 0 ? ` | Retorno c/ Proventos: ${formatDiffPctText(fin.diffAcoesMesComDivPct)}` : ''}
+- **Variação Anual (Ações)**: ${formatDiffValText(fin.diffAcoesAnoVal)} (${formatDiffPctText(fin.diffAcoesAnoPct)})${fin.totalDivAcoesAno > 0 ? ` | Retorno c/ Proventos: ${formatDiffPctText(fin.diffAcoesAnoComDivPct)}` : ''}
 
 ### 3. DETALHAMENTO DOS ATIVOS DE RENDA FIXA
 ${fin.rendaFixa.map(rf => `- **${rf.nome}** (${rf.tipo} - ${rf.emissor}): ${formatCurrency(rf.valorAtual)} | Taxa: ${rf.taxa || 'N/I'} | Var. Mês: ${formatDiffValText(rf.diffMesVal)} (${formatDiffPctText(rf.diffMesPct)}) | Var. Ano: ${formatDiffValText(rf.diffAnoVal)} (${formatDiffPctText(rf.diffAnoPct)})`).join('\n') || 'Nenhum ativo de Renda Fixa registrado.'}
 
 ### 4. DETALHAMENTO DA CARTEIRA DE AÇÕES & METAS DE REBALANCEAMENTO
-${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)})${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}${decisionSection}
+${fin.acoes.map(ac => `- **${ac.ticker}** (${ac.nome}): Qtd: ${ac.quantidade} | Preço Atual: ${formatCurrency(ac.precoAtual)} | Total: ${formatCurrency(ac.valorTotal)} | % Atual na Carteira de Ações: ${ac.percentualAtual.toFixed(1)}% | % Meta Configurada: ${ac.meta.toFixed(1)}% | Var. Mês: ${formatDiffValText(ac.diffMesVal)} (${formatDiffPctText(ac.diffMesPct)}) [c/ Div: ${formatDiffPctText(ac.diffMesComDivPct)}] | Var. Ano: ${formatDiffValText(ac.diffAnoVal)} (${formatDiffPctText(ac.diffAnoPct)}) [c/ Div: ${formatDiffPctText(ac.diffAnoComDivPct)}]${ac.comentario ? ` | Anotação/Planejamento: "${ac.comentario}"` : ''}`).join('\n') || 'Nenhuma ação registrada.'}${decisionSection}
 
 ---
 
