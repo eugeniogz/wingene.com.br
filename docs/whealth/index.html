@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Whealth | Performance, Hábitos e Biomecânica Esportiva</title>
-  <meta name="description" content="Whealth: O aplicativo de análise esportiva e biomecânica avançada para natação, corrida e caminhada. Compatível com Garmin Connect™ e Android Health Connect.">
-  <meta name="keywords" content="Whealth, Garmin Connect, Natação, SWOLF, Biomecânica, Wingene, Corrida, Health Connect">
-  <meta property="og:title" content="Whealth - Análise Biomecânica e Performance Esportiva">
-  <meta property="og:description" content="Sincronize com o Garmin Connect e obtenha análise completa de piscinas, estilos de nado, SWOLF e radar multiesportivo de 6 eixos.">
+  <title>Whealth | Performance, Biomecânica Esportiva e Saúde Circadiana</title>
+  <meta name="description" content="Whealth: O aplicativo de análise esportiva, biomecânica avançada e monitoramento de humor e ritmo circadiano para Android e iOS. Compatível com Garmin Connect™, Apple HealthKit, Android Health Connect e Samsung Health.">
+  <meta name="keywords" content="Whealth, Garmin Connect, Apple HealthKit, Health Connect, Samsung Health, Natação, SWOLF, Biomecânica, TRIMP, ACWR, Monitoramento de Humor, Wingene, Corrida">
+  <meta property="og:title" content="Whealth - Performance, Biomecânica Esportiva e Saúde Circadiana">
+  <meta property="og:description" content="Sincronize com Garmin Connect™, Apple HealthKit, Health Connect e Samsung Health para análise de piscinas (SWOLF), radar de 6 eixos, carga TRIMP/ACWR e monitoramento de humor circadiano.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.wingene.com.br/whealth">
   <link rel="stylesheet" href="styles.css">
@@ -17,18 +17,30 @@
 
   <!-- Site Header -->
   <header class="site-header">
+    <a href="#main-content" class="skip-link visually-hidden">Pular para o conteúdo principal</a>
     <div class="container nav-wrap">
-      <a href="index.html" class="brand-logo">
-        <img src="assets/icon_transparent.png" alt="Whealth Icon">
+      <a href="index.html" class="brand-logo" aria-current="page">
+        <img src="assets/icon_transparent.png" alt="Whealth" width="40" height="40">
         <span>Whealth</span>
         <span class="brand-badge">Wingene</span>
       </a>
-      <nav class="main-nav">
-        <ul>
+      <nav class="main-nav" aria-label="Principal">
+        <button
+          class="menu-button"
+          type="button"
+          popovertarget="site-menu"
+          popovertargetaction="toggle"
+          aria-controls="site-menu"
+        >
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <span>Menu</span>
+        </button>
+
+        <ul id="site-menu" class="site-menu" popover="auto">
           <li><a href="#features">Recursos</a></li>
-          <li><a href="#radar">Radar Biomecânico</a></li>
-          <li><a href="#natacao">Natação & SWOLF</a></li>
-          <li><a href="#garmin">Garmin Connect™</a></li>
+          <li><a href="#radar">Radar 6 Eixos</a></li>
+          <li><a href="#humor">Humor &amp; Biometria</a></li>
+          <li><a href="#garmin">Integrações</a></li>
           <li><a href="privacy.html">Privacidade</a></li>
           <li><a href="terms.html">Termos</a></li>
         </ul>
@@ -37,264 +49,271 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <div class="pill-announcement">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-        <span>Compatível com Garmin Connect™ Developer Program & Health Connect</span>
-      </div>
-
-      <h1>
-        Equilíbrio entre a <span class="gradient-text">Constância de Treinos</span> e Métricas Biomecânicas
-      </h1>
-
-      <p class="lead">
-        O Whealth é a plataforma mobile de alta precisão que transforma dados brutos de seus dispositivos vestíveis em análises aprofundadas de eficiência física, estilo de nado por piscina, índice SWOLF e radar de performance de 6 eixos.
-      </p>
-
-      <div class="hero-actions">
-        <a href="#radar" class="btn btn-primary">
-          <span>Explorar o Radar Biomecânico</span>
-          <span>➔</span>
-        </a>
-        <a href="privacy.html" class="btn btn-secondary">
-          <span>Política de Privacidade</span>
-        </a>
-      </div>
-
-      <!-- Highlights Strip -->
-      <div class="badges-strip">
-        <div class="badge-item">
-          <span class="icon">⌚</span>
-          <span>Garmin Connect™ Ready</span>
+  <main id="main-content" tabindex="-1">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container">
+        <div class="pill-announcement">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Garmin Connect™ • Apple HealthKit • Android Health Connect • Samsung Health</span>
         </div>
-        <div class="badge-item">
-          <span class="icon">🏊‍♂️</span>
-          <span>Piscinas, Estilos & SWOLF</span>
-        </div>
-        <div class="badge-item">
-          <span class="icon">📊</span>
-          <span>Radar de 6 Eixos</span>
-        </div>
-        <div class="badge-item">
-          <span class="icon">🛡️</span>
-          <span>100% Offline-First (SQLite)</span>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Biomechanics Radar Section -->
-  <section id="radar">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-tag">Modelo Multiesportivo</span>
-        <h2>Diagnóstico de Treino em 6 Dimensões</h2>
-        <p>
-          Avaliamos cada sessão não apenas pela quantidade de quilômetros ou minutos gastos, mas pela qualidade biomecânica e consistência do esforço.
+        <h1>
+          Equilíbrio entre <span class="gradient-text">Constância de Treinos</span>, Biomecânica e Saúde Circadiana
+        </h1>
+
+        <p class="lead">
+          O Whealth é a plataforma mobile para Android e iOS que transforma dados brutos dos seus wearables em análises de eficiência física (SWOLF, radar multiesportivo de 6 eixos e carga TRIMP/ACWR) e monitoramento intra-individual de humor e ritmo circadiano.
         </p>
-      </div>
 
-      <div class="radar-split">
-        <div class="radar-graphic-card">
-          <svg viewBox="0 0 400 380" style="width: 100%; max-width: 360px; height: auto;">
-            <!-- Background Polygons (Radar Grid) -->
-            <polygon points="200,40 338,120 338,280 200,360 62,280 62,120" fill="none" stroke="#334155" stroke-width="1.2" stroke-dasharray="3 3"/>
-            <polygon points="200,80 304,140 304,260 200,320 96,260 96,140" fill="none" stroke="#334155" stroke-width="1"/>
-            <polygon points="200,120 270,160 270,240 200,280 130,240 130,160" fill="none" stroke="#334155" stroke-width="0.8"/>
-            <polygon points="200,160 235,180 235,220 200,240 165,220 165,180" fill="none" stroke="#334155" stroke-width="0.6"/>
-
-            <!-- Axis lines -->
-            <line x1="200" y1="200" x2="200" y2="40" stroke="#475569" stroke-width="1"/>
-            <line x1="200" y1="200" x2="338" y2="120" stroke="#475569" stroke-width="1"/>
-            <line x1="200" y1="200" x2="338" y2="280" stroke="#475569" stroke-width="1"/>
-            <line x1="200" y1="200" x2="200" y2="360" stroke="#475569" stroke-width="1"/>
-            <line x1="200" y1="200" x2="62" y2="280" stroke="#475569" stroke-width="1"/>
-            <line x1="200" y1="200" x2="62" y2="120" stroke="#475569" stroke-width="1"/>
-
-            <!-- Data Shape (Example Workout Performance) -->
-            <polygon points="200,68 318,135 292,255 200,305 110,248 88,130" 
-                     fill="rgba(0, 102, 255, 0.35)" 
-                     stroke="#0066ff" 
-                     stroke-width="2.5"/>
-
-            <!-- Axis Labels -->
-            <text x="200" y="26" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="bold">Velocidade</text>
-            <text x="350" y="118" text-anchor="start" fill="#38bdf8" font-size="12" font-weight="bold">Eficiência</text>
-            <text x="350" y="286" text-anchor="start" fill="#34d399" font-size="12" font-weight="bold">Regularidade</text>
-            <text x="200" y="378" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="bold">Intensidade</text>
-            <text x="50" y="286" text-anchor="end" fill="#f97316" font-size="12" font-weight="bold">Densidade</text>
-            <text x="50" y="118" text-anchor="end" fill="#a78bfa" font-size="12" font-weight="bold">Volume</text>
-          </svg>
-
-          <div class="radar-axes-list">
-            <div class="radar-axis-pill">
-              <strong>Velocidade (Pace)</strong>
-              <span>Ritmo por 100m ou por km</span>
-            </div>
-            <div class="radar-axis-pill">
-              <strong>Eficiência Técnica</strong>
-              <span>SWOLF e cadência de passos</span>
-            </div>
-            <div class="radar-axis-pill">
-              <strong>Regularidade</strong>
-              <span>Constância intra-nado (CV)</span>
-            </div>
-            <div class="radar-axis-pill">
-              <strong>Densidade Ativa</strong>
-              <span>Tempo ativo vs repouso</span>
-            </div>
-            <div class="radar-axis-pill">
-              <strong>Volume Total</strong>
-              <span>Metragem e tempo total</span>
-            </div>
-            <div class="radar-axis-pill">
-              <strong>Intensidade (FC)</strong>
-              <span>Zonas cardíacas Z1 a Z5</span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <span class="section-tag">Análise Avançada</span>
-          <h3 style="font-size: 2rem; margin-bottom: 20px; font-family: var(--font-heading);">
-            Sem distorções. Calibração individual por estilo e esporte.
-          </h3>
-          <p style="color: var(--text-secondary); margin-bottom: 20px;">
-            Diferente de aplicativos genéricos que atribuem a mesma escala para qualquer tipo de nado ou corrida, o Whealth aplica <strong>fatores de calibração específicos para cada estilo de nado</strong> (Crawl, Peito, Costas, Borboleta) e calcula índices como o <em>Recovery Lag</em> (queda temporária de eficiência na volta seguinte a uma transição de ritmo).
-          </p>
-          <p style="color: var(--text-secondary); margin-bottom: 28px;">
-            Dessa forma, um treino focado em nado de Peito ou séries fracionadas é analisado com a régua biométrica correta, sem penalizar artificialmente sua pontuação geral.
-          </p>
-          <a href="#features" class="btn btn-secondary">Conheça todos os recursos</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Swimming & Features Section -->
-  <section id="features" style="background-color: rgba(11, 15, 25, 0.4);">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-tag">Recursos Especializados</span>
-        <h2>Engenharia de Ponta para Seus Treinos</h2>
-        <p>Projetado para entregar os dados que atletas e treinadores precisam ver.</p>
-      </div>
-
-      <div class="features-grid">
-        <!-- Feature 1 -->
-        <div class="feature-card" id="natacao">
-          <div class="card-icon icon-blue">🏊‍♂️</div>
-          <h3>Telemetria de Natação Completa</h3>
-          <p>
-            Parser nativo de arquivos binários `.FIT` e dados da Garmin Activity API. Lê cada piscina percorrida, tempo por volta, número de braçadas e pontuação individual de SWOLF.
-          </p>
-          <ul class="specs-list">
-            <li>Reconhecimento de Estilos (Crawl, Peito, Costas, Borboleta)</li>
-            <li>Filtragem de pausas de descanso na borda</li>
-            <li>Cálculo de SWOLF calibrado e cadência de braçadas</li>
-          </ul>
-        </div>
-
-        <!-- Feature 2 -->
-        <div class="feature-card">
-          <div class="card-icon icon-orange">🏃‍♂️</div>
-          <h3>Corrida, Esteira & Caminhada</h3>
-          <p>
-            Análise detalhada de ritmo (/km), cadência de passos por minuto (spm), ganho de elevação acumulado e parciais automáticas de voltas (laps de 1 km).
-          </p>
-          <ul class="specs-list">
-            <li>Diferenciação automática de esteira e rua</li>
-            <li>Gráficos de evolução temporal e downsampling suave</li>
-            <li>Frequência cardíaca média e pico de esforço</li>
-          </ul>
-        </div>
-
-        <!-- Feature 3 -->
-        <div class="feature-card">
-          <div class="card-icon icon-emerald">🔥</div>
-          <h3>Motor de Constância & Hábitos</h3>
-          <p>
-            Baseado no algoritmo de consistência Wingene: heatmap dos últimos 30 dias, streaks dinâmicos e metas semanais sem punições desproporcionais por imprevistos.
-          </p>
-          <ul class="specs-list">
-            <li>Calendário visual de constância diária</li>
-            <li>Metas flexíveis por dias da semana</li>
-            <li>Estatísticas de adesão no longo prazo</li>
-          </ul>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="feature-card">
-          <div class="card-icon icon-purple">❤️</div>
-          <h3>Zonas de Frequência Cardíaca</h3>
-          <p>
-            Distribuição exata do tempo de treino entre as 5 zonas de frequência cardíaca (Z1 Aquecimento até Z5 Anaeróbio Máximo) para controle preciso da carga de treino.
-          </p>
-          <ul class="specs-list">
-            <li>Compatível com sensores ópticos e cintas peitorais</li>
-            <li>Cálculo metabólico por peso corporal</li>
-            <li>Detecção de sobrecarga e recuperação</li>
-          </ul>
-        </div>
-
-        <!-- Feature 5 -->
-        <div class="feature-card">
-          <div class="card-icon icon-teal">🛡️</div>
-          <h3>Privacidade & Offline-First</h3>
-          <p>
-            Seus dados esportivos pertencem exclusivamente a você. O Whealth armazena seu histórico no próprio aparelho em banco de dados SQLite local de alta velocidade.
-          </p>
-          <ul class="specs-list">
-            <li>Sem rastreadores ou anúncios invasivos</li>
-            <li>Zero venda de dados para corretores de dados</li>
-            <li>Total conformidade com LGPD e GDPR</li>
-          </ul>
-        </div>
-
-        <!-- Feature 6 -->
-        <div class="feature-card" id="garmin">
-          <div class="card-icon icon-garmin">⌚</div>
-          <h3>Garmin Connect™ Integration</h3>
-          <p>
-            Projetado para integração oficial com as APIs do Garmin Connect Developer Program (Activity API e Health API) e compatibilidade com exportações `.FIT`, `.TCX` e `.ZIP`.
-          </p>
-          <ul class="specs-list">
-            <li>Webhooks automáticos de novas atividades</li>
-            <li>Suporte a revogação e desconexão instantânea</li>
-            <li>Alternativa de substituição ao Health Connect</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Garmin Partnership Section -->
-  <section>
-    <div class="container">
-      <div class="garmin-callout-box">
-        <div class="garmin-callout-header">
-          <span class="garmin-tag">Parceria Técnica</span>
-          <span style="font-size: 0.9rem; color: #94a3b8;">Garmin Connect Developer Program</span>
-        </div>
-        <h2 style="font-family: var(--font-heading); font-size: 2.2rem; margin-bottom: 16px; color: #fff;">
-          Por que a integração direta com a Garmin é essencial?
-        </h2>
-        <p style="color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 24px; max-width: 800px;">
-          Pontes genéricas como o Google Health Connect descartam os dados piscina a piscina capturados pelos relógios Garmin (SWOLF por volta, braçadas por piscina e estilos de nado). Com o Whealth integrado à <strong>Garmin Activity API</strong>, os atletas têm acesso automático à riqueza completa da telemetria original dos seus relógios Garmin.
-        </p>
-        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-          <a href="privacy.html?lang=en" class="btn btn-primary" style="background: var(--garmin-blue);">
-            <span>Review Garmin Privacy Policy (EN)</span>
+        <div class="hero-actions">
+          <a href="#radar" class="btn btn-primary">
+            <span>Explorar o Radar Biomecânico</span>
+            <span aria-hidden="true">➔</span>
           </a>
           <a href="privacy.html" class="btn btn-secondary">
-            <span>Política de Privacidade (PT)</span>
+            <span>Política de Privacidade</span>
           </a>
         </div>
+
+        <!-- Highlights Strip -->
+        <div class="badges-strip">
+          <div class="badge-item">
+            <span class="icon" aria-hidden="true">⌚</span>
+            <span>Garmin Connect™ &amp; HealthKit</span>
+          </div>
+          <div class="badge-item">
+            <span class="icon" aria-hidden="true">🏊‍♂️</span>
+            <span>Piscinas, Estilos &amp; SWOLF</span>
+          </div>
+          <div class="badge-item">
+            <span class="icon" aria-hidden="true">📊</span>
+            <span>Radar 6 Eixos &amp; TRIMP/ACWR</span>
+          </div>
+          <div class="badge-item">
+            <span class="icon" aria-hidden="true">🧠</span>
+            <span>Humor &amp; Ritmo Circadiano</span>
+          </div>
+          <div class="badge-item">
+            <span class="icon" aria-hidden="true">🛡️</span>
+            <span>100% Offline-First (SQLite)</span>
+          </div>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Biomechanics Radar Section -->
+    <section id="radar">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Modelo Multiesportivo</span>
+          <h2>Diagnóstico de Treino em 6 Dimensões</h2>
+          <p>
+            Avaliamos cada sessão não apenas pela quantidade de quilômetros ou minutos gastos, mas pela qualidade biomecânica, consistência do esforço e eficiência cardíaca.
+          </p>
+        </div>
+
+        <div class="radar-split">
+          <div class="radar-graphic-card">
+            <svg role="img" aria-label="Gráfico de radar biomecânico de 6 eixos: Velocidade, Eficiência, Regularidade, Eficiência Cardíaca, Densidade e Volume" viewBox="0 0 400 380" style="width: 100%; max-width: 360px; height: auto;">
+              <title>Radar Biomecânico de 6 Eixos</title>
+              <!-- Background Polygons (Radar Grid) -->
+              <polygon points="200,40 338,120 338,280 200,360 62,280 62,120" fill="none" stroke="#334155" stroke-width="1.2" stroke-dasharray="3 3"/>
+              <polygon points="200,80 304,140 304,260 200,320 96,260 96,140" fill="none" stroke="#334155" stroke-width="1"/>
+              <polygon points="200,120 270,160 270,240 200,280 130,240 130,160" fill="none" stroke="#334155" stroke-width="0.8"/>
+              <polygon points="200,160 235,180 235,220 200,240 165,220 165,180" fill="none" stroke="#334155" stroke-width="0.6"/>
+
+              <!-- Axis lines -->
+              <line x1="200" y1="200" x2="200" y2="40" stroke="#475569" stroke-width="1"/>
+              <line x1="200" y1="200" x2="338" y2="120" stroke="#475569" stroke-width="1"/>
+              <line x1="200" y1="200" x2="338" y2="280" stroke="#475569" stroke-width="1"/>
+              <line x1="200" y1="200" x2="200" y2="360" stroke="#475569" stroke-width="1"/>
+              <line x1="200" y1="200" x2="62" y2="280" stroke="#475569" stroke-width="1"/>
+              <line x1="200" y1="200" x2="62" y2="120" stroke="#475569" stroke-width="1"/>
+
+              <!-- Data Shape (Example Workout Performance) -->
+              <polygon points="200,68 318,135 292,255 200,305 110,248 88,130"
+                       fill="rgba(0, 102, 255, 0.35)"
+                       stroke="#0066ff"
+                       stroke-width="2.5"/>
+
+              <!-- Axis Labels -->
+              <text x="200" y="26" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="bold">Velocidade</text>
+              <text x="350" y="118" text-anchor="start" fill="#38bdf8" font-size="12" font-weight="bold">Eficiência</text>
+              <text x="350" y="286" text-anchor="start" fill="#34d399" font-size="12" font-weight="bold">Regularidade</text>
+              <text x="200" y="376" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="bold">Eficiência Cardíaca</text>
+              <text x="50" y="286" text-anchor="end" fill="#f97316" font-size="12" font-weight="bold">Densidade</text>
+              <text x="50" y="118" text-anchor="end" fill="#a78bfa" font-size="12" font-weight="bold">Volume</text>
+            </svg>
+
+            <div class="radar-axes-list">
+              <div class="radar-axis-pill">
+                <strong>Velocidade / Ritmo</strong>
+                <span>Pace por 100m ou por km</span>
+              </div>
+              <div class="radar-axis-pill">
+                <strong>Eficiência Técnica</strong>
+                <span>SWOLF ou dinâmica do passo</span>
+              </div>
+              <div class="radar-axis-pill">
+                <strong>Regularidade</strong>
+                <span>Constância intra-nado (CV) e continuidade</span>
+              </div>
+              <div class="radar-axis-pill">
+                <strong>Densidade / Altimetria</strong>
+                <span>Tempo ativo vs repouso ou ganho de elevação</span>
+              </div>
+              <div class="radar-axis-pill">
+                <strong>Volume Total</strong>
+                <span>Metragem e tempo total</span>
+              </div>
+              <div class="radar-axis-pill">
+                <strong>Eficiência Cardíaca</strong>
+                <span>Zonas Z1–Z5 e resposta cardiovascular</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span class="section-tag">Análise Avançada</span>
+            <h3 style="font-size: 2rem; margin-bottom: 20px; font-family: var(--font-heading);">
+              Sem distorções. Calibração individual por estilo e esporte.
+            </h3>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+              Diferente de aplicativos genéricos que atribuem a mesma escala para qualquer tipo de nado ou corrida, o Whealth aplica <strong>fatores de calibração específicos para cada estilo de nado</strong> (Crawl, Peito, Costas, Borboleta) e calcula índices como o <em>Recovery Lag</em> (queda temporária de eficiência na volta seguinte a uma transição de ritmo).
+            </p>
+            <p style="color: var(--text-secondary); margin-bottom: 28px;">
+              Na corrida e caminhada, o radar adapta automaticamente seus eixos para avaliar cadência, dinâmica do passo, altimetria e eficiência cardíaca em comparação direta com a sua média histórica pessoal.
+            </p>
+            <a href="#features" class="btn btn-secondary">Conheça todos os recursos</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" style="background-color: rgba(11, 15, 25, 0.4);">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Recursos Especializados</span>
+          <h2>Engenharia de Ponta para Treino e Bem-Estar</h2>
+          <p>Projetado para entregar telemetria esportiva avançada e inteligência biométrica no dia a dia.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1 -->
+          <div class="feature-card" id="natacao">
+            <div class="card-icon icon-blue" aria-hidden="true">🏊‍♂️</div>
+            <h3>Telemetria de Natação Completa</h3>
+            <p>
+              Parser nativo de arquivos binários <code>.FIT</code> e integração com a Garmin Activity API. Lê cada piscina percorrida, tempo por volta, número de braçadas e pontuação individual de SWOLF.
+            </p>
+            <ul class="specs-list">
+              <li>Reconhecimento de Estilos (Crawl, Peito, Costas, Borboleta)</li>
+              <li>Filtragem de pausas de descanso na borda</li>
+              <li>Cálculo de SWOLF calibrado e mapeamento de estilos</li>
+            </ul>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="feature-card">
+            <div class="card-icon icon-orange" aria-hidden="true">🏃‍♂️</div>
+            <h3>Corrida, Esteira &amp; Caminhada</h3>
+            <p>
+              Análise detalhada de ritmo (/km), cadência de passos por minuto (spm), ganho de elevação acumulado e parciais automáticas de voltas (laps de 1 km).
+            </p>
+            <ul class="specs-list">
+              <li>Diferenciação automática de esteira e rua</li>
+              <li>Gráficos de evolução temporal e downsampling suave</li>
+              <li>Frequência cardíaca média, pico de esforço e zonas Z1–Z5</li>
+            </ul>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="feature-card">
+            <div class="card-icon icon-emerald" aria-hidden="true">🔥</div>
+            <h3>Visão Geral, TRIMP &amp; ACWR</h3>
+            <p>
+              Painel consolidado com cálculo de carga semanal de treino (<strong>TRIMP</strong>) e razão aguda:crônica (<strong>ACWR</strong>), além de heatmap de constância e metas flexíveis por modalidade.
+            </p>
+            <ul class="specs-list">
+              <li>Monitoramento de sobrecarga e zona segura de evolução</li>
+              <li>Heatmap de constância geral de 28 dias e streaks dinâmicos</li>
+              <li>Distribuição de volume semanal entre todas as modalidades</li>
+            </ul>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="feature-card" id="humor">
+            <div class="card-icon icon-purple" aria-hidden="true">🧠</div>
+            <h3>Humor &amp; Biometria Circadiana</h3>
+            <p>
+              Aba dedicada de monitoramento passivo baseada em modelo intra-individual com 14 dias de linha de base pessoal, correlacionando sono, atividade e biometria autonômica.
+            </p>
+            <ul class="specs-list">
+              <li>Análise de duração do sono, atividade noturna e desvio circadiano</li>
+              <li>VFC (RMSSD), frequência cardíaca de repouso, passos e estresse</li>
+              <li>Embasamento científico clínico com resumos matinais e alertas</li>
+            </ul>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="feature-card" id="garmin">
+            <div class="card-icon icon-garmin" aria-hidden="true">⌚</div>
+            <h3>Garmin, HealthKit &amp; Health Connect</h3>
+            <p>
+              Ecossistema multiplataforma com integração oficial à <strong>Garmin Connect™</strong> (OAuth2 PKCE e webhooks), <strong>Apple HealthKit</strong> no iOS, <strong>Android Health Connect</strong> e importação <strong>Samsung Health</strong>.
+            </p>
+            <ul class="specs-list">
+              <li>Webhooks automáticos e importação de arquivos <code>.FIT</code>, <code>.TCX</code> e <code>.ZIP</code></li>
+              <li>Suporte nativo para Android e iOS com consolidação diária inteligente</li>
+              <li>Revogação e desconexão instantânea a qualquer momento</li>
+            </ul>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="feature-card">
+            <div class="card-icon icon-teal" aria-hidden="true">🛡️</div>
+            <h3>Privacidade, Backup &amp; Offline-First</h3>
+            <p>
+              Seus dados esportivos e biométricos pertencem exclusivamente a você. O Whealth armazena o histórico localmente em banco SQLite de alta velocidade com backup e restauração sob demanda.
+            </p>
+            <ul class="specs-list">
+              <li>Sem rastreadores, anúncios ou venda de dados a terceiros</li>
+              <li>Firebase App Check e expiração automática (TTL) em webhooks</li>
+              <li>Total conformidade com LGPD e GDPR</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Garmin Partnership Section -->
+    <section>
+      <div class="container">
+        <div class="garmin-callout-box">
+          <div class="garmin-callout-header">
+            <span class="garmin-tag">Parceria Técnica</span>
+            <span style="font-size: 0.9rem; color: #94a3b8;">Garmin Connect Developer Program</span>
+          </div>
+          <h2 style="font-family: var(--font-heading); font-size: 2.2rem; margin-bottom: 16px; color: #fff;">
+            Por que a integração direta com a Garmin é essencial?
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 24px; max-width: 800px;">
+            Pontes genéricas descartam os dados piscina a piscina capturados pelos relógios Garmin (SWOLF por volta, braçadas por piscina e estilos de nado) e detalhes finos de sono e estresse. Com o Whealth integrado à <strong>Garmin Activity API</strong> e <strong>Health API</strong>, os atletas têm acesso automático à riqueza completa da telemetria original dos seus relógios Garmin.
+          </p>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <a href="privacy.html?lang=en" lang="en" class="btn btn-primary" style="background: var(--garmin-blue);">
+              <span>Review Garmin Privacy Policy (EN)</span>
+            </a>
+            <a href="privacy.html" class="btn btn-secondary">
+              <span>Política de Privacidade (PT)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <!-- Site Footer -->
   <footer class="site-footer">
@@ -302,11 +321,11 @@
       <div class="footer-grid">
         <div class="footer-col">
           <div class="brand-logo" style="margin-bottom: 12px;">
-            <img src="assets/icon_transparent.png" alt="Whealth Logo">
+            <img src="assets/icon_transparent.png" alt="Whealth" width="40" height="40">
             <span>Whealth</span>
           </div>
           <p>
-            Tecnologia de análise biométrica e constância esportiva desenvolvida por <strong>Wingene Software</strong>.
+            Tecnologia de análise biométrica, constância esportiva e saúde circadiana desenvolvida por <strong>Wingene Software</strong>.
           </p>
         </div>
         <div class="footer-col">
@@ -314,22 +333,22 @@
           <ul>
             <li><a href="#features">Recursos</a></li>
             <li><a href="#radar">Radar Biomecânico</a></li>
-            <li><a href="#natacao">Natação & SWOLF</a></li>
-            <li><a href="#garmin">Garmin Connect™</a></li>
+            <li><a href="#humor">Humor &amp; Biometria</a></li>
+            <li><a href="#garmin">Integrações</a></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Políticas & Legal</h4>
+          <h4>Políticas &amp; Legal</h4>
           <ul>
             <li><a href="privacy.html">Política de Privacidade (PT/EN)</a></li>
             <li><a href="terms.html">Termos de Uso</a></li>
-            <li><a href="https://developer.garmin.com" target="_blank">Garmin Developer Portal</a></li>
+            <li><a href="https://developer.garmin.com" target="_blank" rel="noopener noreferrer">Garmin Developer Portal</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>Desenvolvedor</h4>
           <p><strong>Wingene Software</strong></p>
-          <p>Website: <a href="https://www.wingene.com.br" target="_blank">www.wingene.com.br</a></p>
+          <p>Website: <a href="https://www.wingene.com.br" target="_blank" rel="noopener noreferrer">www.wingene.com.br</a></p>
           <p>Suporte: <a href="mailto:contato@wingene.com.br">contato@wingene.com.br</a></p>
         </div>
       </div>
@@ -339,6 +358,63 @@
       </div>
     </div>
   </footer>
+
+  <script type="module">
+    // Feature-detect native Popover API before loading polyfill
+    if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
+      import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js");
+    }
+
+    const header = document.querySelector(".site-header");
+    const inner = document.querySelector(".nav-wrap");
+    const menu = document.getElementById("site-menu");
+
+    if (header && inner && menu) {
+      let lastWidth = 0;
+
+      const updateNavLayout = () => {
+        const currentWidth = header.clientWidth;
+        const wasWide = header.classList.contains("is-wide");
+
+        if (!wasWide && currentWidth <= lastWidth && lastWidth !== 0) {
+          return;
+        }
+        lastWidth = currentWidth;
+
+        const wasOpen = menu.matches(":popover-open");
+        header.classList.add("is-measuring", "is-wide");
+        menu.removeAttribute("popover");
+
+        const fits = inner.scrollWidth <= inner.clientWidth;
+
+        if (!fits) {
+          header.classList.remove("is-wide");
+          menu.setAttribute("popover", "auto");
+          if (wasOpen && typeof menu.showPopover === "function") {
+            try { menu.showPopover(); } catch (_) {}
+          }
+        }
+
+        requestAnimationFrame(() => {
+          header.classList.remove("is-measuring");
+        });
+      };
+
+      // Close mobile popover when clicking an anchor link
+      menu.addEventListener("click", (event) => {
+        if (event.target.closest("a") && !header.classList.contains("is-wide")) {
+          if (typeof menu.hidePopover === "function") {
+            try { menu.hidePopover(); } catch (_) {}
+          }
+        }
+      });
+
+      const ro = new ResizeObserver(updateNavLayout);
+      ro.observe(header);
+      ro.observe(menu);
+      updateNavLayout();
+    }
+  </script>
 
 </body>
 </html>

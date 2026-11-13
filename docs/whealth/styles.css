@@ -65,6 +65,37 @@ a:hover {
   text-decoration: underline;
 }
 
+:where(a:any-link, button):focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skip-link:focus-within,
+.skip-link:active {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 /* Container */
 .container {
   max-width: 1200px;
@@ -88,7 +119,13 @@ header.site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 76px;
+  gap: 16px;
+  min-block-size: 76px;
+}
+
+.nav-wrap > * {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .brand-logo {
@@ -106,6 +143,7 @@ header.site-header {
   width: 40px;
   height: 40px;
   border-radius: 10px;
+  aspect-ratio: 1;
 }
 
 .brand-badge {
@@ -120,23 +158,101 @@ header.site-header {
   vertical-align: middle;
 }
 
-nav.main-nav ul {
-  display: flex;
-  list-style: none;
-  gap: 28px;
+.menu-button {
+  anchor-name: --menu-button;
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  min-block-size: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: rgba(30, 41, 59, 0.85);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-nav.main-nav a {
+.site-menu {
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  background: rgba(19, 27, 46, 0.98);
+  box-shadow: var(--shadow-lg);
+  position: fixed;
+  inset: auto;
+  inset-block-start: 4.75rem;
+  inset-block-start: anchor(--menu-button bottom);
+  inset-inline-end: 1rem;
+  inline-size: min(80dvw, 20rem);
+  max-inline-size: calc(100dvw - 2rem);
+  block-size: fit-content;
+  max-block-size: calc(100dvh - 6rem);
+  margin-block-start: 0.5rem;
+  overflow: auto;
+}
+
+.site-menu:is(:popover-open, .\:popover-open) {
+  display: grid;
+  gap: 6px;
+}
+
+.site-menu a {
+  display: flex;
+  align-items: center;
+  min-block-size: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-nav.main-nav a:hover,
-nav.main-nav a.active {
+.site-menu a:hover,
+.site-menu a.active,
+.site-menu a[aria-current="page"] {
   color: var(--text-primary);
+  background: rgba(51, 65, 85, 0.45);
   text-decoration: none;
+}
+
+.site-header.is-wide .menu-button {
+  display: none;
+}
+
+.site-header.is-wide .site-menu {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  inline-size: auto;
+  max-inline-size: none;
+  block-size: auto;
+  max-block-size: none;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-header.is-wide .site-menu::backdrop {
+  display: none;
+}
+
+.site-header.is-wide .site-menu a {
+  min-block-size: 28px;
+  padding: 4px 2px;
+  background: transparent;
+}
+
+.site-header.is-measuring * {
+  transition: none !important;
 }
 
 .btn-header {
@@ -654,9 +770,9 @@ footer.site-footer {
 
 @media (max-width: 768px) {
   .nav-wrap {
-    height: 64px;
+    min-block-size: 64px;
   }
-  nav.main-nav {
+  .btn-header {
     display: none;
   }
   .footer-grid {
@@ -664,5 +780,25 @@ footer.site-footer {
   }
   .legal-content {
     padding: 28px 20px;
+  }
+}
+
+@media (pointer: coarse) {
+  .site-menu a,
+  .menu-button,
+  .btn {
+    min-block-size: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
