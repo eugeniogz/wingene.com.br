@@ -29,6 +29,10 @@
     --color-atencao: #123e9c;      /* Azul Safira */
     --color-atencao-glow: rgba(18, 62, 156, 0.15);
 
+    --color-whealth: #0284c7;      /* Ciano / Azul Esportivo */
+    --color-whealth-glow: rgba(2, 132, 199, 0.15);
+    --border-whealth: rgba(2, 132, 199, 0.25);
+
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Inter', sans-serif;
     
@@ -111,6 +115,10 @@
         
         --color-atencao: #2563eb;
         --color-atencao-glow: rgba(37, 99, 235, 0.4);
+
+        --color-whealth: #38bdf8;
+        --color-whealth-glow: rgba(56, 189, 248, 0.35);
+        --border-whealth: rgba(56, 189, 248, 0.35);
 
         /* Variáveis do Fundo Estelar */
         --stars-gradient-center: #151a24;
@@ -1013,6 +1021,12 @@ h1, h2, h3, h4 {
     background-color: var(--color-decisoes-glow);
     color: var(--color-decisoes);
     border: 1px solid rgba(14, 125, 15, 0.2);
+}
+
+.badge-whealth-app {
+    background-color: var(--color-whealth-glow);
+    color: var(--color-whealth);
+    border: 1px solid var(--border-whealth);
 }
 
 .software-card h3 {
