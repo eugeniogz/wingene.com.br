@@ -244,16 +244,16 @@
           </div>
 
           <!-- Feature 4 -->
-          <div class="feature-card" id="humor">
+          <div class="feature-card">
             <div class="card-icon icon-purple" aria-hidden="true">🧠</div>
-            <h3>Humor &amp; Biometria Circadiana</h3>
+            <h3>Gerenciamento de Humor (Mania &amp; Depressão)</h3>
             <p>
-              Aba dedicada de monitoramento passivo baseada em modelo intra-individual com 14 dias de linha de base pessoal, correlacionando sono, atividade e biometria autonômica.
+              Aba dedicada de monitoramento passivo baseada em modelo intra-individual com 14 dias de linha de base pessoal para detectar sinais precoces de ativação maníaca, retração depressiva ou estados mistos.
             </p>
             <ul class="specs-list">
-              <li>Análise de duração do sono, atividade noturna e desvio circadiano</li>
-              <li>VFC (RMSSD), frequência cardíaca de repouso, passos e estresse</li>
-              <li>Embasamento científico clínico com resumos matinais e alertas</li>
+              <li>Análise de privação de sono, hipersonia, atividade noturna e passos</li>
+              <li>VFC (RMSSD), frequência cardíaca de repouso e níveis de estresse</li>
+              <li>Resumo matinal diário e alertas proativos escalonados por criticidade</li>
             </ul>
           </div>
 
@@ -284,6 +284,97 @@
               <li>Total conformidade com LGPD e GDPR</li>
             </ul>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mood Management Section -->
+    <section id="humor">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Fenotipagem Digital Passiva</span>
+          <h2>Gerenciamento de Humor: Depressão, Mania e Eutimia</h2>
+          <p>
+            Em vez de depender apenas de autorrelatos subjetivos, o Whealth compara continuamente seu sono, atividade motora e biometria autonômica contra a <strong>sua própria linha de base de 14 dias</strong> (Z-score intra-individual).
+          </p>
+        </div>
+
+        <div class="mood-status-strip" aria-label="Níveis diários de status de humor">
+          <div class="mood-status-pill">
+            <span class="status-dot green" aria-hidden="true"></span>
+            <span>Estável</span>
+          </div>
+          <div class="mood-status-pill">
+            <span class="status-dot yellow" aria-hidden="true"></span>
+            <span>Atenção Leve</span>
+          </div>
+          <div class="mood-status-pill">
+            <span class="status-dot orange" aria-hidden="true"></span>
+            <span>Alerta Moderado</span>
+          </div>
+          <div class="mood-status-pill">
+            <span class="status-dot red" aria-hidden="true"></span>
+            <span>Alerta Crítico</span>
+          </div>
+        </div>
+
+        <div class="mood-poles-grid">
+          <article class="mood-pole-card pole-mania">
+            <span class="mood-pole-badge">Polo Ativado / Mania</span>
+            <h3>Sinais Prodrômicos de Mania e Hipomania</h3>
+            <p>
+              Monitora reduções acentuadas na duração do sono (&ge; 90 min abaixo da sua média pessoal), aumento brusco de atividade motora, deslocamento de fase circadiana e atividade noturna entre 00h e 05h.
+            </p>
+          </article>
+
+          <article class="mood-pole-card pole-depression">
+            <span class="mood-pole-badge">Polo Retraído / Depressão</span>
+            <h3>Sinais de Virada Depressiva e Retração</h3>
+            <p>
+              Identifica episódios de hipersonia (&ge; 9,5h de sono), queda expressiva no volume diário de passos (&le; 45% da sua linha de base), elevação da FC de repouso e redução da VFC (RMSSD).
+            </p>
+          </article>
+
+          <article class="mood-pole-card pole-euthymic">
+            <span class="mood-pole-badge">Eutímico (Equilibrado)</span>
+            <h3>Estabilidade e Ritmo Regular</h3>
+            <p>
+              Acompanha a regularidade dos horários de dormir e acordar, o equilíbrio autonômico e a manutenção dos hábitos de atividade física dentro da sua faixa histórica esperada.
+            </p>
+          </article>
+
+          <article class="mood-pole-card pole-mixed">
+            <span class="mood-pole-badge">Sinais Mistos</span>
+            <h3>Oscilações Simultâneas e Alertas Matinais</h3>
+            <p>
+              Sinaliza combinações atípicas (como privação de sono associada à queda motora ou estresse elevado) e entrega resumos matinais diários com canais de alerta dedicados.
+            </p>
+          </article>
+        </div>
+
+        <div class="mood-science-box">
+          <h3>Embasamento Científico &amp; Critérios Clínicos</h3>
+          <div class="mood-science-grid">
+            <div class="mood-science-item">
+              <strong>Wehr (1987) &amp; Bauer (2006)</strong>
+              <span>A perda de sono em relação à média pessoal é a via final comum para a deflagração do polo maníaco.</span>
+            </div>
+            <div class="mood-science-item">
+              <strong>Faurholt-Jepsen (MONARCA / Lancet)</strong>
+              <span>Hipersonia e retração motora acentuada antecipam episódios e viradas depressivas.</span>
+            </div>
+            <div class="mood-science-item">
+              <strong>Cho et al. (2019 &ndash; JMIR)</strong>
+              <span>Desvios de fase circadiana e atividade noturna (00h–05h) detectam instabilidade por fenótipo passivo.</span>
+            </div>
+            <div class="mood-science-item">
+              <strong>Ortiz et al. (2021)</strong>
+              <span>VFC (RMSSD) e FC de repouso exigem comparação por Z-score contra a própria linha de base.</span>
+            </div>
+          </div>
+          <p class="mood-disclaimer">
+            <strong>Aviso importante:</strong> Os indicadores de gerenciamento de humor do Whealth têm caráter exclusivamente informativo e de autoconhecimento, não constituindo diagnóstico médico ou psiquiátrico nem substituindo o acompanhamento clínico profissional.
+          </p>
         </div>
       </div>
     </section>
