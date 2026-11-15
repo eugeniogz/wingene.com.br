@@ -55,7 +55,7 @@
         <h1 id="page-title">Política de Privacidade</h1>
         <p class="legal-meta">
           <strong>Wingene Software</strong> • Aplicativo Whealth<br>
-          <span id="date-label">Última atualização: 13 de Novembro de 2026</span> • Versão 2.0
+          <span id="date-label">Última atualização: 15 de Novembro de 2026</span> • Versão 2.1
         </p>
       </div>
 
@@ -127,7 +127,7 @@
         <h2>4. Armazenamento, Infraestrutura em Nuvem, Notificações e Retenção</h2>
         <ul>
           <li><strong>Arquitetura Offline-First (Banco Local):</strong> A base de dados principal reside localmente no aparelho do usuário em banco SQLite protegido pelo sistema operacional (Android Keystore / iOS Data Protection).</li>
-          <li><strong>Bridge de Webhooks e TTL Automático:</strong> Para receber notificações push de novas atividades e registros de bem-estar da Garmin enquanto o app está fechado, utilizamos uma ponte segura em Cloud Functions e Firestore protegida por <strong>Firebase App Check</strong> e túneis <strong>HTTPS / TLS 1.3</strong>. Os payloads recebidos via webhook possuem política automática de expiração (<strong>TTL</strong>), sendo descartados automaticamente após a sincronização ou expiração do prazo técnico.</li>
+          <li><strong>Bridge de Webhooks e TTL Automático (90 dias):</strong> Para receber notificações push de novas atividades e registros de bem-estar da Garmin enquanto o app está fechado, utilizamos uma ponte segura em Cloud Functions e Firestore protegida por <strong>Firebase App Check</strong> e túneis <strong>HTTPS / TLS 1.3</strong>. Todos os dados armazenados no Firestore possuem política automática de expiração (<strong>TTL</strong>) de no máximo <strong>90 dias</strong> (e tokens temporários de OAuth expiram em 24 horas), sendo excluídos automaticamente ao fim desse prazo.</li>
           <li><strong>Notificações Push (FCM):</strong> Caso você habilite alertas de resumo matinal ou monitoramento de ritmo circadiano, utilizamos o Firebase Cloud Messaging (FCM) apenas para entregar essas notificações ao seu dispositivo.</li>
           <li><strong>Backup e Retenção:</strong> Você pode gerar e restaurar backups locais do seu banco de dados a qualquer momento. Os dados locais permanecem armazenados até a desinstalação do app ou uso da função de limpeza em <em>Configurações</em>.</li>
         </ul>
@@ -140,7 +140,7 @@
           <li><strong>Confirmação e Acesso:</strong> Visualizar todos os seus treinos, métricas biométricas e histórico de humor diretamente no Whealth.</li>
           <li><strong>Portabilidade e Exportação:</strong> Exportar sua base local por meio da funcionalidade nativa de Backup em <em>Configurações</em>.</li>
           <li><strong>Revogação do Consentimento:</strong> Desconectar o Garmin Connect em <em>Configurações &gt; Garmin Connect</em> ou em <a href="https://www.garmin.com/account" target="_blank" rel="noopener noreferrer">garmin.com/account</a> (<em>Aplicativos Conectados</em>), e revogar permissões do Health Connect ou Apple HealthKit nas configurações do sistema.</li>
-          <li><strong>Exclusão Permanente dos Dados:</strong> Apagar todos os dados locais diretamente no aplicativo em <em>Configurações</em> ou solicitar a remoção de tokens/registros temporários de sincronização junto ao nosso encarregado.</li>
+          <li><strong>Exclusão Permanente dos Dados:</strong> Apagar todos os dados locais diretamente no aplicativo em <em>Configurações</em> (ou desinstalando o app) e solicitar a exclusão imediata de todos os dados na nuvem (Firestore) a qualquer momento pelo <a href="https://southamerica-east1-whealth-wingene.cloudfunctions.net/garminWebhook/delete-data" target="_blank" rel="noopener noreferrer">Portal de Exclusão de Dados na Nuvem</a> ou pelo e-mail do nosso encarregado.</li>
         </ul>
 
         <h2>6. Contato e Encarregado de Proteção de Dados (DPO)</h2>
@@ -222,7 +222,7 @@
         <h2>4. Data Storage, Cloud Infrastructure, Notifications, and Retention</h2>
         <ul>
           <li><strong>Local-First Storage:</strong> User workout histories, sleep, and mood telemetry reside primarily on the user's local smartphone storage within an OS-protected SQLite database.</li>
-          <li><strong>Webhook Bridge &amp; Automatic TTL:</strong> To receive background activity and wellness updates from Garmin while the app is closed, we operate a secure Cloud Functions &amp; Firestore bridge protected by <strong>Firebase App Check</strong> and <strong>HTTPS / TLS 1.3</strong>. Incoming webhook payloads carry an automatic Time-To-Live (<strong>TTL</strong>) expiration policy and are automatically purged after sync or expiration.</li>
+          <li><strong>Webhook Bridge &amp; Automatic 90-Day TTL:</strong> To receive background activity and wellness updates from Garmin while the app is closed, we operate a secure Cloud Functions &amp; Firestore bridge protected by <strong>Firebase App Check</strong> and <strong>HTTPS / TLS 1.3</strong>. All user records stored in Firestore carry an automatic Time-To-Live (<strong>TTL</strong>) expiration policy of at most <strong>90 days</strong> (and ephemeral OAuth tokens expire within 24 hours), being permanently purged automatically.</li>
           <li><strong>Push Notifications (FCM):</strong> If you enable morning summaries or circadian rhythm alerts, Firebase Cloud Messaging (FCM) is used solely to deliver those notifications to your device.</li>
           <li><strong>Backup &amp; Retention:</strong> You can create and restore local database backups at any time. Local data remains on your device until the app is uninstalled or cleared via Settings.</li>
         </ul>
@@ -234,7 +234,7 @@
         <ul>
           <li><strong>Right of Access &amp; Portability:</strong> View all your workouts, sleep, and biometric trends in Whealth, and export your local database via the built-in Backup tool in Settings.</li>
           <li><strong>Right to Revoke Access:</strong> Disconnect Garmin Connect at any time in Whealth (<em>Settings &gt; Garmin Connect</em>) or at <a href="https://www.garmin.com/account" target="_blank" rel="noopener noreferrer">garmin.com/account</a> (<em>Connected Apps</em>), and revoke Apple HealthKit or Health Connect permissions in your device settings.</li>
-          <li><strong>Right to Erasure (Right to be Forgotten):</strong> Permanently wipe all local data in Whealth Settings or request deletion of any temporary sync tokens by emailing our data protection officer.</li>
+          <li><strong>Right to Erasure (Right to be Forgotten):</strong> Permanently wipe all local data in Whealth Settings (or by uninstalling the app) and immediately delete all cloud data stored in Firestore at any time via the <a href="https://southamerica-east1-whealth-wingene.cloudfunctions.net/garminWebhook/delete-data" target="_blank" rel="noopener noreferrer">Cloud Data Deletion Portal</a> or by emailing our data protection officer.</li>
         </ul>
 
         <h2>6. Contact and Data Protection Officer</h2>
