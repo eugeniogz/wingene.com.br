@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Termos de Uso | Whealth - Wingene Software</title>
-  <meta name="description" content="Termos de Uso do aplicativo Whealth desenvolvido por Wingene Software.">
+  <title>Termos de Uso e Contrato de Licença (EULA) | Whealth - Wingene Software</title>
+  <meta name="description" content="Termos de Uso e Contrato de Licença de Usuário Final (EULA) do aplicativo Whealth desenvolvido por Wingene Software. Conheça as condições de uso, assinaturas, isenção médica e propriedade intelectual.">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" type="image/png" href="assets/icon_transparent.png">
 </head>
@@ -12,71 +12,279 @@
 
   <!-- Site Header -->
   <header class="site-header">
+    <a href="#main-content" class="skip-link visually-hidden">Pular para o conteúdo principal</a>
     <div class="container nav-wrap">
       <a href="index.html" class="brand-logo">
-        <img src="assets/icon_transparent.png" alt="Whealth Logo">
+        <img src="assets/icon_transparent.png" alt="Whealth" width="40" height="40">
         <span>Whealth</span>
         <span class="brand-badge">Wingene</span>
       </a>
-      <nav class="main-nav">
-        <ul>
+      <nav class="main-nav" aria-label="Principal">
+        <button
+          class="menu-button"
+          type="button"
+          popovertarget="site-menu"
+          popovertargetaction="toggle"
+          aria-controls="site-menu"
+        >
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <span>Menu</span>
+        </button>
+
+        <ul id="site-menu" class="site-menu" popover="auto">
           <li><a href="index.html#features">Recursos</a></li>
-          <li><a href="index.html#radar">Radar Biomecânico</a></li>
-          <li><a href="index.html#garmin">Garmin Connect™</a></li>
+          <li><a href="index.html#radar">Radar 6 Eixos</a></li>
+          <li><a href="index.html#humor">Humor &amp; Biometria</a></li>
+          <li><a href="index.html#garmin">Integrações</a></li>
           <li><a href="privacy.html">Privacidade</a></li>
-          <li><a href="terms.html" class="active">Termos</a></li>
+          <li><a href="terms.html" class="active" aria-current="page">Termos</a></li>
         </ul>
       </nav>
       <a href="index.html" class="btn-header">Voltar ao Site</a>
     </div>
   </header>
 
-  <main class="legal-page">
+  <main id="main-content" tabindex="-1" class="legal-page">
     <div class="container">
       
       <div class="legal-header">
-        <h1>Termos de Uso (Terms of Service)</h1>
+        <div class="lang-switcher" role="group" aria-label="Idioma dos termos de uso">
+          <button type="button" class="lang-btn active" onclick="switchLanguage('pt')" id="btn-pt" aria-pressed="true">🇧🇷 Português</button>
+          <button type="button" class="lang-btn" onclick="switchLanguage('en')" id="btn-en" aria-pressed="false">🇺🇸 English</button>
+        </div>
+        <h1 id="page-title">Termos de Uso e Contrato de Licença (EULA)</h1>
         <p class="legal-meta">
           <strong>Wingene Software</strong> • Aplicativo Whealth<br>
-          Última atualização: 27 de Outubro de 2026 • Versão 1.1
+          <span id="date-label">Última atualização: 16 de Novembro de 2026</span> • Versão 2.2
         </p>
       </div>
 
-      <div class="legal-content">
+      <!-- PORTUGUESE CONTENT -->
+      <div id="content-pt" class="legal-content">
         <h2>1. Aceitação dos Termos</h2>
         <p>
-          Ao instalar, acessar ou utilizar o aplicativo móvel <strong>Whealth</strong>, desenvolvido por <strong>Wingene Software</strong>, você concorda com estes Termos de Uso e com a nossa <a href="privacy.html">Política de Privacidade</a>.
+          Ao baixar, instalar, acessar ou utilizar o aplicativo móvel <strong>Whealth</strong> ("Aplicativo"), disponível para Android e iOS, desenvolvido e fornecido por <strong>Wingene Software</strong> ("Wingene", "nós", "nosso"), você ("Usuário") concorda expressamente em cumprir e estar vinculado a estes <strong>Termos de Uso e Contrato de Licença de Usuário Final (EULA)</strong>, bem como à nossa <a href="privacy.html">Política de Privacidade</a>.
+        </p>
+        <p>
+          Caso você não concorde com qualquer disposição deste contrato, você não deve instalar, copiar ou utilizar o Whealth.
         </p>
 
-        <h2>2. Natureza Informativa e Não Médica</h2>
+        <h2>2. Contrato de Licença de Usuário Final (EULA)</h2>
         <div class="legal-callout">
           <p>
-            <strong>Aviso Importante de Saúde:</strong> O Whealth é uma ferramenta de apoio analítico esportivo, biomecânica e acompanhamento de constância de treinos. O aplicativo <strong>não fornece diagnósticos médicos</strong>, prescrições de saúde ou orientações clínicas. Sempre consulte profissionais de educação física e médicos antes de iniciar ou intensificar rotinas de treinamento de alta intensidade.
+            <strong>Licença Padrão da Apple (Apple Standard EULA):</strong> Para dispositivos iOS (Apple), o Whealth adota e rege-se integralmente pelos termos do <strong>Contrato de Licença de Usuário Final Padrão da Apple (Standard EULA)</strong>, disponível publicamente em: <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer">https://www.apple.com/legal/internet-services/itunes/dev/stdeula/</a>. As cláusulas deste documento complementam o contrato padrão da Apple e estendem-se também às versões para Android e demais plataformas.
+          </p>
+        </div>
+        <p>
+          Sujeito ao cumprimento destes Termos, a Wingene Software concede a você uma licença pessoal, revogável, limitada, não exclusiva e intransferível para baixar, instalar e utilizar o Whealth em dispositivos móveis compatíveis de sua propriedade ou controle legítimo, estritamente para seu uso pessoal e não comercial.
+        </p>
+        <h3>Restrições de Uso</h3>
+        <p>É expressamente vedado ao Usuário:</p>
+        <ul>
+          <li>Fazer engenharia reversa, descompilar, desmontar, modificar ou tentar descobrir o código-fonte do Aplicativo;</li>
+          <li>Vender, revender, alugar, arrendar, sublicenciar, distribuir ou explorar comercialmente o Aplicativo ou qualquer um de seus componentes;</li>
+          <li>Burlar, contornar ou desativar qualquer mecanismo de controle de acesso, validação de integridade (como Firebase App Check) ou gestão de assinaturas do Aplicativo;</li>
+          <li>Utilizar o Aplicativo para qualquer finalidade ilegal ou contrária à legislação brasileira e às normas das lojas de aplicativos.</li>
+        </ul>
+
+        <h2>3. Isenção de Responsabilidade Médica e de Saúde (Health Disclaimer)</h2>
+        <div class="legal-callout">
+          <p>
+            <strong>AVISO MÉDICO IMPORTANTE:</strong> O Whealth é um aplicativo de apoio esportivo, análise biomecânica e acompanhamento de constância de hábitos. <strong>O Whealth NÃO é um dispositivo médico e NÃO fornece diagnósticos clínicos, prescrições terapêuticas ou tratamentos de saúde.</strong>
+          </p>
+          <p>
+            As métricas apresentadas — incluindo, mas não se limitando a: índices SWOLF, zonas de frequência cardíaca (Z1-Z5), carga de treino (TRIMP/ACWR), estimativas de calorias, duração de sono, variabilidade da frequência cardíaca (VFC) e a tela de monitoramento de humor/ritmo circadiano — possuem <strong>caráter exclusivamente informativo e de autoconhecimento esportivo</strong>.
+          </p>
+          <p>
+            Nunca desconsidere nem adie a busca por orientação médica profissional em razão de qualquer métrica ou alerta exibido pelo aplicativo. Em caso de dores, desconforto cardiovascular ou suspeita de emergência médica ou psicológica, procure assistência médica imediatamente.
           </p>
         </div>
 
-        <h2>3. Conexões com Terceiros e Garmin Connect™</h2>
+        <h2>4. Planos Gratuitos e Assinaturas Pagas (In-App Subscriptions)</h2>
         <p>
-          O Whealth permite a integração voluntária com provedores de saúde e dispositivos vestíveis, incluindo o <strong>Garmin Connect™ Developer Program</strong> e o <strong>Android Health Connect</strong>. O uso desses serviços está sujeito aos respectivos termos e políticas de privacidade dos fabricantes. A Wingene não se responsabiliza por interrupções temporárias ou falhas de conectividade originadas nos servidores de terceiros.
+          O Whealth foi concebido sob uma arquitetura <em>Local-First</em>, priorizando o acesso gratuito e o processamento local no smartphone.
+        </p>
+        <h3>4.1. Recursos Gratuitos</h3>
+        <ul>
+          <li>Acesso completo aos cálculos de natação, corrida, caminhada, esteira e ciclismo;</li>
+          <li>Sincronização direta via <strong>Android Health Connect</strong> e <strong>Apple HealthKit</strong>;</li>
+          <li>Importação local de arquivos binários <code>.FIT</code>, <code>.TCX</code>, <code>.CSV</code> e <code>.ZIP</code> do Samsung Health e Garmin;</li>
+          <li>Backup e restauração através da conta pessoal do Google Drive do usuário.</li>
+        </ul>
+
+        <h3>4.2. Assinatura Whealth Garmin Cloud Pro (Garmin Connect™ Cloud API)</h3>
+        <p>
+          A sincronização contínua em tempo real com os servidores em nuvem do <strong>Garmin Connect™</strong> (via Webhook Bridge) pode ser oferecida sob a modalidade de <strong>Assinatura com Renovação Automática (Auto-Renewable Subscription)</strong> anual, com o objetivo de custear a infraestrutura de servidores em nuvem necessários para esse serviço.
         </p>
 
-        <h2>4. Propriedade Intelectual</h2>
+        <div class="legal-callout">
+          <p><strong>Condições da Assinatura com Renovação Automática (Apple App Store e Google Play):</strong></p>
+          <ul>
+            <li><strong>Cobrança:</strong> O valor da assinatura anual será debitado na sua conta da Apple (Apple ID) ou do Google Play após a confirmação da compra no dispositivo.</li>
+            <li><strong>Renovação Automática:</strong> A assinatura é renovada automaticamente pelo mesmo período e valor, a menos que a renovação automática seja desativada com pelo menos <strong>24 horas de antecedência</strong> em relação ao término do período vigente.</li>
+            <li><strong>Cobrança de Renovação:</strong> A taxa de renovação será cobrada da sua conta nas 24 horas que antecedem o término do período atual.</li>
+            <li><strong>Cancelamento e Gerenciamento:</strong> Você pode gerenciar ou cancelar sua assinatura a qualquer momento acessando os <em>Ajustes de Conta</em> do seu dispositivo (no iOS: <em>Ajustes &gt; [Seu Nome] &gt; Assinaturas</em>; no Android: <em>Google Play Store &gt; Perfil &gt; Pagamentos e Assinaturas</em>). O cancelamento terá efeito ao final do ciclo de faturamento vigente.</li>
+            <li><strong>Período de Teste Gratuito (Trial):</strong> Qualquer fração não utilizada de um período de teste gratuito (se houver sido oferecido) será cancelada quando o usuário adquirir a assinatura do plano correspondente.</li>
+            <li><strong>Reembolsos:</strong> Solicitações de estorno ou reembolso seguem estritamente as políticas da loja pela qual a transação foi processada (Apple App Store ou Google Play Store). A Wingene Software não processa reembolsos diretamente para transações intermediadas pelas lojas de aplicativos.</li>
+          </ul>
+        </div>
+
+        <h2>5. Integrações com Terceiros e APIs</h2>
         <p>
-          O código-fonte, algoritmos de cálculo de eficiência técnica (SWOLF calibrado, coeficiente de regularidade, lag de recuperação pós-virada), design visual e marcas associadas ao Whealth pertencem com exclusividade à <strong>Wingene Software</strong>.
+          O Whealth permite a conexão voluntária com plataformas de terceiros, como o Garmin Connect™, Apple HealthKit, Android Health Connect e Google Drive.
         </p>
         <p>
-          <em>Garmin Connect™</em> é marca registrada da Garmin Ltd. ou de suas subsidiárias e é utilizada estritamente para fins de atribuição de compatibilidade com a marca sob as Brand Guidelines oficiais.
+          A disponibilidade e a precisão das informações sincronizadas dependem dos serviços e sensores dos respectivos fabricantes. A Wingene Software não se responsabiliza por interrupções temporárias, indisponibilidade ou modificações nas APIs fornecidas por essas plataformas terceiras.
         </p>
 
-        <h2>5. Legislação Aplicável e Foro</h2>
+        <h2>6. Propriedade Intelectual</h2>
         <p>
-          Estes Termos são regidos pelas leis da República Federativa do Brasil. Para a resolução de eventuais controvérsias decorrentes destes termos, fica eleito o foro da Comarca do domicílio do desenvolvedor ou da sede da Wingene Software.
+          Todos os direitos autorais, marcas, algoritmos (incluindo cálculo de SWOLF calibrado, coeficiente de regularidade de nado, lag de recuperação pós-virada, radar biomecânico de 6 eixos e modelo preditivo de ritmo circadiano), código-fonte, banco de dados e design visual do Whealth são de propriedade exclusiva da <strong>Wingene Software</strong>.
+        </p>
+        <p>
+          <em>Garmin Connect™</em> é marca comercial registrada da Garmin Ltd. ou de suas subsidiárias e é utilizada exclusivamente para fins de referência de compatibilidade técnica, em conformidade com as diretrizes do Garmin Developer Program.
         </p>
 
-        <h2>6. Contato</h2>
+        <h2>7. Limitação de Responsabilidade</h2>
         <p>
-          Dúvidas sobre os Termos de Uso podem ser enviadas para: <a href="mailto:contato@wingene.com.br">contato@wingene.com.br</a>.
+          Na máxima extensão permitida pela legislação aplicável, o Whealth é fornecido <strong>"no estado em que se encontra" (as is)</strong> e <strong>"conforme disponível" (as available)</strong>, sem garantias de qualquer natureza, expressas ou implícitas.
         </p>
+        <p>
+          A Wingene Software não responderá por quaisquer danos indiretos, incidentais, punitivos ou consequentes decorrentes do uso ou da impossibilidade de uso do Aplicativo, tampouco por decisões esportivas, de saúde ou rotinas de treino adotadas pelo Usuário.
+        </p>
+
+        <h2>8. Rescisão</h2>
+        <p>
+          Estes Termos permanecem em vigor enquanto você utilizar o Aplicativo. A Wingene Software reserva-se o direito de suspender ou rescindir seu acesso aos serviços em nuvem caso seja constatada violação destes Termos de Uso ou fraude deliberada contra os sistemas da empresa.
+        </p>
+
+        <h2>9. Lei Aplicável e Foro</h2>
+        <p>
+          Estes Termos de Uso são regidos e interpretados de acordo com a legislação da República Federativa do Brasil. Fica eleito o foro da Comarca do domicílio do desenvolvedor / sede da Wingene Software para dirimir eventuais litígios oriundos deste instrumento.
+        </p>
+
+        <h2>10. Contato</h2>
+        <p>
+          Para esclarecimento de dúvidas, solicitações ou suporte relativo a estes Termos, entre em contato através de:
+        </p>
+        <ul>
+          <li><strong>E-mail:</strong> <a href="mailto:contato@wingene.com.br">contato@wingene.com.br</a></li>
+          <li><strong>Portal:</strong> <a href="https://www.wingene.com.br" target="_blank" rel="noopener noreferrer">www.wingene.com.br</a></li>
+        </ul>
+      </div>
+
+      <!-- ENGLISH CONTENT -->
+      <div id="content-en" class="legal-content" style="display: none;">
+        <h2>1. Acceptance of Terms</h2>
+        <p>
+          By downloading, installing, accessing, or using the <strong>Whealth</strong> mobile application ("App"), available for Android and iOS, developed and provided by <strong>Wingene Software</strong> ("Wingene", "we", "us", "our"), you ("User") expressly agree to be bound by these <strong>Terms of Service and End User License Agreement (EULA)</strong>, as well as our <a href="privacy.html?lang=en">Privacy Policy</a>.
+        </p>
+        <p>
+          If you do not agree with any part of these terms, do not install, copy, or use Whealth.
+        </p>
+
+        <h2>2. End User License Agreement (EULA)</h2>
+        <div class="legal-callout">
+          <p>
+            <strong>Apple Standard EULA:</strong> For iOS devices (Apple), Whealth is licensed under and fully governed by the <strong>Apple Standard End User License Agreement (Standard EULA)</strong>, publicly accessible at: <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer">https://www.apple.com/legal/internet-services/itunes/dev/stdeula/</a>. The provisions in this document supplement Apple's standard agreement and extend to Android and other supported platforms.
+          </p>
+        </div>
+        <p>
+          Subject to your compliance with these Terms, Wingene Software grants you a personal, revocable, limited, non-exclusive, non-transferable license to download, install, and use Whealth on compatible mobile devices that you own or legitimately control, solely for your personal, non-commercial use.
+        </p>
+        <h3>Usage Restrictions</h3>
+        <p>You agree not to:</p>
+        <ul>
+          <li>Reverse engineer, decompile, disassemble, modify, or attempt to derive the source code of the App;</li>
+          <li>Sell, resell, rent, lease, sublicense, distribute, or commercially exploit the App or any of its components;</li>
+          <li>Bypass, circumvent, or disable any access control, integrity verification (such as Firebase App Check), or subscription management mechanism of the App;</li>
+          <li>Use the App for any unlawful purpose or in violation of applicable laws and app store policies.</li>
+        </ul>
+
+        <h2>3. Medical and Health Disclaimer</h2>
+        <div class="legal-callout">
+          <p>
+            <strong>IMPORTANT MEDICAL NOTICE:</strong> Whealth is an athletic tracking, biomechanical analysis, and habit consistency support application. <strong>Whealth is NOT a medical device and does NOT provide medical diagnoses, clinical prescriptions, or health treatments.</strong>
+          </p>
+          <p>
+            All presented metrics — including SWOLF efficiency, heart rate zones (Z1-Z5), training load (TRIMP/ACWR), calorie estimations, sleep duration, heart rate variability (HRV), and mood/circadian monitoring — are provided <strong>strictly for informational, athletic, and self-awareness purposes</strong>.
+          </p>
+          <p>
+            Never disregard or delay seeking professional medical advice because of any metric or alert shown by the application. In the event of chest pain, shortness of breath, cardiovascular distress, or a psychological emergency, seek immediate medical care.
+          </p>
+        </div>
+
+        <h2>4. Free Features and In-App Subscriptions</h2>
+        <p>
+          Whealth is engineered with a <em>Local-First</em> architecture, prioritizing offline capabilities and free on-device processing.
+        </p>
+        <h3>4.1. Free Tier Features</h3>
+        <ul>
+          <li>Complete analytics for swimming, running, walking, treadmill, and cycling;</li>
+          <li>Direct integration with <strong>Android Health Connect</strong> and <strong>Apple HealthKit</strong>;</li>
+          <li>On-device import of raw <code>.FIT</code>, <code>.TCX</code>, <code>.CSV</code>, and <code>.ZIP</code> files from Samsung Health and Garmin;</li>
+          <li>Personal Google Drive backup and restore to the user's private app data storage.</li>
+        </ul>
+
+        <h3>4.2. Whealth Garmin Cloud Pro Subscription (Garmin Connect™ Cloud API)</h3>
+        <p>
+          Continuous real-time synchronization with <strong>Garmin Connect™</strong> cloud servers (via Webhook Bridge) may be offered as an <strong>Auto-Renewable Annual Subscription</strong> to cover server infrastructure and webhook operations.
+        </p>
+
+        <div class="legal-callout">
+          <p><strong>Auto-Renewable Subscription Terms (Apple App Store &amp; Google Play):</strong></p>
+          <ul>
+            <li><strong>Billing:</strong> The annual subscription fee will be charged to your Apple ID or Google Play account upon confirmation of purchase.</li>
+            <li><strong>Auto-Renewal:</strong> Subscriptions automatically renew for the same period and price unless auto-renewal is canceled at least <strong>24 hours prior</strong> to the end of the current billing cycle.</li>
+            <li><strong>Renewal Charges:</strong> Your account will be charged for renewal within 24 hours prior to the end of the current billing period.</li>
+            <li><strong>Management and Cancellation:</strong> You can manage or cancel your subscription at any time in your device Account Settings (on iOS: <em>Settings &gt; [Your Name] &gt; Subscriptions</em>; on Android: <em>Google Play Store &gt; Profile &gt; Payments &amp; Subscriptions</em>). Cancellation takes effect at the end of the active billing period.</li>
+            <li><strong>Free Trial:</strong> Any unused portion of a free trial period, if offered, will be forfeited when purchasing a subscription.</li>
+            <li><strong>Refunds:</strong> Refund requests are governed exclusively by the store through which the purchase was processed (Apple App Store or Google Play Store). Wingene Software does not process refunds directly for store-mediated transactions.</li>
+          </ul>
+        </div>
+
+        <h2>5. Third-Party Integrations and APIs</h2>
+        <p>
+          Whealth supports voluntary integration with third-party platforms, including Garmin Connect™, Apple HealthKit, Android Health Connect, and Google Drive.
+        </p>
+        <p>
+          The availability and accuracy of synchronized data depend upon the hardware sensors and services provided by these manufacturers. Wingene Software is not liable for temporary service interruptions or changes in third-party APIs.
+        </p>
+
+        <h2>6. Intellectual Property</h2>
+        <p>
+          All copyrights, trademarks, proprietary algorithms (including calibrated SWOLF, swim regularity coefficient, post-turn recovery lag, 6-axis biomechanical radar, and circadian phase evaluation models), source code, and user interface designs are the exclusive property of <strong>Wingene Software</strong>.
+        </p>
+        <p>
+          <em>Garmin Connect™</em> is a registered trademark of Garmin Ltd. or its subsidiaries and is referenced solely for technical compatibility attribution in accordance with the Garmin Developer Program Brand Guidelines.
+        </p>
+
+        <h2>7. Limitation of Liability</h2>
+        <p>
+          To the maximum extent permitted by applicable law, Whealth is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis, without warranties of any kind, whether express or implied.
+        </p>
+        <p>
+          Wingene Software shall not be held liable for any indirect, incidental, punitive, or consequential damages resulting from the use or inability to use the App, nor for physical training or health decisions adopted by the User.
+        </p>
+
+        <h2>8. Termination</h2>
+        <p>
+          These Terms remain in effect for as long as you use the Application. Wingene Software reserves the right to suspend or terminate cloud service access in cases of deliberate terms violations or malicious tampering.
+        </p>
+
+        <h2>9. Governing Law and Jurisdiction</h2>
+        <p>
+          These Terms of Service are governed by and construed in accordance with the laws of the Federative Republic of Brazil, without regard to conflict of law principles. Any legal action arising from these Terms shall be submitted to the competent courts of the developer's registered domicile.
+        </p>
+
+        <h2>10. Contact Information</h2>
+        <p>
+          If you have questions regarding these Terms or our EULA, please contact us at:
+        </p>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:contato@wingene.com.br">contato@wingene.com.br</a></li>
+          <li><strong>Website:</strong> <a href="https://www.wingene.com.br" target="_blank" rel="noopener noreferrer">www.wingene.com.br</a></li>
+        </ul>
       </div>
 
     </div>
@@ -91,6 +299,44 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    function switchLanguage(lang) {
+      const ptContent = document.getElementById('content-pt');
+      const enContent = document.getElementById('content-en');
+      const btnPt = document.getElementById('btn-pt');
+      const btnEn = document.getElementById('btn-en');
+      const title = document.getElementById('page-title');
+      const dateLabel = document.getElementById('date-label');
+
+      if (lang === 'en') {
+        ptContent.style.display = 'none';
+        enContent.style.display = 'block';
+        btnPt.classList.remove('active');
+        btnEn.classList.add('active');
+        btnPt.setAttribute('aria-pressed', 'false');
+        btnEn.setAttribute('aria-pressed', 'true');
+        title.innerText = 'Terms of Service & End User License Agreement (EULA)';
+        dateLabel.innerText = 'Last updated: November 16, 2026';
+        document.documentElement.lang = 'en';
+      } else {
+        ptContent.style.display = 'block';
+        enContent.style.display = 'none';
+        btnEn.classList.remove('active');
+        btnPt.classList.add('active');
+        btnEn.setAttribute('aria-pressed', 'false');
+        btnPt.setAttribute('aria-pressed', 'true');
+        title.innerText = 'Termos de Uso e Contrato de Licença (EULA)';
+        dateLabel.innerText = 'Última atualização: 16 de Novembro de 2026';
+        document.documentElement.lang = 'pt-BR';
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('lang') === 'en') {
+      switchLanguage('en');
+    }
+  </script>
 
 </body>
 </html>
