@@ -109,11 +109,21 @@ const DBService = {
   // Normaliza um registro garantindo todos os campos necessários
   normalizeRecord(raw) {
     const nowIso = new Date().toISOString();
+    const derivedPilar = ['V', 'I', 'D', 'A']
+      .filter((p) =>
+        (raw.categoria || '')
+          .split(',')
+          .some((c) => c.trim().toUpperCase().startsWith(p))
+      )
+      .join(', ');
+    const resolvedPilar = (raw.pilar && raw.pilar.trim())
+      ? raw.pilar.trim().toUpperCase()
+      : (derivedPilar || 'V');
     return {
       id: raw.id || null,
       uuid: raw.uuid || this.generateUUID(),
-      pilar: (raw.pilar || 'V').toUpperCase(),
-      pilarPrincipal: (raw.pilarPrincipal || raw.pilar || 'V').toUpperCase(),
+      pilar: resolvedPilar,
+      pilarPrincipal: (raw.pilarPrincipal || resolvedPilar).toUpperCase(),
       conteudo: raw.conteudo || '',
       data: raw.data || nowIso,
       categoria: raw.categoria || '',
