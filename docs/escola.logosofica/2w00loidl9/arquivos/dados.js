@@ -1,5 +1,5 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-23T22:24:42.589Z",
+  "generatedAt": "2026-11-23T23:57:17.766Z",
   "mode": "website",
   "studentName": "Arthur",
   "projects": [
@@ -59,28 +59,6 @@ window.SCRATCH_SHOWCASE = {
       "modifiedAt": "2026-10-21T17:17:12.000Z"
     },
     {
-      "id": "projeto-scratch",
-      "title": "Projeto Scratch",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/projeto-scratch.html",
-      "sb3Path": "arquivos/sb3/projeto-scratch.sb3",
-      "thumbPath": "arquivos/thumbs/projeto-scratch.svg",
-      "sb3Name": "Projeto Scratch.sb3",
-      "sizeBytes": 27208519,
-      "modifiedAt": "2026-09-23T16:32:54.000Z"
-    },
-    {
-      "id": "ddddaaaaaaaaaaaaa",
-      "title": "ddddaaaaaaaaaaaaa",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/ddddaaaaaaaaaaaaa.html",
-      "sb3Path": "arquivos/sb3/ddddaaaaaaaaaaaaa.sb3",
-      "thumbPath": "arquivos/thumbs/ddddaaaaaaaaaaaaa.svg",
-      "sb3Name": "ddddaaaaaaaaaaaaa.sb3",
-      "sizeBytes": 41963,
-      "modifiedAt": "2026-09-16T17:19:44.000Z"
-    },
-    {
       "id": "dino-siuuu",
       "title": "dino siuuu",
       "student": "Arthur",
@@ -112,17 +90,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "dinosar.sb3",
       "sizeBytes": 5340547,
       "modifiedAt": "2026-07-01T16:52:54.000Z"
-    },
-    {
-      "id": "mamilo",
-      "title": "mamilo",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/mamilo.html",
-      "sb3Path": "arquivos/sb3/mamilo.sb3",
-      "thumbPath": "arquivos/thumbs/mamilo.svg",
-      "sb3Name": "mamilo.sb3",
-      "sizeBytes": 41963,
-      "modifiedAt": "2026-07-01T16:43:20.000Z"
     },
     {
       "id": "tatatatutatu",
@@ -189,17 +156,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "SOFIA.sb3",
       "sizeBytes": 59489,
       "modifiedAt": "2026-06-03T16:17:58.000Z"
-    },
-    {
-      "id": "gato",
-      "title": "gato",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/gato.html",
-      "sb3Path": "arquivos/sb3/gato.sb3",
-      "thumbPath": "arquivos/thumbs/gato.svg",
-      "sb3Name": "gato.sb3",
-      "sizeBytes": 24912491,
-      "modifiedAt": "2026-05-06T16:33:12.000Z"
     },
     {
       "id": "de-noite",
