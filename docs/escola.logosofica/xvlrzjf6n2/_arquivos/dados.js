@@ -1,5 +1,5 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-23T22:14:01.651Z",
+  "generatedAt": "2026-11-23T22:18:12.643Z",
   "mode": "website",
   "studentName": "Lorenzo",
   "projects": [
