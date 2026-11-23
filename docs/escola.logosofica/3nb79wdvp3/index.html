@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Projetos Scratch</title>
+  <link rel="stylesheet" href="_arquivos/style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link visually-hidden">Pular para os projetos</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-badge" aria-hidden="true">Scratch</span>
+        <div>
+          <h1 id="page-title">Meus Projetos Scratch</h1>
+          <p id="summary-text" class="subtitle">Carregando projetos...</p>
+        </div>
+      </div>
+
+      <search class="search-box">
+        <label for="search-input">Buscar projeto</label>
+        <input
+          type="search"
+          id="search-input"
+          placeholder="Digite o nome do projeto..."
+          autocomplete="off"
+        >
+      </search>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <div class="toolbar">
+      <h2>Projetos</h2>
+      <p id="results-status" class="results-status" aria-live="polite"></p>
+    </div>
+
+    <div id="projects-grid" class="card-grid"></div>
+
+    <p id="empty-state" class="empty-state" hidden>
+      Nenhum projeto encontrado para essa busca.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <p id="footer-text">Funciona 100% offline direto do pen-drive · Convertido com TurboWarp Packager</p>
+  </footer>
+
+  <dialog id="player-dialog" closedby="any" aria-labelledby="dialog-title">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div class="dialog-title-group">
+          <span id="dialog-student" class="student-pill"></span>
+          <h2 id="dialog-title">Projeto</h2>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" id="prev-project-btn" class="btn btn-secondary">
+            ← Anterior
+          </button>
+          <button type="button" id="next-project-btn" class="btn btn-secondary">
+            Próximo →
+          </button>
+          <button type="button" id="restart-btn" class="btn btn-secondary">
+            ↻ Reiniciar
+          </button>
+          <button type="button" id="player-scratch-btn" class="btn btn-secondary">
+            💾 Abrir no Scratch
+          </button>
+          <button type="button" id="close-dialog-btn" class="btn btn-primary">
+            ✕ Fechar
+          </button>
+        </div>
+      </header>
+
+      <div class="stage-wrapper">
+        <iframe
+          id="project-frame"
+          title="Execução do projeto Scratch"
+          src="about:blank"
+          allowfullscreen
+        ></iframe>
+      </div>
+
+      <p class="stage-hint">
+        Dica: clique na <strong>bandeira verde</strong> para iniciar e no <strong>botão vermelho</strong> para parar o projeto.
+      </p>
+    </div>
+  </dialog>
+
+  <dialog id="scratch-dialog" closedby="any" aria-labelledby="scratch-dialog-title">
+    <div class="dialog-shell scratch-dialog-shell">
+      <header class="dialog-header">
+        <h2 id="scratch-dialog-title">Salvar para abrir no Scratch</h2>
+        <button type="button" id="close-scratch-dialog-btn" class="btn btn-secondary">
+          ✕ Fechar
+        </button>
+      </header>
+
+      <p class="scratch-dialog-desc">
+        Salve o arquivo <strong id="scratch-dialog-filename"></strong> no computador para ver os blocos e editar este projeto no programa Scratch.
+      </p>
+
+      <div class="scratch-dialog-actions">
+        <a id="scratch-download-link" class="btn btn-primary" href="#" download>
+          💾 Salvar projeto para abrir no Scratch
+        </a>
+        <a
+          class="btn btn-secondary"
+          href="https://scratch.mit.edu/download"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          🐱 Instalar Scratch (download offline)
+        </a>
+      </div>
+
+      <p class="scratch-dialog-note">
+        Se ainda não tiver o Scratch instalado, use o botão acima (precisa de internet apenas para baixar o instalador).
+      </p>
+    </div>
+  </dialog>
+
+  <script src="_arquivos/dados.js"></script>
+  <script src="_arquivos/selecao.js"></script>
+  <script src="_arquivos/app.js"></script>
+</body>
+</html>

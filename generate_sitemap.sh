@@ -22,9 +22,9 @@ cat <<EOF > "$TEMP_SITEMAP"
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 EOF
 
-# Find all .html files in DOCS_DIR
+# Find all .html files in DOCS_DIR (excluding unlisted escola.logosofica student pages)
 # Sort them to keep the order in sitemap.xml deterministic
-find "$DOCS_DIR" -type f -name "*.html" | sort | while read -r file; do
+find "$DOCS_DIR" -path "$DOCS_DIR/escola.logosofica" -prune -o -type f -name "*.html" -print | sort | while read -r file; do
   # Get path relative to DOCS_DIR
   rel_path="${file#$DOCS_DIR/}"
   

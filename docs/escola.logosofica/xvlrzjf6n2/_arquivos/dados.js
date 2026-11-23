@@ -1,0 +1,282 @@
+window.SCRATCH_SHOWCASE = {
+  "generatedAt": "2026-11-23T22:14:01.651Z",
+  "mode": "website",
+  "studentName": "Lorenzo",
+  "projects": [
+    {
+      "id": "tiu",
+      "title": "tiu",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/tiu.html",
+      "sb3Path": "_arquivos/sb3/tiu.sb3",
+      "thumbPath": "_arquivos/thumbs/tiu.svg",
+      "sb3Name": "tiu.sb3",
+      "sizeBytes": 450271,
+      "modifiedAt": "2026-11-18T17:16:14.000Z"
+    },
+    {
+      "id": "projeto-scratch",
+      "title": "Projeto Scratch",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/projeto-scratch.html",
+      "sb3Path": "_arquivos/sb3/projeto-scratch.sb3",
+      "thumbPath": "_arquivos/thumbs/projeto-scratch.svg",
+      "sb3Name": "Projeto Scratch.sb3",
+      "sizeBytes": 78279,
+      "modifiedAt": "2026-11-11T16:51:10.000Z"
+    },
+    {
+      "id": "trutopo-mamilao",
+      "title": "trutopo mamilão",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/trutopo-mamilao.html",
+      "sb3Path": "_arquivos/sb3/trutopo-mamilao.sb3",
+      "thumbPath": "_arquivos/thumbs/trutopo-mamilao.svg",
+      "sb3Name": "trutopo mamilão.sb3",
+      "sizeBytes": 617245,
+      "modifiedAt": "2026-11-11T16:44:54.000Z"
+    },
+    {
+      "id": "pato-bolas-chave",
+      "title": "Pato_bolas_chave",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/pato-bolas-chave.html",
+      "sb3Path": "_arquivos/sb3/pato-bolas-chave.sb3",
+      "thumbPath": "_arquivos/thumbs/pato-bolas-chave.svg",
+      "sb3Name": "Pato_bolas_chave.sb3",
+      "sizeBytes": 43744,
+      "modifiedAt": "2026-10-21T17:29:52.000Z"
+    },
+    {
+      "id": "67-v42-siuuuuuuuuuuuu",
+      "title": "67 V42 SIUUUUUUUUUUUU",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/67-v42-siuuuuuuuuuuuu.html",
+      "sb3Path": "_arquivos/sb3/67-v42-siuuuuuuuuuuuu.sb3",
+      "thumbPath": "_arquivos/thumbs/67-v42-siuuuuuuuuuuuu.svg",
+      "sb3Name": "67 V42 SIUUUUUUUUUUUU.sb3",
+      "sizeBytes": 2943161,
+      "modifiedAt": "2026-10-21T16:53:24.000Z"
+    },
+    {
+      "id": "tt",
+      "title": "TT",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/tt.html",
+      "sb3Path": "_arquivos/sb3/tt.sb3",
+      "thumbPath": "_arquivos/thumbs/tt.svg",
+      "sb3Name": "TT.sb3",
+      "sizeBytes": 2942665,
+      "modifiedAt": "2026-09-30T16:51:42.000Z"
+    },
+    {
+      "id": "macaquinho",
+      "title": "MACAQUINHO",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/macaquinho.html",
+      "sb3Path": "_arquivos/sb3/macaquinho.sb3",
+      "thumbPath": "_arquivos/thumbs/macaquinho.svg",
+      "sb3Name": "MACAQUINHO.sb3",
+      "sizeBytes": 4435202,
+      "modifiedAt": "2026-09-23T17:16:18.000Z"
+    },
+    {
+      "id": "contra-a-lei-do-hexa-100-pistola",
+      "title": "CONTRA A LEI DO HEXA   100% PISTOLA!",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/contra-a-lei-do-hexa-100-pistola.html",
+      "sb3Path": "_arquivos/sb3/contra-a-lei-do-hexa-100-pistola.sb3",
+      "thumbPath": "_arquivos/thumbs/contra-a-lei-do-hexa-100-pistola.svg",
+      "sb3Name": "CONTRA A LEI DO HEXA   100% PISTOLA!.sb3",
+      "sizeBytes": 76392,
+      "modifiedAt": "2026-07-08T17:04:04.000Z"
+    },
+    {
+      "id": "patildo",
+      "title": "patildo",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/patildo.html",
+      "sb3Path": "_arquivos/sb3/patildo.sb3",
+      "thumbPath": "_arquivos/thumbs/patildo.svg",
+      "sb3Name": "patildo.sb3",
+      "sizeBytes": 61946,
+      "modifiedAt": "2026-06-17T17:13:20.000Z"
+    },
+    {
+      "id": "ar-de-esquelleto",
+      "title": "ar de esquelleto",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/ar-de-esquelleto.html",
+      "sb3Path": "_arquivos/sb3/ar-de-esquelleto.sb3",
+      "thumbPath": "_arquivos/thumbs/ar-de-esquelleto.svg",
+      "sb3Name": "ar de esquelleto.sb3",
+      "sizeBytes": 1538329,
+      "modifiedAt": "2026-06-10T17:41:30.000Z"
+    },
+    {
+      "id": "coisas-de-mim",
+      "title": "coisas de mim",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/coisas-de-mim.html",
+      "sb3Path": "_arquivos/sb3/coisas-de-mim.sb3",
+      "thumbPath": "_arquivos/thumbs/coisas-de-mim.svg",
+      "sb3Name": "coisas de mim.sb3",
+      "sizeBytes": 636643,
+      "modifiedAt": "2026-06-10T17:24:32.000Z"
+    },
+    {
+      "id": "pequeno-menino",
+      "title": "pequeno menino",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/pequeno-menino.html",
+      "sb3Path": "_arquivos/sb3/pequeno-menino.sb3",
+      "thumbPath": "_arquivos/thumbs/pequeno-menino.svg",
+      "sb3Name": "pequeno menino.sb3",
+      "sizeBytes": 1941181,
+      "modifiedAt": "2026-06-10T17:10:10.000Z"
+    },
+    {
+      "id": "harry",
+      "title": "harry",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/harry.html",
+      "sb3Path": "_arquivos/sb3/harry.sb3",
+      "thumbPath": "_arquivos/thumbs/harry.svg",
+      "sb3Name": "harry.sb3",
+      "sizeBytes": 16264,
+      "modifiedAt": "2026-04-01T16:32:52.000Z"
+    },
+    {
+      "id": "pets-2025",
+      "title": "pets 2025",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/pets-2025.html",
+      "sb3Path": "_arquivos/sb3/pets-2025.sb3",
+      "thumbPath": "_arquivos/thumbs/pets-2025.svg",
+      "sb3Name": "pets 2025.sb3",
+      "sizeBytes": 42550,
+      "modifiedAt": "2026-03-17T16:50:26.000Z"
+    },
+    {
+      "id": "radio-fm-lorenzo",
+      "title": "RADIO FM LORENZO",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/radio-fm-lorenzo.html",
+      "sb3Path": "_arquivos/sb3/radio-fm-lorenzo.sb3",
+      "thumbPath": "_arquivos/thumbs/radio-fm-lorenzo.svg",
+      "sb3Name": "RADIO FM LORENZO.sb3",
+      "sizeBytes": 527197,
+      "modifiedAt": "2026-03-11T17:36:42.000Z"
+    },
+    {
+      "id": "enphasi-s",
+      "title": "ENPHASI'S",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/enphasi-s.html",
+      "sb3Path": "_arquivos/sb3/enphasi-s.sb3",
+      "thumbPath": "_arquivos/thumbs/enphasi-s.svg",
+      "sb3Name": "ENPHASI'S.sb3",
+      "sizeBytes": 97551,
+      "modifiedAt": "2026-03-11T16:46:22.000Z"
+    },
+    {
+      "id": "ache-o-cuelho",
+      "title": "ACHE O CUELHO",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/ache-o-cuelho.html",
+      "sb3Path": "_arquivos/sb3/ache-o-cuelho.sb3",
+      "thumbPath": "_arquivos/thumbs/ache-o-cuelho.svg",
+      "sb3Name": "ACHE O CUELHO.sb3",
+      "sizeBytes": 11858,
+      "modifiedAt": "2025-11-28T17:21:48.000Z"
+    },
+    {
+      "id": "pituco",
+      "title": "pituco",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/pituco.html",
+      "sb3Path": "_arquivos/sb3/pituco.sb3",
+      "thumbPath": "_arquivos/thumbs/pituco.svg",
+      "sb3Name": "pituco.sb3",
+      "sizeBytes": 42206,
+      "modifiedAt": "2025-11-28T16:57:58.000Z"
+    },
+    {
+      "id": "hippo",
+      "title": "HIPPO",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/hippo.html",
+      "sb3Path": "_arquivos/sb3/hippo.sb3",
+      "thumbPath": "_arquivos/thumbs/hippo.svg",
+      "sb3Name": "HIPPO.sb3",
+      "sizeBytes": 4437402,
+      "modifiedAt": "2025-11-14T17:25:12.000Z"
+    },
+    {
+      "id": "personagems",
+      "title": "PERSONAGEMS",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/personagems.html",
+      "sb3Path": "_arquivos/sb3/personagems.sb3",
+      "thumbPath": "_arquivos/thumbs/personagems.svg",
+      "sb3Name": "PERSONAGEMS.sb3",
+      "sizeBytes": 425629,
+      "modifiedAt": "2025-11-07T17:12:46.000Z"
+    },
+    {
+      "id": "lorenzo-2-12-2024",
+      "title": "lorenzo 2 12 2024",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/lorenzo-2-12-2024.html",
+      "sb3Path": "_arquivos/sb3/lorenzo-2-12-2024.sb3",
+      "thumbPath": "_arquivos/thumbs/lorenzo-2-12-2024.svg",
+      "sb3Name": "lorenzo 2 12 2024.sb3",
+      "sizeBytes": 17382,
+      "modifiedAt": "2024-12-02T16:54:56.000Z"
+    },
+    {
+      "id": "lorenzo-3-cenarios",
+      "title": "Lorenzo 3 cenários",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/lorenzo-3-cenarios.html",
+      "sb3Path": "_arquivos/sb3/lorenzo-3-cenarios.sb3",
+      "thumbPath": "_arquivos/thumbs/lorenzo-3-cenarios.svg",
+      "sb3Name": "Lorenzo 3 cenários.sb3",
+      "sizeBytes": 636708,
+      "modifiedAt": "2024-11-27T17:17:42.000Z"
+    },
+    {
+      "id": "lorenzo-gato-alinigena",
+      "title": "lorenzo gato alinigena",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/lorenzo-gato-alinigena.html",
+      "sb3Path": "_arquivos/sb3/lorenzo-gato-alinigena.sb3",
+      "thumbPath": "_arquivos/thumbs/lorenzo-gato-alinigena.svg",
+      "sb3Name": "lorenzo gato alinigena.sb3",
+      "sizeBytes": 42154,
+      "modifiedAt": "2024-11-13T16:53:50.000Z"
+    },
+    {
+      "id": "lorenzo2",
+      "title": "lorenzo2",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/lorenzo2.html",
+      "sb3Path": "_arquivos/sb3/lorenzo2.sb3",
+      "thumbPath": "_arquivos/thumbs/lorenzo2.svg",
+      "sb3Name": "lorenzo2.sb3",
+      "sizeBytes": 698568,
+      "modifiedAt": "2024-11-06T17:03:56.000Z"
+    },
+    {
+      "id": "lorenzo",
+      "title": "lorenzo",
+      "student": "Lorenzo",
+      "htmlPath": "_arquivos/projetos/lorenzo.html",
+      "sb3Path": "_arquivos/sb3/lorenzo.sb3",
+      "thumbPath": "_arquivos/thumbs/lorenzo.svg",
+      "sb3Name": "lorenzo.sb3",
+      "sizeBytes": 932307,
+      "modifiedAt": "2024-10-02T17:03:10.000Z"
+    }
+  ]
+};
