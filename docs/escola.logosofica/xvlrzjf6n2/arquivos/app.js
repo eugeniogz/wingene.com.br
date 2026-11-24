@@ -121,24 +121,7 @@
       const fileInfo = document.createElement('p');
       fileInfo.className = 'card-file';
 
-      const fileBtn = document.createElement('button');
-      fileBtn.type = 'button';
-      fileBtn.className = 'file-link-btn';
-      fileBtn.textContent = `${project.sb3Name} (${formatBytes(project.sizeBytes)})`;
-      fileBtn.addEventListener('click', () => openScratchDialog(project));
-      fileInfo.appendChild(fileBtn);
-
-      const footer = document.createElement('footer');
-
-      const playBtn = document.createElement('button');
-      playBtn.type = 'button';
-      playBtn.className = 'btn btn-primary';
-      playBtn.innerHTML = '▶ Executar <span class="visually-hidden"></span>';
-      playBtn.querySelector('.visually-hidden').textContent = project.title;
-      playBtn.addEventListener('click', () => openPlayer(index));
-
-      footer.append(playBtn);
-      card.append(title, fileInfo, footer);
+      card.append(title);
       fragment.appendChild(card);
     });
 
