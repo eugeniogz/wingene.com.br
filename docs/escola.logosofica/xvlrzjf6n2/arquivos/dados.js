@@ -1,5 +1,5 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-23T22:24:43.801Z",
+  "generatedAt": "2026-11-24T09:35:43.929Z",
   "mode": "website",
   "studentName": "Lorenzo",
   "projects": [
@@ -57,28 +57,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "67 V42 SIUUUUUUUUUUUU.sb3",
       "sizeBytes": 2943161,
       "modifiedAt": "2026-10-21T16:53:24.000Z"
-    },
-    {
-      "id": "tt",
-      "title": "TT",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/tt.html",
-      "sb3Path": "arquivos/sb3/tt.sb3",
-      "thumbPath": "arquivos/thumbs/tt.svg",
-      "sb3Name": "TT.sb3",
-      "sizeBytes": 2942665,
-      "modifiedAt": "2026-09-30T16:51:42.000Z"
-    },
-    {
-      "id": "macaquinho",
-      "title": "MACAQUINHO",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/macaquinho.html",
-      "sb3Path": "arquivos/sb3/macaquinho.sb3",
-      "thumbPath": "arquivos/thumbs/macaquinho.svg",
-      "sb3Name": "MACAQUINHO.sb3",
-      "sizeBytes": 4435202,
-      "modifiedAt": "2026-09-23T17:16:18.000Z"
     },
     {
       "id": "contra-a-lei-do-hexa-100-pistola",
