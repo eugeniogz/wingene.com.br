@@ -145,50 +145,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "LIVROS.sb3",
       "sizeBytes": 86017,
       "modifiedAt": "2026-06-03T17:06:10.000Z"
-    },
-    {
-      "id": "sofia",
-      "title": "SOFIA",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/sofia.html",
-      "sb3Path": "arquivos/sb3/sofia.sb3",
-      "thumbPath": "arquivos/thumbs/sofia.svg",
-      "sb3Name": "SOFIA.sb3",
-      "sizeBytes": 59489,
-      "modifiedAt": "2026-06-03T16:17:58.000Z"
-    },
-    {
-      "id": "de-noite",
-      "title": "de noite",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/de-noite.html",
-      "sb3Path": "arquivos/sb3/de-noite.sb3",
-      "thumbPath": "arquivos/thumbs/de-noite.svg",
-      "sb3Name": "de noite.sb3",
-      "sizeBytes": 445936,
-      "modifiedAt": "2025-11-07T16:55:12.000Z"
-    },
-    {
-      "id": "a-princesa-nas-montanhas-de-gelo-e-neve",
-      "title": "A princesa nas montanhas de gelo e neve",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/a-princesa-nas-montanhas-de-gelo-e-neve.html",
-      "sb3Path": "arquivos/sb3/a-princesa-nas-montanhas-de-gelo-e-neve.sb3",
-      "thumbPath": "arquivos/thumbs/a-princesa-nas-montanhas-de-gelo-e-neve.svg",
-      "sb3Name": "A princesa nas montanhas de gelo e neve.sb3",
-      "sizeBytes": 324694,
-      "modifiedAt": "2025-10-24T17:00:26.000Z"
-    },
-    {
-      "id": "sensor-de-video-pedro",
-      "title": "SENSOR DE VIDEO -pedro",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/sensor-de-video-pedro.html",
-      "sb3Path": "arquivos/sb3/sensor-de-video-pedro.sb3",
-      "thumbPath": "arquivos/thumbs/sensor-de-video-pedro.svg",
-      "sb3Name": "SENSOR DE VIDEO -pedro.sb3",
-      "sizeBytes": 328116,
-      "modifiedAt": "2024-10-23T16:54:16.000Z"
     }
   ]
 };
