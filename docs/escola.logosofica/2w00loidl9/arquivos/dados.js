@@ -1,5 +1,5 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-23T23:57:17.766Z",
+  "generatedAt": "2026-11-24T09:25:39.926Z",
   "mode": "website",
   "studentName": "Arthur",
   "projects": [
@@ -90,17 +90,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "dinosar.sb3",
       "sizeBytes": 5340547,
       "modifiedAt": "2026-07-01T16:52:54.000Z"
-    },
-    {
-      "id": "tatatatutatu",
-      "title": "tatatatutatu",
-      "student": "Arthur",
-      "htmlPath": "arquivos/projetos/tatatatutatu.html",
-      "sb3Path": "arquivos/sb3/tatatatutatu.sb3",
-      "thumbPath": "arquivos/thumbs/tatatatutatu.svg",
-      "sb3Name": "tatatatutatu.sb3",
-      "sizeBytes": 2322219,
-      "modifiedAt": "2026-06-17T17:09:02.000Z"
     },
     {
       "id": "tutatatatu",
