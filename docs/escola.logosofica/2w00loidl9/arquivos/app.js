@@ -44,6 +44,16 @@
       .toLowerCase();
   }
 
+
+  function formatDate(isoString) {
+    if (!isoString) return '';
+    try {
+      return new Date(isoString).toLocaleDateString('pt-BR');
+    } catch {
+      return '';
+    }
+  }
+  
   function formatBytes(bytes) {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
