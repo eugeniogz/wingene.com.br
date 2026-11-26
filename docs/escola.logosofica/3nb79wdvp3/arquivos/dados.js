@@ -1,8 +1,19 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-26T11:23:52.216Z",
+  "generatedAt": "2026-11-26T11:26:29.543Z",
   "mode": "website",
   "studentName": "Julia",
   "projects": [
+    {
+      "id": "sapo",
+      "title": "sapo",
+      "student": "Julia",
+      "htmlPath": "arquivos/projetos/sapo.html",
+      "sb3Path": "arquivos/sb3/sapo.sb3",
+      "thumbPath": "arquivos/thumbs/sapo.svg",
+      "sb3Name": "sapo.sb3",
+      "sizeBytes": 510775,
+      "modifiedAt": "2026-11-26T11:25:57.776Z"
+    },
     {
       "id": "mergulhador-tubarao",
       "title": "mergulhador tubarao",
