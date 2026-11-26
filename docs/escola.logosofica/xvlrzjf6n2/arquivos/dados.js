@@ -1,19 +1,8 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-24T09:35:43.929Z",
+  "generatedAt": "2026-11-26T11:23:52.226Z",
   "mode": "website",
   "studentName": "Lorenzo",
   "projects": [
-    {
-      "id": "tiu",
-      "title": "tiu",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/tiu.html",
-      "sb3Path": "arquivos/sb3/tiu.sb3",
-      "thumbPath": "arquivos/thumbs/tiu.svg",
-      "sb3Name": "tiu.sb3",
-      "sizeBytes": 450271,
-      "modifiedAt": "2026-11-18T17:16:14.000Z"
-    },
     {
       "id": "projeto-scratch",
       "title": "Projeto Scratch",
@@ -81,50 +70,6 @@ window.SCRATCH_SHOWCASE = {
       "modifiedAt": "2026-06-17T17:13:20.000Z"
     },
     {
-      "id": "ar-de-esquelleto",
-      "title": "ar de esquelleto",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/ar-de-esquelleto.html",
-      "sb3Path": "arquivos/sb3/ar-de-esquelleto.sb3",
-      "thumbPath": "arquivos/thumbs/ar-de-esquelleto.svg",
-      "sb3Name": "ar de esquelleto.sb3",
-      "sizeBytes": 1538329,
-      "modifiedAt": "2026-06-10T17:41:30.000Z"
-    },
-    {
-      "id": "coisas-de-mim",
-      "title": "coisas de mim",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/coisas-de-mim.html",
-      "sb3Path": "arquivos/sb3/coisas-de-mim.sb3",
-      "thumbPath": "arquivos/thumbs/coisas-de-mim.svg",
-      "sb3Name": "coisas de mim.sb3",
-      "sizeBytes": 636643,
-      "modifiedAt": "2026-06-10T17:24:32.000Z"
-    },
-    {
-      "id": "pequeno-menino",
-      "title": "pequeno menino",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/pequeno-menino.html",
-      "sb3Path": "arquivos/sb3/pequeno-menino.sb3",
-      "thumbPath": "arquivos/thumbs/pequeno-menino.svg",
-      "sb3Name": "pequeno menino.sb3",
-      "sizeBytes": 1941181,
-      "modifiedAt": "2026-06-10T17:10:10.000Z"
-    },
-    {
-      "id": "harry",
-      "title": "harry",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/harry.html",
-      "sb3Path": "arquivos/sb3/harry.sb3",
-      "thumbPath": "arquivos/thumbs/harry.svg",
-      "sb3Name": "harry.sb3",
-      "sizeBytes": 16264,
-      "modifiedAt": "2026-04-01T16:32:52.000Z"
-    },
-    {
       "id": "pets-2025",
       "title": "pets 2025",
       "student": "Lorenzo",
@@ -134,17 +79,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "pets 2025.sb3",
       "sizeBytes": 42550,
       "modifiedAt": "2026-03-17T16:50:26.000Z"
-    },
-    {
-      "id": "radio-fm-lorenzo",
-      "title": "RADIO FM LORENZO",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/radio-fm-lorenzo.html",
-      "sb3Path": "arquivos/sb3/radio-fm-lorenzo.sb3",
-      "thumbPath": "arquivos/thumbs/radio-fm-lorenzo.svg",
-      "sb3Name": "RADIO FM LORENZO.sb3",
-      "sizeBytes": 527197,
-      "modifiedAt": "2026-03-11T17:36:42.000Z"
     },
     {
       "id": "enphasi-s",
@@ -189,17 +123,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "HIPPO.sb3",
       "sizeBytes": 4437402,
       "modifiedAt": "2025-11-14T17:25:12.000Z"
-    },
-    {
-      "id": "personagems",
-      "title": "PERSONAGEMS",
-      "student": "Lorenzo",
-      "htmlPath": "arquivos/projetos/personagems.html",
-      "sb3Path": "arquivos/sb3/personagems.sb3",
-      "thumbPath": "arquivos/thumbs/personagems.svg",
-      "sb3Name": "PERSONAGEMS.sb3",
-      "sizeBytes": 425629,
-      "modifiedAt": "2025-11-07T17:12:46.000Z"
     },
     {
       "id": "lorenzo-2-12-2024",

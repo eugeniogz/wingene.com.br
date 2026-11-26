@@ -1,5 +1,5 @@
 window.SCRATCH_SHOWCASE = {
-  "generatedAt": "2026-11-23T22:24:43.434Z",
+  "generatedAt": "2026-11-26T11:23:52.216Z",
   "mode": "website",
   "studentName": "Julia",
   "projects": [
@@ -35,17 +35,6 @@ window.SCRATCH_SHOWCASE = {
       "sb3Name": "júlia 30-09.sb3",
       "sizeBytes": 8492912,
       "modifiedAt": "2026-09-30T17:16:18.000Z"
-    },
-    {
-      "id": "a-festa-da-julia",
-      "title": "A festa da Julia",
-      "student": "Julia",
-      "htmlPath": "arquivos/projetos/a-festa-da-julia.html",
-      "sb3Path": "arquivos/sb3/a-festa-da-julia.sb3",
-      "thumbPath": "arquivos/thumbs/a-festa-da-julia.svg",
-      "sb3Name": "A festa da Julia.sb3",
-      "sizeBytes": 906889,
-      "modifiedAt": "2026-09-09T13:35:10.000Z"
     },
     {
       "id": "reino-da-julia",
