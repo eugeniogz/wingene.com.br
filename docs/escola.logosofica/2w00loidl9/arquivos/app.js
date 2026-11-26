@@ -120,8 +120,10 @@
 
       const fileInfo = document.createElement('p');
       fileInfo.className = 'card-file';
+      fileInfo.textContent = formatDate(project.modifiedAt);
 
       card.append(title);
+      card.append(fileInfo);
       fragment.appendChild(card);
     });
 
