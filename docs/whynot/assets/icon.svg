@@ -45,37 +45,41 @@
   <!-- AURA DE BRILHO CENTRAL ORIGINAL (Verde Esmeralda) -->
   <circle cx="256" cy="256" r="220" fill="#10b981" opacity="0.18" filter="url(#glow)" />
 
-  <!-- ONDAS DE RADAR / SENSOR DE NOTIFICAÇÕES (Em Esmeralda Sutil) -->
-  <path d="M 68,220 C 52,244 52,268 68,292" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round" opacity="0.4" stroke-dasharray="2 4" />
-  <path d="M 444,220 C 460,244 460,268 444,292" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round" opacity="0.4" stroke-dasharray="2 4" />
+  <!-- ONDAS DE RADAR / SENSOR DE NOTIFICAÇÕES (Em Esmeralda Sutil, posicionadas nos vãos verticais após rotação de 30°) -->
+  <g transform="rotate(90, 256, 256)">
+    <path d="M 68,220 C 52,244 52,268 68,292" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round" opacity="0.4" stroke-dasharray="2 4" />
+    <path d="M 444,220 C 460,244 460,268 444,292" fill="none" stroke="#10b981" stroke-width="7" stroke-linecap="round" opacity="0.4" stroke-dasharray="2 4" />
+  </g>
 
-  <!-- ESTRELA ORIGINAL DE 6 PONTAS FACETADA (3D) CENTRALIZADA -->
+  <!-- ESTRELA ORIGINAL DE 6 PONTAS FACETADA (3D) CENTRALIZADA (GIRADA 30°) -->
   <g transform="translate(256, 256) scale(2.45)" filter="url(#shadow)">
-    <!-- Ponta 1: Superior (Norte) -->
-    <polygon points="0,0 0,-85 -18,-31.18" fill="url(#goldLightGrad)" />
-    <polygon points="0,0 0,-85 18,-31.18" fill="url(#goldGrad)" />
+    <g transform="rotate(30)">
+      <!-- Ponta 1 -->
+      <polygon points="0,0 0,-85 -18,-31.18" fill="url(#goldLightGrad)" />
+      <polygon points="0,0 0,-85 18,-31.18" fill="url(#goldGrad)" />
 
-    <!-- Ponta 2: Superior Direita -->
-    <polygon points="0,0 73.61,-42.5 18,-31.18" fill="url(#greenGrad)" />
-    <polygon points="0,0 73.61,-42.5 36,0" fill="#059669" />
+      <!-- Ponta 2 -->
+      <polygon points="0,0 73.61,-42.5 18,-31.18" fill="url(#greenGrad)" />
+      <polygon points="0,0 73.61,-42.5 36,0" fill="#059669" />
 
-    <!-- Ponta 3: Inferior Direita -->
-    <polygon points="0,0 73.61,42.5 36,0" fill="url(#goldLightGrad)" />
-    <polygon points="0,0 73.61,42.5 18,31.18" fill="url(#goldGrad)" />
+      <!-- Ponta 3 -->
+      <polygon points="0,0 73.61,42.5 36,0" fill="url(#goldLightGrad)" />
+      <polygon points="0,0 73.61,42.5 18,31.18" fill="url(#goldGrad)" />
 
-    <!-- Ponta 4: Inferior (Sul) -->
-    <polygon points="0,0 0,85 18,31.18" fill="url(#greenGrad)" />
-    <polygon points="0,0 0,85 -18,31.18" fill="#047857" />
+      <!-- Ponta 4 -->
+      <polygon points="0,0 0,85 18,31.18" fill="url(#greenGrad)" />
+      <polygon points="0,0 0,85 -18,31.18" fill="#047857" />
 
-    <!-- Ponta 5: Inferior Esquerda -->
-    <polygon points="0,0 -73.61,42.5 -18,31.18" fill="url(#goldLightGrad)" />
-    <polygon points="0,0 -73.61,42.5 -36,0" fill="url(#goldGrad)" />
+      <!-- Ponta 5 -->
+      <polygon points="0,0 -73.61,42.5 -18,31.18" fill="url(#goldLightGrad)" />
+      <polygon points="0,0 -73.61,42.5 -36,0" fill="url(#goldGrad)" />
 
-    <!-- Ponta 6: Superior Esquerda -->
-    <polygon points="0,0 -73.61,-42.5 -36,0" fill="url(#greenGrad)" />
-    <polygon points="0,0 -73.61,-42.5 -18,-31.18" fill="#059669" />
+      <!-- Ponta 6 -->
+      <polygon points="0,0 -73.61,-42.5 -36,0" fill="url(#greenGrad)" />
+      <polygon points="0,0 -73.61,-42.5 -18,-31.18" fill="#059669" />
+    </g>
 
-    <!-- Núcleo Central Hexagonal (+50% aumentado) -->
+    <!-- Núcleo Central Hexagonal (+50% aumentado, girado 30° em relação à estrela) -->
     <polygon points="0,-46.77 40.5,-23.39 40.5,23.39 0,46.77 -40.5,23.39 -40.5,-23.39" 
              fill="#0a0a0e" 
              stroke="url(#goldGrad)" 
