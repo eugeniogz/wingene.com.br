@@ -1,7 +1,7 @@
 /**
  * Módulo de Integração com Google Drive API v3 (Google Identity Services)
- * Permite sincronização bidirecional do arquivo mestre 'diario_sync_master.json'
- * e legado na pasta privada 'appDataFolder' do usuário.
+ * Permite sincronização bidirecional particionada por ano ('diario_sync_YYYY.json')
+ * com retrocompatibilidade total com 'diario_sync_master.json' e legado na pasta 'appDataFolder'.
  */
 
 const GoogleDriveService = {
@@ -11,6 +11,7 @@ const GoogleDriveService = {
   TIMESTAMP_FILENAME: 'sync_timestamp.txt',
   VALIDATION_FILENAME: 'validar.hash',
   PROPOSITOS_FILENAME: 'propositos_backup.json',
+  SHARD_REGEX: /^diario_sync_(\d{4})\.json$/,
 
   STORAGE_KEYS: {
     CLIENT_ID: 'wingene_vida_drive_client_id',
@@ -21,6 +22,10 @@ const GoogleDriveService = {
     CUSTOM_PASS: 'wingene_vida_drive_custom_pass',
     LAST_SYNC: 'wingene_vida_last_drive_sync',
     LAST_REMOTE_CHANGE: 'wingene_vida_last_remote_change',
+    FILE_HASHES: 'wingene_vida_drive_file_hashes',
+    VALIDATED_HASH_MD5: 'wingene_vida_validated_hash_md5',
+    VALIDATED_PASS_HASH: 'wingene_vida_validated_pass_hash',
+    DIRTY_SYNC_YEARS: 'wingene_vida_dirty_sync_years',
     passKey: (email) => `wingene_vida_drive_pass_${email ? email.trim().toLowerCase() : ''}`
   },
 
@@ -29,15 +34,311 @@ const GoogleDriveService = {
   tokenExpiresAt: 0,
   userEmail: null,
 
-  // Verifica se o usuário possui conta do Drive previamente vinculada
+  // ─── Helpers de Particionamento, Compactação e Cache de Hashes ─────────────
+
+  extractRecordYear(dateStr) {
+    if (!dateStr) return '0000';
+    const trimmed = String(dateStr).trim();
+    const match = /^(\d{4})/.exec(trimmed);
+    if (match) return match[1];
+    const d = new Date(trimmed);
+    if (!Number.isNaN(d.getTime())) {
+      return String(d.getFullYear()).padStart(4, '0');
+    }
+    return '0000';
+  },
+
+  isYearShardFilename(name) {
+    return typeof name === 'string' && this.SHARD_REGEX.test(name);
+  },
+
+  extractYearFromShardFilename(name) {
+    if (typeof name !== 'string') return null;
+    const m = this.SHARD_REGEX.exec(name);
+    return m ? m[1] : null;
+  },
+
+  shardFilenameForYear(year) {
+    return `diario_sync_${year}.json`;
+  },
+
+  // JSON compacto retrocompatível com Registro.fromMap e DBService.normalizeRecord
+  compactRecordForSync(rec) {
+    const data = rec.data || new Date().toISOString();
+    const lastModified =
+      rec.lastModified && String(rec.lastModified).trim() !== ''
+        ? rec.lastModified
+        : data;
+    const map = {
+      uuid: rec.uuid,
+      conteudo: rec.conteudo || '',
+      data: data,
+      lastModified: lastModified,
+      sincronizado: 1
+    };
+
+    if (rec.pilar && String(rec.pilar).trim() !== '') map.pilar = rec.pilar;
+    if (rec.categoria && String(rec.categoria).trim() !== '') map.categoria = rec.categoria;
+    if (typeof rec.impacto === 'number' && rec.impacto !== 0) map.impacto = rec.impacto;
+    if (rec.impactos && String(rec.impactos).trim() !== '') map.impactos = rec.impactos;
+    if (rec.observacao && String(rec.observacao).trim() !== '') map.observacao = rec.observacao;
+    if (rec.tags && String(rec.tags).trim() !== '') map.tags = rec.tags;
+    if (rec.comentarioVida && String(rec.comentarioVida).trim() !== '') map.comentarioVida = rec.comentarioVida;
+    if (rec.palavraChave && String(rec.palavraChave).trim() !== '') map.palavraChave = rec.palavraChave;
+    if (typeof rec.versao === 'number' && rec.versao !== 1) map.versao = rec.versao;
+    if (typeof rec.deletado === 'number' && rec.deletado !== 0) map.deletado = rec.deletado;
+
+    const insightId = rec.insight_id !== undefined ? rec.insight_id : rec.insightId;
+    if (insightId !== null && insightId !== undefined) map.insight_id = insightId;
+
+    const propUuid = rec.proposito_uuid || rec.propositoUuid;
+    if (propUuid && String(propUuid).trim() !== '') map.proposito_uuid = propUuid;
+
+    if (typeof rec.propositoAvaliado === 'number' && rec.propositoAvaliado !== 0) {
+      map.propositoAvaliado = rec.propositoAvaliado;
+    }
+    if (rec.origem && String(rec.origem).trim() !== '') map.origem = rec.origem;
+    return map;
+  },
+
+  hasRemoteFileChanged(remoteFile, cachedEntry) {
+    if (!remoteFile || !remoteFile.id) return false;
+    if (!cachedEntry) return true;
+    if (remoteFile.md5Checksum && cachedEntry.md5) {
+      return remoteFile.md5Checksum !== cachedEntry.md5;
+    }
+    if (cachedEntry.id !== remoteFile.id) return true;
+    if (!remoteFile.modifiedTime || !cachedEntry.modifiedTime) return true;
+    const remoteMs = new Date(remoteFile.modifiedTime).getTime();
+    const cachedMs = new Date(cachedEntry.modifiedTime).getTime();
+    if (Number.isNaN(remoteMs) || Number.isNaN(cachedMs)) return true;
+    return remoteMs > cachedMs + 2000;
+  },
+
+  fileToCacheEntry(file) {
+    if (!file) return null;
+    const entry = {};
+    if (file.id) entry.id = file.id;
+    if (file.md5Checksum) entry.md5 = file.md5Checksum;
+    if (file.modifiedTime) entry.modifiedTime = file.modifiedTime;
+    return entry;
+  },
+
+  async hashPasswordFingerprint(password) {
+    const data = new TextEncoder().encode(password || '');
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  },
+
+  computeBackoffDelayMs(attempt, maxBackoffMs = 32000, randFn = Math.random) {
+    const exp = Math.max(0, Math.min(attempt, 10));
+    const baseMs = (1 << exp) * 1000;
+    const jitterMs = Math.floor(randFn() * 1000);
+    return Math.min(baseMs + jitterMs, maxBackoffMs);
+  },
+
+  isRateLimitResponse(status, bodyText = '') {
+    if (status === 429) return true;
+    if (status === 403) {
+      const lower = String(bodyText || '').toLowerCase();
+      return (
+        lower.includes('ratelimitexceeded') ||
+        lower.includes('userratelimitexceeded') ||
+        lower.includes('sharingratelimitexceeded') ||
+        lower.includes('too many requests') ||
+        lower.includes('quota exceeded for quota metric')
+      );
+    }
+    return false;
+  },
+
+  isTransientServerStatus(status) {
+    return status === 500 || status === 502 || status === 503 || status === 504;
+  },
+
+  async fetchWithBackoff(url, options = {}, maxRetries = 4) {
+    for (let attempt = 0; ; attempt++) {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+
+      const isTransient = this.isTransientServerStatus(res.status);
+      let isRateLimit = res.status === 429;
+      if (!isRateLimit && res.status === 403) {
+        const clonedText = await res.clone().text().catch(() => '');
+        isRateLimit = this.isRateLimitResponse(res.status, clonedText);
+      }
+
+      if ((isRateLimit || isTransient) && attempt < maxRetries) {
+        let delayMs = this.computeBackoffDelayMs(attempt);
+        const retryAfter = res.headers && res.headers.get ? res.headers.get('Retry-After') : null;
+        if (retryAfter && /^\d+$/.test(retryAfter.trim())) {
+          const headerMs = Number(retryAfter.trim()) * 1000;
+          if (headerMs > 0) delayMs = Math.min(headerMs, 32000);
+        }
+        console.warn(`[Drive] Rate-limit/erro ${res.status} (tentativa ${attempt + 1}). Aguardando ${delayMs}ms...`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        continue;
+      }
+      return res;
+    }
+  },
+
+  // Lê apenas metadados de um arquivo pelo fileId (5 unidades de cota)
+  async getFileMetadataById(fileId, token = null) {
+    if (!fileId) return null;
+    const activeToken = token || (await this.requestToken());
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,modifiedTime,md5Checksum,size,trashed`;
+    const res = await this.fetchWithBackoff(url, {
+      headers: { Authorization: `Bearer ${activeToken}` }
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      if (res.status === 401) {
+        this.signOut();
+        const authErr = new Error('Sessão expirada no Google Drive. Por favor reconecte.');
+        authErr.status = 401;
+        throw authErr;
+      }
+      const errData = await res.json().catch(() => null);
+      const err = new Error(`Erro ao consultar metadados do arquivo (${fileId}): ${errData?.error?.message || res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    const meta = await res.json();
+    if (!meta || meta.trashed) return null;
+    return meta;
+  },
+
+  getFileHashCache() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEYS.FILE_HASHES);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  },
+
+  saveFileHashCache(cache) {
+    try {
+      localStorage.setItem(this.STORAGE_KEYS.FILE_HASHES, JSON.stringify(cache || {}));
+    } catch (_) {}
+  },
+
+  getDirtySyncYears() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  },
+
+  addDirtySyncYear(year) {
+    if (!year) return;
+    const current = new Set(this.getDirtySyncYears());
+    current.add(String(year));
+    try {
+      localStorage.setItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS, JSON.stringify(Array.from(current)));
+    } catch (_) {}
+  },
+
+  clearDirtySyncYears(uploadedYears = null) {
+    try {
+      if (!uploadedYears) {
+        localStorage.removeItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS);
+        return;
+      }
+      const uploadedSet = new Set(uploadedYears);
+      const remaining = this.getDirtySyncYears().filter((y) => !uploadedSet.has(y));
+      if (remaining.length === 0) {
+        localStorage.removeItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS);
+      } else {
+        localStorage.setItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS, JSON.stringify(remaining));
+      }
+    } catch (_) {}
+  },
+
+  clearSyncCache() {
+    localStorage.removeItem(this.STORAGE_KEYS.FILE_HASHES);
+    localStorage.removeItem(this.STORAGE_KEYS.VALIDATED_HASH_MD5);
+    localStorage.removeItem(this.STORAGE_KEYS.VALIDATED_PASS_HASH);
+    localStorage.removeItem(this.STORAGE_KEYS.DIRTY_SYNC_YEARS);
+    localStorage.removeItem(this.STORAGE_KEYS.LAST_REMOTE_CHANGE);
+    localStorage.removeItem('wingene_last_remote_change');
+  },
+
+  buildSnapshot(allFiles) {
+    const sorted = [...(allFiles || [])].sort(
+      (a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0)
+    );
+    let masterFile = null;
+    let validationFile = null;
+    let timestampFile = null;
+    let propositosFile = null;
+    const shardFiles = new Map();
+    const legacyFiles = [];
+    const duplicates = [];
+
+    for (const f of sorted) {
+      const name = f.name || '';
+      if (name === this.MASTER_FILENAME) {
+        if (!masterFile) masterFile = f;
+        else duplicates.push(f);
+      } else if (name === this.VALIDATION_FILENAME) {
+        if (!validationFile) validationFile = f;
+        else duplicates.push(f);
+      } else if (name === this.TIMESTAMP_FILENAME) {
+        if (!timestampFile) timestampFile = f;
+        else duplicates.push(f);
+      } else if (name === this.PROPOSITOS_FILENAME) {
+        if (!propositosFile) propositosFile = f;
+        else duplicates.push(f);
+      } else {
+        const year = this.extractYearFromShardFilename(name);
+        if (year !== null) {
+          if (!shardFiles.has(year)) shardFiles.set(year, f);
+          else duplicates.push(f);
+        } else if (name.startsWith('registro_') && name.endsWith('.json')) {
+          legacyFiles.push(f);
+        }
+      }
+    }
+
+    let latestShardMs = 0;
+    shardFiles.forEach((f) => {
+      if (f.modifiedTime) {
+        const ms = new Date(f.modifiedTime).getTime();
+        if (!Number.isNaN(ms) && ms > latestShardMs) latestShardMs = ms;
+      }
+    });
+
+    return {
+      allFiles: sorted,
+      masterFile,
+      shardFiles,
+      legacyFiles,
+      validationFile,
+      timestampFile,
+      propositosFile,
+      duplicates,
+      latestShardMs
+    };
+  },
+
+  // ─── Autenticação & Sessão Google Identity Services ────────────────────────
+
   isLinked() {
     return !!(this.userEmail || localStorage.getItem(this.STORAGE_KEYS.EMAIL) || localStorage.getItem('wingene_drive_email'));
   },
 
-  // Inicializa o cliente GIS (Google Identity Services)
   init() {
     return new Promise((resolve) => {
-      // Limpeza de chave legada compartilhada para evitar colisão com o Winvest
       try {
         const legacyAmbiguousClientId = localStorage.getItem('wingene_drive_client_id');
         if (legacyAmbiguousClientId) {
@@ -45,7 +346,6 @@ const GoogleDriveService = {
         }
       } catch (_) {}
 
-      // Migração de chaves legadas para o namespace isolado se ainda não existirem
       if (!localStorage.getItem(this.STORAGE_KEYS.TOKEN)) {
         const legToken = localStorage.getItem('wingene_drive_token');
         const legExp = localStorage.getItem('wingene_drive_token_exp');
@@ -89,7 +389,6 @@ const GoogleDriveService = {
                   localStorage.setItem(this.STORAGE_KEYS.TOKEN, this.accessToken);
                   localStorage.setItem(this.STORAGE_KEYS.TOKEN_EXP, String(this.tokenExpiresAt));
 
-                  // Busca e-mail do usuário
                   await this.fetchUserEmail();
                   window.dispatchEvent(new CustomEvent('drive-auth-success'));
                 }
@@ -140,7 +439,6 @@ const GoogleDriveService = {
 
   needsAccountSelect: false,
 
-  // Solicita autorização e login via pop-up oficial do Google
   requestToken(options = {}) {
     return new Promise((resolve, reject) => {
       if (this.isConnected() && !options.forceSelect) {
@@ -199,7 +497,6 @@ const GoogleDriveService = {
     sessionStorage.removeItem(this.STORAGE_KEYS.TOKEN_EXP);
     sessionStorage.removeItem(this.STORAGE_KEYS.EMAIL);
     sessionStorage.removeItem(this.STORAGE_KEYS.CUSTOM_PASS);
-    // Limpeza de chaves legadas
     localStorage.removeItem('wingene_drive_token');
     localStorage.removeItem('wingene_drive_token_exp');
     localStorage.removeItem('wingene_drive_email');
@@ -209,9 +506,9 @@ const GoogleDriveService = {
     sessionStorage.removeItem('wingene_drive_token_exp');
     sessionStorage.removeItem('wingene_drive_email');
     sessionStorage.removeItem('wingene_drive_custom_pass');
+    this.clearSyncCache();
   },
 
-  // Força desconexão e abre o seletor de contas do Google explicitamente
   async switchAccount() {
     this.signOut();
     await this.requestToken({ forceSelect: true });
@@ -219,41 +516,51 @@ const GoogleDriveService = {
     return this.userEmail;
   },
 
-  // Objeto de auditoria para diagnóstico em tempo real
   lastValidationAudit: null,
 
-  // Lista todos os arquivos na pasta privada appDataFolder
+  // Lista todos os arquivos na pasta privada appDataFolder (com paginação e md5Checksum)
   async listAllAppDataFiles() {
     const token = await this.requestToken();
     const query = encodeURIComponent(`trashed = false and 'appDataFolder' in parents`);
-    const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&orderBy=modifiedTime%20desc&fields=files(id,name,modifiedTime,size)&pageSize=1000`;
+    const files = [];
+    let pageToken = null;
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => null);
-      const detail = errData?.error?.message || `HTTP ${res.status}`;
-      if (res.status === 401) {
-        this.signOut();
-        throw new Error('Sessão expirada no Google Drive. Por favor reconecte.');
+    do {
+      let url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${query}&orderBy=modifiedTime%20desc&fields=nextPageToken,files(id,name,modifiedTime,md5Checksum,size)&pageSize=1000`;
+      if (pageToken) {
+        url += `&pageToken=${encodeURIComponent(pageToken)}`;
       }
-      if (res.status === 403 && detail.toLowerCase().includes('drive.googleapis.com')) {
-        throw new Error('A Google Drive API não está ativada no projeto Google Cloud. Ative a Google Drive API: https://console.cloud.google.com/apis/library/drive.googleapis.com?project=wingene-vida-24a89');
-      }
-      throw new Error(`Erro ao listar arquivos do Drive: ${detail}`);
-    }
 
-    const data = await res.json();
-    const files = data.files || [];
-    // Garante ordenação decrescente por modifiedTime
+      const res = await this.fetchWithBackoff(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        const detail = errData?.error?.message || `HTTP ${res.status}`;
+        if (res.status === 401) {
+          this.signOut();
+          throw new Error('Sessão expirada no Google Drive. Por favor reconecte.');
+        }
+        if (res.status === 403 && detail.toLowerCase().includes('drive.googleapis.com')) {
+          throw new Error('A Google Drive API não está ativada no projeto Google Cloud. Ative a Google Drive API: https://console.cloud.google.com/apis/library/drive.googleapis.com?project=wingene-vida-24a89');
+        }
+        throw new Error(`Erro ao listar arquivos do Drive: ${detail}`);
+      }
+
+      const data = await res.json();
+      if (Array.isArray(data.files)) {
+        files.push(...data.files);
+      }
+      pageToken = data.nextPageToken || null;
+    } while (pageToken);
+
     files.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
     return files;
   },
 
-  // Valida a senha contra validar.hash ou diretamente contra diario_sync_master.json
-  async validatePasswordWithHash(password, validationFile = null) {
+  // Valida a senha contra validar.hash (com cache MD5 + SHA-256) ou fallback
+  async validatePasswordWithHash(password, validationFile = null, allFilesInput = null, bypassCache = false) {
     if (!password || password.trim() === '') return false;
 
     const audit = {
@@ -266,37 +573,57 @@ const GoogleDriveService = {
       result: false
     };
 
-    let allFiles = [];
+    let allFiles = Array.isArray(allFilesInput) ? allFilesInput : [];
     let validationFiles = validationFile ? [validationFile] : [];
+    let shardFiles = [];
     let masterFiles = [];
     let legacyFiles = [];
 
-    if (!validationFile) {
+    if (!validationFile && allFiles.length === 0) {
       try {
         allFiles = await this.listAllAppDataFiles();
-        audit.filesFound = allFiles.map((f) => ({
-          name: f.name,
-          id: f.id,
-          size: f.size,
-          modifiedTime: f.modifiedTime
-        }));
-        validationFiles = allFiles.filter((f) => f.name === this.VALIDATION_FILENAME);
-        masterFiles = allFiles.filter((f) => f.name === this.MASTER_FILENAME);
-        legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
       } catch (e) {
         console.warn('[Drive] Erro ao listar arquivos na appDataFolder:', e);
         audit.listError = e.message || String(e);
       }
     }
 
+    if (allFiles.length > 0) {
+      audit.filesFound = allFiles.map((f) => ({
+        name: f.name,
+        id: f.id,
+        size: f.size,
+        modifiedTime: f.modifiedTime
+      }));
+      if (validationFiles.length === 0) {
+        validationFiles = allFiles.filter((f) => f.name === this.VALIDATION_FILENAME);
+      }
+      shardFiles = allFiles.filter((f) => this.isYearShardFilename(f.name));
+      masterFiles = allFiles.filter((f) => f.name === this.MASTER_FILENAME);
+      legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
+    }
+
+    // Cache de validação por MD5 de validar.hash + SHA-256 da senha
+    const passHash = await this.hashPasswordFingerprint(password);
+    if (!bypassCache && validationFiles.length > 0 && validationFiles[0].md5Checksum) {
+      const cachedMd5 = localStorage.getItem(this.STORAGE_KEYS.VALIDATED_HASH_MD5);
+      const cachedPass = localStorage.getItem(this.STORAGE_KEYS.VALIDATED_PASS_HASH);
+      if (cachedMd5 && cachedMd5 === validationFiles[0].md5Checksum && cachedPass === passHash) {
+        audit.hashAttempts.push({ fileId: validationFiles[0].id, success: true, cached: true });
+        audit.result = true;
+        this.lastValidationAudit = audit;
+        return true;
+      }
+    }
+
     const token = await this.requestToken().catch(() => null);
 
-    // 1. Tenta validar com validar.hash (se existirem)
+    // 1. Tenta validar com validar.hash
     for (const vFile of validationFiles) {
       if (!token) break;
       try {
         const downloadUrl = `https://www.googleapis.com/drive/v3/files/${vFile.id}?alt=media`;
-        const res = await fetch(downloadUrl, {
+        const res = await this.fetchWithBackoff(downloadUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -327,6 +654,10 @@ const GoogleDriveService = {
             const str = new TextDecoder().decode(unpadded);
             if (str === 'WINGENE_VIDA_VALIDATION') {
               console.log(`[Drive] Senha confirmada com sucesso via validar.hash (${vFile.id})!`);
+              if (vFile.md5Checksum) {
+                localStorage.setItem(this.STORAGE_KEYS.VALIDATED_HASH_MD5, vFile.md5Checksum);
+                localStorage.setItem(this.STORAGE_KEYS.VALIDATED_PASS_HASH, passHash);
+              }
               audit.hashAttempts.push({ fileId: vFile.id, success: true, text: str });
               audit.result = true;
               this.lastValidationAudit = audit;
@@ -345,36 +676,37 @@ const GoogleDriveService = {
       }
     }
 
-    // 2. Se validar.hash não existir ou falhar, testa diretamente no diario_sync_master.json
-    for (const mFile of masterFiles) {
+    // 2. Fallback: testa contra shards ou diario_sync_master.json
+    const dataCandidates = [...shardFiles, ...masterFiles];
+    for (const mFile of dataCandidates) {
       if (!token) break;
-      console.log(`[Drive] Testando senha diretamente contra diario_sync_master.json (${mFile.id})...`);
+      console.log(`[Drive] Testando senha diretamente contra ${mFile.name} (${mFile.id})...`);
       try {
         const downloadUrl = `https://www.googleapis.com/drive/v3/files/${mFile.id}?alt=media`;
-        const res = await fetch(downloadUrl, {
+        const res = await this.fetchWithBackoff(downloadUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           const ab = await res.arrayBuffer();
           const parsed = await CryptoService.decryptDartFormat(ab, password);
           if (parsed && (Array.isArray(parsed) || parsed.registros || typeof parsed === 'object')) {
-            console.log(`[Drive] diario_sync_master.json (${mFile.id}) descriptografado com sucesso!`);
+            console.log(`[Drive] ${mFile.name} (${mFile.id}) descriptografado com sucesso!`);
             audit.masterAttempts.push({ fileId: mFile.id, success: true, recordCount: Array.isArray(parsed) ? parsed.length : (parsed.registros?.length || 'obj') });
-            // Auto-recupera o validar.hash para as próximas validações
-            this.createOrUpdateValidationFile(password).catch((e) => console.warn('[Drive] Falha ao recriar validar.hash:', e));
+            this.createOrUpdateValidationFile(password, validationFiles[0] || null, validationFiles.length === 0)
+              .catch((e) => console.warn('[Drive] Falha ao recriar validar.hash:', e));
             audit.result = true;
             this.lastValidationAudit = audit;
             return true;
           }
         }
       } catch (masterErr) {
-        console.warn(`[Drive] Teste no masterFile (${mFile.id}) falhou:`, masterErr.message || masterErr);
+        console.warn(`[Drive] Teste no ${mFile.name} (${mFile.id}) falhou:`, masterErr.message || masterErr);
         audit.masterAttempts.push({ fileId: mFile.id, success: false, error: masterErr.message || String(masterErr) });
       }
     }
 
-    // 3. Se não houver masterFile, tenta testar em um arquivo legado de registro
-    if (masterFiles.length === 0 && legacyFiles.length > 0 && token) {
+    // 3. Fallback legado
+    if (dataCandidates.length === 0 && legacyFiles.length > 0 && token) {
       const sampleLegacy = legacyFiles[0];
       try {
         const res = await fetch(`https://www.googleapis.com/drive/v3/files/${sampleLegacy.id}?alt=media`, {
@@ -386,7 +718,7 @@ const GoogleDriveService = {
           if (parsed && (parsed.uuid || parsed.conteudo)) {
             console.log(`[Drive] Arquivo legado (${sampleLegacy.name}) descriptografado com sucesso!`);
             audit.legacyAttempts.push({ fileId: sampleLegacy.id, success: true });
-            this.createOrUpdateValidationFile(password).catch(() => {});
+            this.createOrUpdateValidationFile(password, null, true).catch(() => {});
             audit.result = true;
             this.lastValidationAudit = audit;
             return true;
@@ -397,8 +729,8 @@ const GoogleDriveService = {
       }
     }
 
-    // 4. Se a conta não tiver nenhum arquivo relevante salvo, aceita como válida para iniciar
-    if (validationFiles.length === 0 && masterFiles.length === 0 && legacyFiles.length === 0) {
+    // 4. Conta sem arquivos relevantes
+    if (validationFiles.length === 0 && shardFiles.length === 0 && masterFiles.length === 0 && legacyFiles.length === 0) {
       console.log('[Drive] Nenhum arquivo de dados ou validação encontrado nesta conta.');
       audit.result = true;
       audit.isNewAccount = true;
@@ -432,16 +764,20 @@ const GoogleDriveService = {
         console.warn(`[Drive] Falha ao remover ${f.name}:`, e);
       }
     }
+    this.clearSyncCache();
     return true;
   },
 
-  // Cria ou atualiza o validar.hash para proteger a integridade da senha
-  async createOrUpdateValidationFile(password) {
-    if (!password) return;
+  // Cria ou atualiza o validar.hash sem listagem extra quando existingFile/knownMissing é informado
+  async createOrUpdateValidationFile(password, existingFile = null, knownMissing = false) {
+    if (!password) return null;
     try {
       const token = await this.requestToken();
-      const allFiles = await this.listAllAppDataFiles();
-      const existing = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
+      let targetFile = existingFile;
+      if (!targetFile && !knownMissing) {
+        const allFiles = await this.listAllAppDataFiles();
+        targetFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME) || null;
+      }
 
       const contentBytes = new TextEncoder().encode('WINGENE_VIDA_VALIDATION');
       const paddedBytes = CryptoService.addPkcs7Padding(contentBytes);
@@ -469,16 +805,22 @@ const GoogleDriveService = {
       finalBytes.set(iv, 0);
       finalBytes.set(new Uint8Array(cipherBuffer), 16);
 
-      if (existing && existing.id) {
-        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/octet-stream'
-          },
-          body: finalBytes
-        });
-        if (!res.ok) {
+      let resultMeta = null;
+      if (targetFile && targetFile.id) {
+        const res = await this.fetchWithBackoff(
+          `https://www.googleapis.com/upload/drive/v3/files/${targetFile.id}?uploadType=media&fields=id,name,modifiedTime,md5Checksum,size`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/octet-stream'
+            },
+            body: finalBytes
+          }
+        );
+        if (res.ok) {
+          resultMeta = await res.json().catch(() => null);
+        } else {
           console.warn('Erro ao atualizar validar.hash (PATCH):', res.status, await res.text().catch(() => ''));
         }
       } else {
@@ -497,167 +839,93 @@ const GoogleDriveService = {
         combined.set(finalBytes, p1.length);
         combined.set(p3, p1.length + finalBytes.length);
 
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': `multipart/related; boundary=${boundary}`
-          },
-          body: combined
-        });
-        if (!res.ok) {
+        const res = await this.fetchWithBackoff(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,md5Checksum,size',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`
+            },
+            body: combined
+          }
+        );
+        if (res.ok) {
+          resultMeta = await res.json().catch(() => null);
+        } else {
           console.warn('Erro ao criar validar.hash (POST):', res.status, await res.text().catch(() => ''));
         }
       }
+
+      if (resultMeta && resultMeta.md5Checksum) {
+        localStorage.setItem(this.STORAGE_KEYS.VALIDATED_HASH_MD5, resultMeta.md5Checksum);
+        localStorage.setItem(this.STORAGE_KEYS.VALIDATED_PASS_HASH, await this.hashPasswordFingerprint(password));
+      }
+      return resultMeta;
     } catch (e) {
       console.warn('Não foi possível gravar validar.hash:', e);
+      return null;
     }
   },
 
-  // Baixa e descriptografa os registros do Drive
-  async downloadMasterData(password, options = {}) {
-    const allFiles = await this.listAllAppDataFiles();
-    allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
-    const masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
-    const timestampFile = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME);
-    const validationFile = allFiles.find((f) => f.name === this.VALIDATION_FILENAME);
-    const legacyFiles = allFiles.filter((f) => f.name && f.name.startsWith('registro_') && f.name.endsWith('.json'));
-
-    // Valida a senha se houver arquivo de validação
-    if (validationFile) {
-      const isValid = await this.validatePasswordWithHash(password, validationFile);
-      if (!isValid) {
-        throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
+  extractRecordList(rawData) {
+    if (Array.isArray(rawData)) {
+      return rawData;
+    }
+    if (rawData && rawData.registros && Array.isArray(rawData.registros)) {
+      return rawData.registros;
+    }
+    if (rawData && typeof rawData === 'object') {
+      const values = Object.values(rawData);
+      if (values.length > 0 && values.some((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined || v.pilar !== undefined))) {
+        return values.filter((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined));
       }
     }
+    return [];
+  },
 
-    // CHECK DE TIMESTAMP: Se foi passado onlyIfModifiedSince, verifica se o master ou timestamp foram alterados
-    if (options.onlyIfModifiedSince && masterFile && masterFile.modifiedTime) {
-      const lastKnown = new Date(options.onlyIfModifiedSince).getTime();
-      const masterMod = new Date(masterFile.modifiedTime).getTime();
-      const tsMod = timestampFile && timestampFile.modifiedTime ? new Date(timestampFile.modifiedTime).getTime() : 0;
-      const latestRemote = Math.max(masterMod, tsMod);
+  // Baixa e descriptografa um arquivo específico de registros (shard YYYY ou master)
+  async downloadRecordsFile(fileId, password, token = null) {
+    const activeToken = token || (await this.requestToken());
+    const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+    const res = await this.fetchWithBackoff(downloadUrl, {
+      headers: { Authorization: `Bearer ${activeToken}` }
+    });
 
-      // Tolerância de 2 segundos (idêntica ao Flutter) para evitar falsos positivos
-      if (latestRemote <= lastKnown + 2000) {
-        console.log(`[Drive] Master remoto inalterado (Remoto: ${new Date(latestRemote).toISOString()} <= Local: ${new Date(lastKnown).toISOString()}). Pulando download.`);
-        return {
-          fileFound: true,
-          unchanged: true,
-          modifiedTime: masterFile.modifiedTime,
-          records: null,
-          source: 'cache',
-          filesInDrive: allFiles.map((f) => f.name)
-        };
-      }
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      const err = new Error(`Erro ao baixar arquivo (${fileId}): ${errData?.error?.message || res.status}`);
+      err.status = res.status;
+      throw err;
     }
 
-    const token = await this.requestToken();
-
-    let list = [];
-    let source = 'none';
-    let masterBufferLength = 0;
-
-    // 1. Tenta baixar o arquivo mestre consolidado
-    if (masterFile && masterFile.id) {
-      const downloadUrl = `https://www.googleapis.com/drive/v3/files/${masterFile.id}?alt=media`;
-      const res = await fetch(downloadUrl, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(`Erro ao baixar arquivo mestre: ${errData?.error?.message || res.status}`);
-      }
-
-      const arrayBuffer = await res.arrayBuffer();
-      masterBufferLength = arrayBuffer.byteLength;
-      const rawData = await CryptoService.decryptDartFormat(arrayBuffer, password);
-
-      if (Array.isArray(rawData)) {
-        list = rawData;
-      } else if (rawData && rawData.registros && Array.isArray(rawData.registros)) {
-        list = rawData.registros;
-      } else if (rawData && typeof rawData === 'object') {
-        const values = Object.values(rawData);
-        if (values.length > 0 && values.some((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined || v.pilar !== undefined))) {
-          list = values.filter((v) => v && typeof v === 'object' && (v.conteudo !== undefined || v.uuid !== undefined));
-        }
-      }
-
-      source = 'master';
-      console.log(`[Drive] Master baixado (${arrayBuffer.byteLength} bytes). Registros extraídos: ${list.length}.`);
-    }
-
-    // 2. Se o master estava vazio ou não existia, verifica arquivos legados registro_*.json
-    if (list.length === 0 && legacyFiles.length > 0) {
-      console.log(`[Drive] Verificando ${legacyFiles.length} arquivos legados no Drive...`);
-      for (const lf of legacyFiles) {
-        try {
-          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${lf.id}?alt=media`;
-          const res = await fetch(downloadUrl, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const ab = await res.arrayBuffer();
-            const recData = await CryptoService.decryptDartFormat(ab, password);
-            if (Array.isArray(recData)) {
-              list.push(...recData);
-            } else if (recData && typeof recData === 'object' && (recData.conteudo !== undefined || recData.uuid !== undefined)) {
-              list.push(recData);
-            }
-          }
-        } catch (err) {
-          console.warn(`Erro no arquivo legado ${lf.name}:`, err);
-        }
-      }
-      if (list.length > 0) {
-        source = 'legacy';
-        console.log(`[Drive] ${list.length} registros recuperados dos arquivos legados!`);
-      }
-    }
-
-    if (masterFile || legacyFiles.length > 0) {
-      return {
-        fileFound: true,
-        unchanged: false,
-        modifiedTime: masterFile ? masterFile.modifiedTime : null,
-        source: source,
-        fileInfo: masterFile,
-        fileSizeBytes: masterBufferLength || (masterFile ? masterFile.size : 0),
-        filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`),
-        records: list
-      };
-    }
-
-    // 3. Nenhum arquivo de dados encontrado
+    const arrayBuffer = await res.arrayBuffer();
+    const rawData = await CryptoService.decryptDartFormat(arrayBuffer, password);
     return {
-      fileFound: false,
-      unchanged: false,
-      source: 'none',
-      records: [],
-      filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`)
+      records: this.extractRecordList(rawData),
+      byteLength: arrayBuffer.byteLength
     };
   },
 
-  // Faz upload consolidado dos registros para o Drive
-  async uploadMasterData(records, password) {
+  // Faz upload compacto + criptografado de um arquivo de registros e retorna os metadados atualizados
+  async uploadRecordsFile(filename, records, password, existingFile = null, knownMissing = false) {
     const token = await this.requestToken();
     const encoder = new TextEncoder();
 
-    // 1. Gera o JSON criptografado no formato oficial Dart/Flutter (Lista de registros)
-    const jsonStr = JSON.stringify(records);
+    const compactList = (records || []).map((r) => this.compactRecordForSync(r));
+    const jsonStr = JSON.stringify(compactList);
     const encryptedBytes = await CryptoService.encryptDartFormat(jsonStr, password);
 
-    // 2. Busca se já existe um arquivo mestre
-    const allFiles = await this.listAllAppDataFiles();
-    allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
-    const masterFile = allFiles.find((f) => f.name === this.MASTER_FILENAME);
+    let targetFile = existingFile;
+    if (!targetFile && !knownMissing) {
+      const allFiles = await this.listAllAppDataFiles();
+      targetFile = allFiles.find((f) => f.name === filename) || null;
+    }
 
-    if (masterFile && masterFile.id) {
-      // Atualiza arquivo existente via PATCH direto
-      const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${masterFile.id}?uploadType=media`;
-      const res = await fetch(updateUrl, {
+    let updatedMeta;
+    if (targetFile && targetFile.id) {
+      const updateUrl = `https://www.googleapis.com/upload/drive/v3/files/${targetFile.id}?uploadType=media&fields=id,name,modifiedTime,md5Checksum,size`;
+      const res = await this.fetchWithBackoff(updateUrl, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -668,13 +936,15 @@ const GoogleDriveService = {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(`Falha ao atualizar arquivo no Drive: ${errData?.error?.message || res.status}`);
+        const err = new Error(`Falha ao atualizar ${filename} no Drive: ${errData?.error?.message || res.status}`);
+        err.status = res.status;
+        throw err;
       }
+      updatedMeta = await res.json().catch(() => ({ id: targetFile.id, name: filename }));
     } else {
-      // Cria novo arquivo com metadata multipart/related
       const boundary = '-------wingene_boundary_' + Math.random().toString(36).substring(2);
       const metadata = JSON.stringify({
-        name: this.MASTER_FILENAME,
+        name: filename,
         parents: ['appDataFolder']
       });
 
@@ -689,8 +959,8 @@ const GoogleDriveService = {
       combined.set(p2, p1.length);
       combined.set(p3, p1.length + p2.length);
 
-      const createUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-      const res = await fetch(createUrl, {
+      const createUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,md5Checksum,size';
+      const res = await this.fetchWithBackoff(createUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -701,42 +971,157 @@ const GoogleDriveService = {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(`Falha ao criar arquivo no Drive: ${errData?.error?.message || res.status}`);
+        const err = new Error(`Falha ao criar ${filename} no Drive: ${errData?.error?.message || res.status}`);
+        err.status = res.status;
+        throw err;
+      }
+      updatedMeta = await res.json().catch(() => ({ name: filename }));
+    }
+
+    if (updatedMeta && !updatedMeta.name) updatedMeta.name = filename;
+    return updatedMeta;
+  },
+
+  // Mantido para compatibilidade caso seja chamado externamente
+  async downloadMasterData(password, options = {}) {
+    const allFiles = await this.listAllAppDataFiles();
+    const snapshot = this.buildSnapshot(allFiles);
+    const { masterFile, timestampFile, validationFile, legacyFiles } = snapshot;
+
+    if (validationFile) {
+      const isValid = await this.validatePasswordWithHash(password, validationFile, allFiles);
+      if (!isValid) {
+        throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
       }
     }
 
-    // Remove eventuais arquivos duplicados no appDataFolder para manter integridade
-    await this.cleanupDuplicates(token);
+    if (options.onlyIfModifiedSince && masterFile && masterFile.modifiedTime) {
+      const lastKnown = new Date(options.onlyIfModifiedSince).getTime();
+      const masterMod = new Date(masterFile.modifiedTime).getTime();
+      const tsMod = timestampFile && timestampFile.modifiedTime ? new Date(timestampFile.modifiedTime).getTime() : 0;
+      const latestRemote = Math.max(masterMod, tsMod);
 
-    // Grava o arquivo de validação de senha e o timestamp
-    await this.createOrUpdateValidationFile(password);
-    const newTimestamp = await this.updateSyncTimestamp(token);
+      if (latestRemote <= lastKnown + 2000) {
+        return {
+          fileFound: true,
+          unchanged: true,
+          modifiedTime: masterFile.modifiedTime,
+          records: null,
+          source: 'cache',
+          filesInDrive: allFiles.map((f) => f.name)
+        };
+      }
+    }
 
-    return { success: true, modifiedTime: newTimestamp };
+    const token = await this.requestToken();
+    let list = [];
+    let source = 'none';
+    let masterBufferLength = 0;
+
+    if (masterFile && masterFile.id) {
+      const dl = await this.downloadRecordsFile(masterFile.id, password, token);
+      list = dl.records;
+      masterBufferLength = dl.byteLength;
+      source = 'master';
+    }
+
+    if (list.length === 0 && legacyFiles.length > 0) {
+      for (const lf of legacyFiles) {
+        try {
+          const dl = await this.downloadRecordsFile(lf.id, password, token);
+          if (dl.records.length > 0) {
+            list.push(...dl.records);
+          } else {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${lf.id}?alt=media`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const ab = await res.arrayBuffer();
+              const recData = await CryptoService.decryptDartFormat(ab, password);
+              if (recData && typeof recData === 'object' && (recData.conteudo !== undefined || recData.uuid !== undefined)) {
+                list.push(recData);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`Erro no arquivo legado ${lf.name}:`, err);
+        }
+      }
+      if (list.length > 0) source = 'legacy';
+    }
+
+    if (masterFile || legacyFiles.length > 0) {
+      return {
+        fileFound: true,
+        unchanged: false,
+        modifiedTime: masterFile ? masterFile.modifiedTime : null,
+        source,
+        fileInfo: masterFile,
+        fileSizeBytes: masterBufferLength || (masterFile ? masterFile.size : 0),
+        filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`),
+        records: list
+      };
+    }
+
+    return {
+      fileFound: false,
+      unchanged: false,
+      source: 'none',
+      records: [],
+      filesInDrive: allFiles.map((f) => `${f.name} (${f.size || 0}B)`)
+    };
   },
 
-  async updateSyncTimestamp(token) {
+  async uploadMasterData(records, password) {
+    const token = await this.requestToken();
+    const allFiles = await this.listAllAppDataFiles();
+    const snapshot = this.buildSnapshot(allFiles);
+    await this.uploadRecordsFile(this.MASTER_FILENAME, records, password, snapshot.masterFile, !snapshot.masterFile);
+    if (snapshot.duplicates.length > 0) {
+      await this.cleanupDuplicates(token, allFiles);
+    }
+    if (!snapshot.validationFile) {
+      await this.createOrUpdateValidationFile(password, null, true);
+    }
+    const tsMeta = await this.updateSyncTimestamp(token, snapshot.timestampFile, !snapshot.timestampFile);
+    return { success: true, modifiedTime: tsMeta?.modifiedTime || new Date().toISOString() };
+  },
+
+  async updateSyncTimestamp(token, existingFile = null, knownMissing = false) {
     const nowIso = new Date().toISOString();
     try {
-      const allFiles = await this.listAllAppDataFiles();
-      allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
-      const existing = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME);
+      let existing = existingFile;
+      if (!existing && !knownMissing) {
+        const allFiles = await this.listAllAppDataFiles();
+        allFiles.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
+        existing = allFiles.find((f) => f.name === this.TIMESTAMP_FILENAME) || null;
+      }
       const bytes = new TextEncoder().encode(nowIso);
 
       if (existing && existing.id) {
-        const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'text/plain'
-          },
-          body: bytes
-        });
+        const res = await this.fetchWithBackoff(
+          `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media&fields=id,name,modifiedTime,md5Checksum`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'text/plain'
+            },
+            body: bytes
+          }
+        );
         if (!res.ok) {
+          if (res.status === 404) {
+            const err = new Error('sync_timestamp.txt não encontrado (404)');
+            err.status = 404;
+            throw err;
+          }
           console.warn('Erro ao atualizar sync_timestamp.txt (PATCH):', res.status, await res.text().catch(() => ''));
-        } else {
-          console.log('[Drive] sync_timestamp.txt atualizado com sucesso via PATCH!');
+          return null;
         }
+        const meta = await res.json().catch(() => ({ id: existing.id, modifiedTime: nowIso }));
+        if (!meta.name) meta.name = this.TIMESTAMP_FILENAME;
+        return meta;
       } else {
         const boundary = '-------timestamp_boundary_' + Math.random().toString(36).substring(2);
         const metadata = JSON.stringify({
@@ -747,59 +1132,71 @@ const GoogleDriveService = {
           `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
           `--${boundary}\r\nContent-Type: text/plain\r\n\r\n${nowIso}\r\n--${boundary}--`;
 
-        const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': `multipart/related; boundary=${boundary}`
-          },
-          body: multipartBody
-        });
+        const res = await this.fetchWithBackoff(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,md5Checksum',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`
+            },
+            body: multipartBody
+          }
+        );
         if (!res.ok) {
           console.warn('Erro ao criar sync_timestamp.txt (POST):', res.status, await res.text().catch(() => ''));
-        } else {
-          console.log('[Drive] sync_timestamp.txt criado com sucesso via POST!');
+          return null;
         }
+        const meta = await res.json().catch(() => ({ modifiedTime: nowIso }));
+        if (!meta.name) meta.name = this.TIMESTAMP_FILENAME;
+        return meta;
       }
     } catch (e) {
+      if (e && e.status === 404) throw e;
       console.warn('Não foi possível atualizar sync_timestamp.txt:', e);
+      return null;
     }
   },
 
-  // Remove arquivos duplicados na pasta privada appDataFolder mantendo apenas o mais recente
-  async cleanupDuplicates(token) {
+  // Remove arquivos duplicados na pasta privada appDataFolder sem nova listagem quando allFiles é fornecido
+  async cleanupDuplicates(token, allFilesInput = null) {
     try {
-      const allFiles = await this.listAllAppDataFiles();
-      const targetNames = [this.MASTER_FILENAME, this.TIMESTAMP_FILENAME, this.VALIDATION_FILENAME, this.PROPOSITOS_FILENAME];
-
-      for (const name of targetNames) {
-        const matching = allFiles.filter((f) => f.name === name);
-        if (matching.length > 1) {
-          matching.sort((a, b) => new Date(b.modifiedTime || 0) - new Date(a.modifiedTime || 0));
-          const toDelete = matching.slice(1);
-          for (const file of toDelete) {
-            console.log(`[Drive] Removendo duplicata de ${name} (ID: ${file.id})...`);
-            await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
-              method: 'DELETE',
-              headers: { Authorization: `Bearer ${token}` }
-            }).catch(() => {});
-          }
-        }
+      const allFiles = Array.isArray(allFilesInput) ? allFilesInput : await this.listAllAppDataFiles();
+      const snapshot = this.buildSnapshot(allFiles);
+      if (!snapshot.duplicates || snapshot.duplicates.length === 0) {
+        return 0;
       }
+      let removed = 0;
+      for (const file of snapshot.duplicates) {
+        console.log(`[Drive] Removendo duplicata de ${file.name} (ID: ${file.id})...`);
+        await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then((r) => {
+            if (r.ok) removed++;
+          })
+          .catch(() => {});
+      }
+      return removed;
     } catch (e) {
       console.warn('[Drive] Aviso ao limpar duplicatas:', e);
+      return 0;
     }
   },
 
   // Baixa e descriptografa propósitos da nuvem (propositos_backup.json)
-  async downloadPropositos(password) {
+  async downloadPropositos(password, existingFile = null, knownMissing = false) {
     try {
-      const allFiles = await this.listAllAppDataFiles();
-      const propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME);
+      let propFile = existingFile;
+      if (!propFile && !knownMissing) {
+        const allFiles = await this.listAllAppDataFiles();
+        propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME) || null;
+      }
       if (!propFile || !propFile.id) return [];
 
       const token = await this.requestToken();
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${propFile.id}?alt=media`, {
+      const res = await this.fetchWithBackoff(`https://www.googleapis.com/drive/v3/files/${propFile.id}?alt=media`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return [];
@@ -816,27 +1213,39 @@ const GoogleDriveService = {
     }
   },
 
-  // Faz upload criptografado da lista de propósitos para a nuvem
-  async uploadPropositos(propositos, password) {
+  // Faz upload criptografado da lista de propósitos e retorna os metadados atualizados
+  async uploadPropositos(propositos, password, existingFile = null, knownMissing = false, throwOnNotFound = false) {
     try {
-      if (!propositos || !Array.isArray(propositos)) return;
+      if (!propositos || !Array.isArray(propositos)) return null;
       const token = await this.requestToken();
       const encoder = new TextEncoder();
       const jsonStr = JSON.stringify(propositos);
       const encryptedBytes = await CryptoService.encryptDartFormat(jsonStr, password);
 
-      const allFiles = await this.listAllAppDataFiles();
-      const propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME);
+      let propFile = existingFile;
+      if (!propFile && !knownMissing) {
+        const allFiles = await this.listAllAppDataFiles();
+        propFile = allFiles.find((f) => f.name === this.PROPOSITOS_FILENAME) || null;
+      }
 
       if (propFile && propFile.id) {
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${propFile.id}?uploadType=media`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/octet-stream'
-          },
-          body: encryptedBytes
-        });
+        const res = await this.fetchWithBackoff(
+          `https://www.googleapis.com/upload/drive/v3/files/${propFile.id}?uploadType=media&fields=id,name,modifiedTime,md5Checksum,size`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/octet-stream'
+            },
+            body: encryptedBytes
+          }
+        );
+        if (throwOnNotFound && res.status === 404) {
+          const err = new Error('propositos_backup.json não encontrado (404)');
+          err.status = 404;
+          throw err;
+        }
+        return res.ok ? await res.json().catch(() => null) : null;
       } else {
         const boundary = '-------wingene_propositos_' + Math.random().toString(36).substring(2);
         const metadata = JSON.stringify({
@@ -854,17 +1263,23 @@ const GoogleDriveService = {
         combined.set(p2, p1.length);
         combined.set(p3, p1.length + p2.length);
 
-        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': `multipart/related; boundary=${boundary}`
-          },
-          body: combined
-        });
+        const res = await this.fetchWithBackoff(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime,md5Checksum,size',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`
+            },
+            body: combined
+          }
+        );
+        return res.ok ? await res.json().catch(() => null) : null;
       }
     } catch (e) {
+      if (throwOnNotFound && e && e.status === 404) throw e;
       console.warn('[Drive] Falha ao enviar propósitos:', e);
+      return null;
     }
   }
 };

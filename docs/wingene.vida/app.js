@@ -274,6 +274,7 @@
   }
 
   function showLockScreen() {
+    cancelDebouncedDriveSync();
     state.currentPassword = null;
     state.vaultData = { registros: [] };
     elements.passwordInput.value = '';
@@ -393,7 +394,25 @@
     });
   }
 
+  let driveSyncDebounceTimer = null;
+
+  function cancelDebouncedDriveSync() {
+    if (driveSyncDebounceTimer) {
+      clearTimeout(driveSyncDebounceTimer);
+      driveSyncDebounceTimer = null;
+    }
+  }
+
+  function scheduleDebouncedDriveSync(delayMs = 15000) {
+    cancelDebouncedDriveSync();
+    driveSyncDebounceTimer = setTimeout(() => {
+      driveSyncDebounceTimer = null;
+      syncWithGoogleDrive(true);
+    }, delayMs);
+  }
+
   async function syncWithGoogleDrive(silent = false, forceFullSync = false) {
+    cancelDebouncedDriveSync();
     if (state.isSyncingDrive) return;
     if (!state.currentPassword) {
       if (!silent) alert('Por favor, desbloqueie o diário para sincronizar.');
@@ -427,7 +446,6 @@
         console.log(`[Drive] Troca de conta detectada: de "${lastDriveEmail}" para "${currentEmail}". Limpando dados locais anteriores.`);
         showToast(`Conta alterada para ${currentEmail}. Limpando dados locais...`);
 
-        // Limpa dados locais anteriores para evitar contaminação entre contas
         state.vaultData = {
           registros: [],
           resumos_mensais: [],
@@ -435,13 +453,11 @@
           propositos: []
         };
         await DBService.persistVault(state.vaultData, state.currentPassword);
-        localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+        GoogleDriveService.clearSyncCache();
         localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
-        localStorage.removeItem('wingene_last_remote_change');
         localStorage.removeItem('wingene_last_drive_sync');
         renderEntries();
 
-        // Força download limpo da nova conta
         forceFullSync = true;
       }
       if (currentEmail) {
@@ -460,164 +476,643 @@
           state.currentPassword;
       }
 
-      const lastRemoteChangeStr = getVidaItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, 'wingene_last_remote_change');
-      const lastRemoteChange = lastRemoteChangeStr ? new Date(lastRemoteChangeStr) : null;
-      const localHasUnsynced = (state.vaultData.registros || []).some((r) => r.sincronizado === 0);
+      // 3. Fast-path (5 unidades via files.get) quando nada mudou na nuvem
+      const token = await GoogleDriveService.requestToken();
+      let fileHashCache = forceFullSync ? {} : GoogleDriveService.getFileHashCache();
+      const initialDirtyYears = new Set(GoogleDriveService.getDirtySyncYears());
+      const lastDriveSync = getVidaItem(VIDA_STORAGE_KEYS.LAST_SYNC, 'wingene_last_drive_sync');
+      const isMergeMode = forceFullSync || !lastDriveSync;
 
-      // 4. Baixa registros existentes no Drive com checagem de modificação
-      const remoteRes = await GoogleDriveService.downloadMasterData(drivePassword, {
-        onlyIfModifiedSince: forceFullSync ? null : lastRemoteChange
-      });
+      const cachedTsEntry = fileHashCache[GoogleDriveService.TIMESTAMP_FILENAME];
+      const hasShardsInCache = Object.keys(fileHashCache).some((k) => GoogleDriveService.isYearShardFilename(k));
+      const cachedValEntry = fileHashCache[GoogleDriveService.VALIDATION_FILENAME];
+      let validationCacheReady = !cachedValEntry;
+      if (cachedValEntry && cachedValEntry.md5) {
+        const passFp = await GoogleDriveService.hashPasswordFingerprint(drivePassword || '');
+        validationCacheReady =
+          cachedValEntry.md5 === localStorage.getItem(GoogleDriveService.STORAGE_KEYS.VALIDATED_HASH_MD5) &&
+          passFp === localStorage.getItem(GoogleDriveService.STORAGE_KEYS.VALIDATED_PASS_HASH);
+      }
 
-      let mergedCount = 0;
-      let remoteChanged = false;
-      let syncAction = 'merge';
+      if (!forceFullSync && !isMergeMode && cachedTsEntry && cachedTsEntry.id && hasShardsInCache && validationCacheReady) {
+        const remoteTs = await GoogleDriveService.getFileMetadataById(cachedTsEntry.id, token);
+        if (remoteTs && !GoogleDriveService.hasRemoteFileChanged(remoteTs, cachedTsEntry)) {
+          const localRecsFast = state.vaultData.registros || [];
+          const fastDirtyYears = new Set(initialDirtyYears);
+          localRecsFast.forEach((r) => {
+            const y = GoogleDriveService.extractRecordYear(r.data);
+            if (r.sincronizado === 0 || (r.deletado !== 1 && !fileHashCache[GoogleDriveService.shardFilenameForYear(y)])) {
+              fastDirtyYears.add(y);
+            }
+          });
+          const localPropsFast = state.vaultData.propositos || [];
+          const needsUploadPropsFast =
+            localPropsFast.some((p) => p.sincronizado === 0) ||
+            (!fileHashCache[GoogleDriveService.PROPOSITOS_FILENAME] && localPropsFast.length > 0);
 
-      if (remoteRes.unchanged) {
-        console.log('[Drive] Master remoto inalterado desde o último sincronismo.');
-      } else if (remoteRes.fileFound && remoteRes.records && remoteRes.records.length > 0) {
-        remoteChanged = true;
-        const localRecords = state.vaultData.registros || [];
-        const localCount = localRecords.length;
-        const remoteCount = remoteRes.records.length;
-        const lastDriveSync = getVidaItem(VIDA_STORAGE_KEYS.LAST_SYNC, 'wingene_last_drive_sync');
+          if (fastDirtyYears.size === 0 && !needsUploadPropsFast) {
+            console.log('[Drive] Fast-path (files.get 5u): remoto e local inalterados.');
+            localStorage.setItem(VIDA_STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+            updateDriveStatusUI();
+            if (!silent) showToast('✅ Tudo atualizado! Nenhuma alteração pendente.');
+            return;
+          }
 
-        // Se for a primeira sincronização deste navegador (sem histórico de sync prévio)
-        // e houver anotações locais já existentes no cofre:
-        if (!lastDriveSync && localCount > 0) {
-          // Verifica se há registros locais exclusivos que não constam na nuvem
-          const remoteUuidSet = new Set(remoteRes.records.map((r) => r.uuid));
-          const hasLocalUnique = localRecords.some((r) => !remoteUuidSet.has(r.uuid));
+          let staleIdDetected = false;
+          const uploadedFastMap = new Map();
+          const cachedRef = (name) => (fileHashCache[name] && fileHashCache[name].id ? { id: fileHashCache[name].id, name } : null);
 
-          if (hasLocalUnique) {
-            syncAction = await promptInitialSyncConflict(localCount, remoteCount);
-            if (syncAction === 'cancel') {
-              showToast('Sincronização cancelada.');
-              return;
+          try {
+            if (fastDirtyYears.size > 0) {
+              const grouped = new Map();
+              localRecsFast.forEach((rec) => {
+                const y = GoogleDriveService.extractRecordYear(rec.data);
+                if (!grouped.has(y)) grouped.set(y, []);
+                grouped.get(y).push(rec);
+              });
+              for (const year of fastDirtyYears) {
+                const fileName = GoogleDriveService.shardFilenameForYear(year);
+                const existingRef = cachedRef(fileName);
+                const upMeta = await GoogleDriveService.uploadRecordsFile(
+                  fileName,
+                  grouped.get(year) || [],
+                  drivePassword,
+                  existingRef,
+                  !existingRef
+                );
+                if (upMeta) {
+                  fileHashCache[fileName] = GoogleDriveService.fileToCacheEntry(upMeta);
+                  uploadedFastMap.set(fileName, upMeta);
+                }
+              }
+              localRecsFast.forEach((r) => {
+                if (fastDirtyYears.has(GoogleDriveService.extractRecordYear(r.data))) {
+                  r.sincronizado = 1;
+                }
+              });
+              GoogleDriveService.clearDirtySyncYears(Array.from(fastDirtyYears));
+            }
+
+            if (needsUploadPropsFast) {
+              const propRef = cachedRef(GoogleDriveService.PROPOSITOS_FILENAME);
+              const upPropMeta = await GoogleDriveService.uploadPropositos(
+                localPropsFast,
+                drivePassword,
+                propRef,
+                !propRef,
+                true
+              );
+              if (upPropMeta) {
+                fileHashCache[GoogleDriveService.PROPOSITOS_FILENAME] = GoogleDriveService.fileToCacheEntry(upPropMeta);
+                uploadedFastMap.set(GoogleDriveService.PROPOSITOS_FILENAME, upPropMeta);
+              }
+              localPropsFast.forEach((p) => (p.sincronizado = 1));
+            }
+
+            await DBService.persistVault(state.vaultData, state.currentPassword);
+            const tsMeta = await GoogleDriveService.updateSyncTimestamp(token, remoteTs, false);
+            if (tsMeta) {
+              fileHashCache[GoogleDriveService.TIMESTAMP_FILENAME] = GoogleDriveService.fileToCacheEntry(tsMeta);
+              if (tsMeta.modifiedTime) {
+                localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, tsMeta.modifiedTime);
+              }
+            }
+            GoogleDriveService.saveFileHashCache(fileHashCache);
+            localStorage.setItem(VIDA_STORAGE_KEYS.LAST_SYNC, new Date().toISOString());
+            updateDriveStatusUI();
+            if (fastDirtyYears.size > 0) {
+              showToast(`✅ ${fastDirtyYears.size} partição(ões) salva(s) no Google Drive!`);
+            } else {
+              showToast('✅ Propósitos sincronizados com o Google Drive!');
+            }
+            return;
+          } catch (fastErr) {
+            if (fastErr && fastErr.status === 404) {
+              console.warn('[Drive] Fast-path detectou fileId obsoleto (404). Voltando para listagem completa...');
+              staleIdDetected = true;
+              fileHashCache = {};
+              GoogleDriveService.saveFileHashCache({});
+            } else {
+              throw fastErr;
             }
           }
+          if (!staleIdDetected) return;
+        }
+      }
+
+      // 4. Listagem única da appDataFolder e snapshot completo
+      const allFiles = await GoogleDriveService.listAllAppDataFiles();
+      const snapshot = GoogleDriveService.buildSnapshot(allFiles);
+
+      // Valida a senha se houver validar.hash (com cache MD5 + SHA-256)
+      if (snapshot.validationFile) {
+        const isValid = await GoogleDriveService.validatePasswordWithHash(
+          drivePassword,
+          snapshot.validationFile,
+          allFiles,
+          forceFullSync
+        );
+        if (!isValid) {
+          throw new Error('PASSWORD_INCORRECT: A senha informada está incorreta para os dados criptografados desta conta no Google Drive.');
+        }
+        fileHashCache[GoogleDriveService.VALIDATION_FILENAME] = GoogleDriveService.fileToCacheEntry(snapshot.validationFile);
+      }
+
+      const localRecords = state.vaultData.registros || [];
+      const downloadedShards = new Map();
+      const downloadedShardFiles = new Map();
+      let authoritativeMaster = null;
+      let additiveMaster = null;
+      let anyRemoteDownloaded = false;
+
+      // 4. Baixa somente os arquivos necessários (particionados por ano ou master legado)
+      if (snapshot.shardFiles.size === 0) {
+        if (snapshot.masterFile && snapshot.masterFile.id) {
+          const masterChanged =
+            isMergeMode ||
+            GoogleDriveService.hasRemoteFileChanged(
+              snapshot.masterFile,
+              fileHashCache[GoogleDriveService.MASTER_FILENAME]
+            );
+          if (masterChanged || snapshot.shardFiles.size === 0) {
+            const dl = await GoogleDriveService.downloadRecordsFile(snapshot.masterFile.id, drivePassword, token);
+            authoritativeMaster = dl.records;
+            fileHashCache[GoogleDriveService.MASTER_FILENAME] = GoogleDriveService.fileToCacheEntry(snapshot.masterFile);
+            anyRemoteDownloaded = true;
+          }
+        } else if (snapshot.legacyFiles.length > 0) {
+          const legList = [];
+          for (const lf of snapshot.legacyFiles) {
+            try {
+              const dl = await GoogleDriveService.downloadRecordsFile(lf.id, drivePassword, token);
+              if (dl.records.length > 0) {
+                legList.push(...dl.records);
+              }
+            } catch (err) {
+              console.warn(`Erro no arquivo legado ${lf.name}:`, err);
+            }
+          }
+          authoritativeMaster = legList;
+          anyRemoteDownloaded = true;
+        }
+      } else {
+        for (const [year, shardFile] of snapshot.shardFiles.entries()) {
+          const fileName = shardFile.name || GoogleDriveService.shardFilenameForYear(year);
+          const changed =
+            isMergeMode ||
+            GoogleDriveService.hasRemoteFileChanged(shardFile, fileHashCache[fileName]);
+          if (!changed) continue;
+
+          const dl = await GoogleDriveService.downloadRecordsFile(shardFile.id, drivePassword, token);
+          downloadedShards.set(year, dl.records);
+          downloadedShardFiles.set(fileName, shardFile);
+          anyRemoteDownloaded = true;
         }
 
-        if (syncAction === 'replace') {
-          // Substitui todos os registros locais pelos remotos (zerando os locais anteriores)
-          const normalized = remoteRes.records.map((r) => DBService.normalizeRecord(r));
-          normalized.forEach((r) => (r.sincronizado = 1));
-          state.vaultData.registros = normalized;
-          state.vaultData.propositos = [];
-          await DBService.persistVault(state.vaultData, state.currentPassword);
-          renderEntries();
-          showToast(`✅ Dados locais zerados. ${normalized.length} registros baixados do Drive.`);
-        } else {
-          // Ação 'merge': mesclagem inteligente
-          const localMap = new Map();
-          localRecords.forEach((r) => localMap.set(r.uuid, r));
+        // Compatibilidade com clientes antigos que gravam em diario_sync_master.json
+        if (snapshot.masterFile && snapshot.masterFile.id) {
+          const cachedMaster = fileHashCache[GoogleDriveService.MASTER_FILENAME];
+          let shouldCheckMaster = false;
+          if (cachedMaster) {
+            shouldCheckMaster = GoogleDriveService.hasRemoteFileChanged(snapshot.masterFile, cachedMaster);
+          } else {
+            const masterMs = snapshot.masterFile.modifiedTime ? new Date(snapshot.masterFile.modifiedTime).getTime() : 0;
+            if (masterMs > 0 && (snapshot.latestShardMs === 0 || masterMs > snapshot.latestShardMs + 5000)) {
+              shouldCheckMaster = true;
+            } else {
+              fileHashCache[GoogleDriveService.MASTER_FILENAME] = GoogleDriveService.fileToCacheEntry(snapshot.masterFile);
+            }
+          }
 
-          remoteRes.records.forEach((remoteRecord) => {
-            const normRemote = DBService.normalizeRecord(remoteRecord);
+          if (shouldCheckMaster) {
+            const dl = await GoogleDriveService.downloadRecordsFile(snapshot.masterFile.id, drivePassword, token);
+            additiveMaster = dl.records;
+            fileHashCache[GoogleDriveService.MASTER_FILENAME] = GoogleDriveService.fileToCacheEntry(snapshot.masterFile);
+            anyRemoteDownloaded = true;
+          }
+        }
+      }
+
+      // Junta todos os registros remotos baixados para detectar conflito inicial (quando aplicável)
+      const allRemoteDownloaded = [];
+      if (authoritativeMaster) allRemoteDownloaded.push(...authoritativeMaster);
+      downloadedShards.forEach((recs) => allRemoteDownloaded.push(...recs));
+      if (additiveMaster) allRemoteDownloaded.push(...additiveMaster);
+
+      let syncAction = 'merge';
+      let mergedCount = 0;
+
+      if (!lastDriveSync && localRecords.length > 0 && allRemoteDownloaded.length > 0) {
+        const remoteUuidSet = new Set(allRemoteDownloaded.map((r) => r.uuid));
+        const hasLocalUnique = localRecords.some((r) => !remoteUuidSet.has(r.uuid));
+        if (hasLocalUnique) {
+          syncAction = await promptInitialSyncConflict(localRecords.length, allRemoteDownloaded.length);
+          if (syncAction === 'cancel') {
+            showToast('Sincronização cancelada.');
+            return;
+          }
+        }
+      }
+
+      let didUploadRemote = false;
+      const uploadedMetaMap = new Map();
+
+      if (syncAction === 'replace') {
+        const replaceMap = new Map();
+        allRemoteDownloaded.forEach((raw) => {
+          const norm = DBService.normalizeRecord(raw);
+          norm.sincronizado = 1;
+          const prev = replaceMap.get(norm.uuid);
+          if (!prev || (norm.versao || 1) > (prev.versao || 1)) {
+            replaceMap.set(norm.uuid, norm);
+          }
+        });
+        const normalized = Array.from(replaceMap.values()).filter((r) => r.deletado !== 1);
+        state.vaultData.registros = normalized;
+        state.vaultData.propositos = [];
+        await DBService.persistVault(state.vaultData, state.currentPassword);
+        downloadedShardFiles.forEach((file, name) => {
+          fileHashCache[name] = GoogleDriveService.fileToCacheEntry(file);
+        });
+        GoogleDriveService.clearDirtySyncYears();
+        renderEntries();
+        showToast(`✅ Dados locais zerados. ${normalized.length} registros baixados do Drive.`);
+      } else {
+        const parseTimestampMs = (r) => {
+          const t = new Date(r.lastModified || r.data || 0).getTime();
+          return Number.isNaN(t) ? 0 : t;
+        };
+
+        const localMap = new Map();
+        localRecords.forEach((r) => localMap.set(r.uuid, { ...r }));
+        const dirtyYears = new Set(initialDirtyYears);
+
+        // Caso A: Migração a partir de diario_sync_master.json ou legado
+        if (authoritativeMaster !== null) {
+          const remoteUuidSet = new Set();
+          authoritativeMaster.forEach((rawRemote) => {
+            const normRemote = DBService.normalizeRecord(rawRemote);
+            normRemote.sincronizado = 1;
+            remoteUuidSet.add(normRemote.uuid);
             const localRecord = localMap.get(normRemote.uuid);
 
             if (!localRecord) {
-              localMap.set(normRemote.uuid, normRemote);
-              mergedCount++;
+              if (normRemote.deletado !== 1) {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+              }
             } else {
               const localVer = localRecord.versao || 1;
               const remoteVer = normRemote.versao || 1;
-              if (remoteVer > localVer) {
-                localMap.set(normRemote.uuid, normRemote);
-                mergedCount++;
+              const localTime = parseTimestampMs(localRecord);
+              const remoteTime = parseTimestampMs(normRemote);
+              if (localRecord.deletado === 1 && normRemote.deletado === 0) {
+                if (localRecord.sincronizado === 0) dirtyYears.add(GoogleDriveService.extractRecordYear(localRecord.data));
+              } else if (normRemote.deletado === 1 && localRecord.deletado === 0) {
+                if (localRecord.sincronizado !== 0) {
+                  localMap.set(normRemote.uuid, normRemote);
+                  mergedCount++;
+                }
+              } else if (remoteVer > localVer || remoteTime > localTime + 1000) {
+                if (localRecord.sincronizado !== 0 || remoteTime > localTime + 1000) {
+                  localMap.set(normRemote.uuid, normRemote);
+                  mergedCount++;
+                }
               }
             }
           });
 
-          state.vaultData.registros = Array.from(localMap.values());
+          // Cria partições por ano para todos os anos presentes após o merge inicial
+          localMap.forEach((rec) => {
+            dirtyYears.add(GoogleDriveService.extractRecordYear(rec.data));
+          });
+          snapshot.shardFiles.forEach((_, yr) => dirtyYears.add(yr));
+        }
+
+        // Caso B: Merge por ano dos shards baixados
+        for (const [shardYear, remoteRegs] of downloadedShards.entries()) {
+          const remoteUuidSet = new Set();
+
+          for (const rawRemote of remoteRegs) {
+            const normRemote = DBService.normalizeRecord(rawRemote);
+            normRemote.sincronizado = 1;
+            remoteUuidSet.add(normRemote.uuid);
+            const localRec = localMap.get(normRemote.uuid);
+
+            if (!localRec) {
+              if (normRemote.deletado !== 1) {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+              }
+              continue;
+            }
+
+            const localYear = GoogleDriveService.extractRecordYear(localRec.data);
+            const localTime = parseTimestampMs(localRec);
+            const remoteTime = parseTimestampMs(normRemote);
+            const remoteWins =
+              (normRemote.versao || 1) > (localRec.versao || 1) ||
+              remoteTime > localTime + 1000;
+
+            if (localYear !== shardYear) {
+              if (localRec.sincronizado === 0 || !remoteWins) {
+                dirtyYears.add(shardYear);
+              } else {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+                dirtyYears.add(localYear);
+              }
+              continue;
+            }
+
+            if (localRec.deletado === 1 && normRemote.deletado === 0) {
+              if (localRec.sincronizado === 0) dirtyYears.add(shardYear);
+            } else if (normRemote.deletado === 1 && localRec.deletado === 0) {
+              if (localRec.sincronizado === 0) {
+                dirtyYears.add(shardYear);
+              } else {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+              }
+            } else if (localRec.sincronizado === 0) {
+              if (remoteWins && remoteTime > localTime + 1000) {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+              } else {
+                dirtyYears.add(shardYear);
+              }
+            } else if (remoteWins) {
+              localMap.set(normRemote.uuid, normRemote);
+              mergedCount++;
+            }
+          }
+
+          // Registros locais deste ano ausentes no shard remoto autoritativo
+          for (const rec of localMap.values()) {
+            if (GoogleDriveService.extractRecordYear(rec.data) !== shardYear) continue;
+            if (remoteUuidSet.has(rec.uuid)) continue;
+            if (rec.sincronizado === 0) {
+              dirtyYears.add(shardYear);
+            } else if (rec.deletado !== 1) {
+              rec.deletado = 1;
+              rec.sincronizado = 1;
+              mergedCount++;
+            }
+          }
+        }
+
+        // Atualiza cache dos shards baixados
+        downloadedShardFiles.forEach((file, name) => {
+          fileHashCache[name] = GoogleDriveService.fileToCacheEntry(file);
+        });
+
+        // Fallback aditivo: se cliente antigo gravou em diario_sync_master.json
+        if (additiveMaster !== null) {
+          for (const rawRemote of additiveMaster) {
+            const normRemote = DBService.normalizeRecord(rawRemote);
+            normRemote.sincronizado = 1;
+            const remoteYear = GoogleDriveService.extractRecordYear(normRemote.data);
+            const localRec = localMap.get(normRemote.uuid);
+
+            if (!localRec) {
+              if (normRemote.deletado !== 1) {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+                dirtyYears.add(remoteYear);
+              }
+              continue;
+            }
+
+            const localYear = GoogleDriveService.extractRecordYear(localRec.data);
+            const localTime = parseTimestampMs(localRec);
+            const remoteTime = parseTimestampMs(normRemote);
+            const remoteWins =
+              (normRemote.versao || 1) > (localRec.versao || 1) ||
+              remoteTime > localTime + 1000;
+
+            if (localRec.deletado === 1 && normRemote.deletado === 0) {
+              if (localRec.sincronizado === 0) dirtyYears.add(localYear);
+            } else if (normRemote.deletado === 1 && localRec.deletado === 0) {
+              if (localRec.sincronizado === 0) {
+                dirtyYears.add(localYear);
+              } else {
+                localMap.set(normRemote.uuid, normRemote);
+                mergedCount++;
+                dirtyYears.add(remoteYear);
+                if (localYear !== remoteYear) dirtyYears.add(localYear);
+              }
+            } else if (remoteWins && localRec.sincronizado !== 0) {
+              localMap.set(normRemote.uuid, normRemote);
+              mergedCount++;
+              dirtyYears.add(remoteYear);
+              if (localYear !== remoteYear) dirtyYears.add(localYear);
+            } else if (localRec.sincronizado === 0) {
+              dirtyYears.add(localYear);
+            }
+          }
+        }
+
+        // Garante que qualquer ano com alterações locais pendentes ou ainda sem shard remoto seja enviado
+        localMap.forEach((rec) => {
+          const y = GoogleDriveService.extractRecordYear(rec.data);
+          if (rec.sincronizado === 0) {
+            dirtyYears.add(y);
+          } else if (rec.deletado !== 1 && !snapshot.shardFiles.has(y)) {
+            dirtyYears.add(y);
+          }
+        });
+
+        state.vaultData.registros = Array.from(localMap.values());
+        if (mergedCount > 0) {
           await DBService.persistVault(state.vaultData, state.currentPassword);
           renderEntries();
         }
-      } else if (remoteRes.fileFound && (!remoteRes.records || remoteRes.records.length === 0)) {
-        const filesList = (remoteRes.filesInDrive || []).join(', ');
-        if (!silent) {
-          alert(`✅ Conectado ao Google Drive com sucesso!\n\nSua senha foi validada e o arquivo 'diario_sync_master.json' foi descriptografado perfeitamente.\n\nNo entanto, a lista de registros na nuvem está vazia (0 registros).\n\nArquivos encontrados na sua pasta do Drive: ${filesList || 'Nenhum'}.\n\n💡 Dica: Se você já possui registros no seu celular, abra o app Wingene Vida no smartphone e toque no botão de sincronizar para enviá-los ao Google Drive.`);
-        }
-      } else {
-        const filesList = (remoteRes.filesInDrive || []).join(', ');
-        const emailMsg = GoogleDriveService.userEmail ? `na conta ${GoogleDriveService.userEmail}` : 'no Google Drive';
 
-        if (!silent) {
-          alert(`Nenhum arquivo de diário encontrado ${emailMsg}.\n\nArquivos encontrados na pasta privada: ${filesList || 'Nenhum'}.\n\n💡 Verifique se você fez login com a mesma conta Google utilizada no aplicativo móvel.`);
-        }
-      }
+        // 5. Upload seletivo APENAS das partições (anos) alteradas
+        if (dirtyYears.size > 0) {
+          const groupedByYear = new Map();
+          state.vaultData.registros.forEach((rec) => {
+            const y = GoogleDriveService.extractRecordYear(rec.data);
+            if (!groupedByYear.has(y)) groupedByYear.set(y, []);
+            groupedByYear.get(y).push(rec);
+          });
 
-      // 3. Upload inteligente: só faz upload se for ação de merge e houver locais pendentes, registros mesclados ou nuvem sem master
-      const needsUpload =
-        syncAction === 'merge' &&
-        (localHasUnsynced || mergedCount > 0 || !remoteRes.fileFound);
+          for (const year of dirtyYears) {
+            const regsForYear = groupedByYear.get(year) || [];
+            const fileName = GoogleDriveService.shardFilenameForYear(year);
+            const existingShard = snapshot.shardFiles.get(year) || null;
+            const uploadedMeta = await GoogleDriveService.uploadRecordsFile(
+              fileName,
+              regsForYear,
+              drivePassword,
+              existingShard,
+              !existingShard
+            );
+            if (uploadedMeta) {
+              fileHashCache[fileName] = GoogleDriveService.fileToCacheEntry(uploadedMeta);
+              uploadedMetaMap.set(fileName, uploadedMeta);
+            }
+          }
 
-      if (needsUpload && state.vaultData.registros && state.vaultData.registros.length > 0) {
-        const uploadResult = await GoogleDriveService.uploadMasterData(state.vaultData.registros, drivePassword);
-        state.vaultData.registros.forEach((r) => (r.sincronizado = 1));
-        await DBService.persistVault(state.vaultData, state.currentPassword);
+          // Se a nuvem ainda não tinha diario_sync_master.json e há registros locais, cria o inicial
+          if (!snapshot.masterFile && state.vaultData.registros.length > 0) {
+            const createdMaster = await GoogleDriveService.uploadRecordsFile(
+              GoogleDriveService.MASTER_FILENAME,
+              state.vaultData.registros,
+              drivePassword,
+              null,
+              true
+            );
+            if (createdMaster) {
+              fileHashCache[GoogleDriveService.MASTER_FILENAME] = GoogleDriveService.fileToCacheEntry(createdMaster);
+              uploadedMetaMap.set(GoogleDriveService.MASTER_FILENAME, createdMaster);
+            }
+          }
 
-        const newModTime = (uploadResult && uploadResult.modifiedTime) || new Date().toISOString();
-        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, newModTime);
+          state.vaultData.registros.forEach((r) => {
+            if (dirtyYears.has(GoogleDriveService.extractRecordYear(r.data))) {
+              r.sincronizado = 1;
+            }
+          });
+          await DBService.persistVault(state.vaultData, state.currentPassword);
+          GoogleDriveService.clearDirtySyncYears(Array.from(dirtyYears));
+          didUploadRemote = true;
 
-        if (mergedCount > 0) {
-          showToast(`✅ Sincronizado! ${mergedCount} novos registros mesclados.`);
-        } else {
-          showToast(`✅ ${state.vaultData.registros.length} registros salvos no Google Drive!`);
-        }
-      } else if (remoteChanged) {
-        if (remoteRes.modifiedTime) {
-          localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, remoteRes.modifiedTime);
-        }
-        if (syncAction !== 'replace') {
-          showToast(`✅ ${remoteRes.records.length} registros atualizados da nuvem!`);
-        }
-      } else if (remoteRes.unchanged && !localHasUnsynced) {
-        if (!silent) {
+          if (mergedCount > 0) {
+            showToast(`✅ Sincronizado! ${mergedCount} alterações mescladas.`);
+          } else {
+            showToast(`✅ ${dirtyYears.size} partição(ões) salva(s) no Google Drive!`);
+          }
+        } else if (mergedCount > 0 || anyRemoteDownloaded) {
+          if (mergedCount > 0) {
+            showToast(`✅ ${mergedCount} registro(s) atualizado(s) da nuvem!`);
+          } else if (!silent) {
+            showToast('✅ Tudo atualizado! Nenhuma alteração pendente.');
+          }
+        } else if (!snapshot.masterFile && snapshot.shardFiles.size === 0 && state.vaultData.registros.length === 0) {
+          if (!silent) {
+            const emailMsg = GoogleDriveService.userEmail ? `na conta ${GoogleDriveService.userEmail}` : 'no Google Drive';
+            alert(`Nenhum arquivo de diário encontrado ${emailMsg}.\n\n💡 Verifique se você fez login com a mesma conta Google utilizada no aplicativo móvel.`);
+          }
+        } else if (!silent) {
           showToast('✅ Tudo atualizado! Nenhuma alteração pendente.');
         }
       }
 
-      // Sincronização de Propósitos com a Nuvem (propositos_backup.json)
+      // Garante validar.hash apenas se ausente na nuvem e houver dados/senha
+      if (
+        !snapshot.validationFile &&
+        drivePassword &&
+        (didUploadRemote || snapshot.shardFiles.size > 0 || snapshot.masterFile)
+      ) {
+        const createdVal = await GoogleDriveService.createOrUpdateValidationFile(drivePassword, null, true);
+        if (createdVal) {
+          fileHashCache[GoogleDriveService.VALIDATION_FILENAME] = GoogleDriveService.fileToCacheEntry(createdVal);
+        }
+      }
+
+      // Limpa duplicatas apenas se realmente encontradas no snapshot
+      if (snapshot.duplicates.length > 0) {
+        await GoogleDriveService.cleanupDuplicates(token, allFiles);
+      }
+
+      // 6. Sincronização de Propósitos (propositos_backup.json) por MD5
       try {
-        const remoteProps = await GoogleDriveService.downloadPropositos(drivePassword);
-        let propChanged = false;
-        if (remoteProps && remoteProps.length > 0) {
-          const propMap = new Map();
-          (state.vaultData.propositos || []).forEach((p) => {
-            if (p && p.uuid) propMap.set(p.uuid, p);
-          });
-          remoteProps.forEach((rp) => {
-            if (rp && rp.uuid) {
-              if (!propMap.has(rp.uuid)) {
-                propMap.set(rp.uuid, rp);
-                propChanged = true;
-              } else {
-                const localP = propMap.get(rp.uuid);
-                propMap.set(rp.uuid, { ...localP, ...rp });
+        const propFile = snapshot.propositosFile;
+        const propFileName = GoogleDriveService.PROPOSITOS_FILENAME;
+        const remotePropChanged =
+          !!propFile &&
+          (forceFullSync ||
+            isMergeMode ||
+            GoogleDriveService.hasRemoteFileChanged(propFile, fileHashCache[propFileName]));
+
+        let propLocalModified = false;
+        if (remotePropChanged && syncAction !== 'replace') {
+          const remoteProps = await GoogleDriveService.downloadPropositos(drivePassword, propFile, false);
+          if (remoteProps && remoteProps.length > 0) {
+            const propMap = new Map();
+            (state.vaultData.propositos || []).forEach((p) => {
+              if (p && p.uuid) propMap.set(p.uuid, p);
+            });
+            remoteProps.forEach((rp) => {
+              if (rp && rp.uuid) {
+                if (!propMap.has(rp.uuid)) {
+                  propMap.set(rp.uuid, rp);
+                  propLocalModified = true;
+                } else {
+                  const localP = propMap.get(rp.uuid);
+                  if (localP.sincronizado !== 0) {
+                    propMap.set(rp.uuid, { ...localP, ...rp, sincronizado: 1 });
+                    propLocalModified = true;
+                  }
+                }
               }
-            }
-          });
-          state.vaultData.propositos = Array.from(propMap.values());
+            });
+            state.vaultData.propositos = Array.from(propMap.values());
+          }
+          fileHashCache[propFileName] = GoogleDriveService.fileToCacheEntry(propFile);
         }
 
-        const localHasUnsyncedProps = (state.vaultData.propositos || []).some((p) => p.sincronizado === 0);
-        if (localHasUnsyncedProps || propChanged) {
-          if (state.vaultData.propositos && state.vaultData.propositos.length > 0) {
-            await GoogleDriveService.uploadPropositos(state.vaultData.propositos, drivePassword);
-            state.vaultData.propositos.forEach((p) => (p.sincronizado = 1));
+        const localProps = state.vaultData.propositos || [];
+        const localHasUnsyncedProps = localProps.some((p) => p.sincronizado === 0);
+        const missingRemoteProps = !propFile && localProps.length > 0;
+
+        if (localHasUnsyncedProps || missingRemoteProps) {
+          const upMeta = await GoogleDriveService.uploadPropositos(
+            localProps,
+            drivePassword,
+            propFile,
+            !propFile
+          );
+          if (upMeta) {
+            fileHashCache[propFileName] = GoogleDriveService.fileToCacheEntry(upMeta);
+            uploadedMetaMap.set(propFileName, upMeta);
           }
+          localProps.forEach((p) => (p.sincronizado = 1));
+          propLocalModified = true;
+          didUploadRemote = true;
+        }
+
+        if (propLocalModified) {
           await DBService.persistVault(state.vaultData, state.currentPassword);
         }
       } catch (propErr) {
         console.warn('[Drive] Aviso na sincronização de propósitos:', propErr);
       }
 
-      // 4. Atualiza informações de diagnóstico na tela
+      // 7. Atualiza timestamp remoto apenas se houve upload e persiste cache de hashes
+      if (didUploadRemote) {
+        const tsMeta = await GoogleDriveService.updateSyncTimestamp(
+          token,
+          snapshot.timestampFile,
+          !snapshot.timestampFile
+        );
+        if (tsMeta) {
+          fileHashCache[GoogleDriveService.TIMESTAMP_FILENAME] = GoogleDriveService.fileToCacheEntry(tsMeta);
+        }
+        const newModTime = (tsMeta && tsMeta.modifiedTime) || new Date().toISOString();
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, newModTime);
+      } else if (snapshot.timestampFile) {
+        fileHashCache[GoogleDriveService.TIMESTAMP_FILENAME] = GoogleDriveService.fileToCacheEntry(snapshot.timestampFile);
+        if (snapshot.timestampFile.modifiedTime) {
+          localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, snapshot.timestampFile.modifiedTime);
+        }
+      } else if (snapshot.latestShardMs > 0) {
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, new Date(snapshot.latestShardMs).toISOString());
+      } else if (snapshot.masterFile && snapshot.masterFile.modifiedTime) {
+        localStorage.setItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE, snapshot.masterFile.modifiedTime);
+      }
+
+      GoogleDriveService.saveFileHashCache(fileHashCache);
+
+      // 8. Atualiza informações de diagnóstico na tela reutilizando metadados locais (zero listagens extras)
       if (elements.driveDiagDetails) {
-        const driveFiles = await GoogleDriveService.listAllAppDataFiles().catch(() => []);
-        const filesInfo = driveFiles.length > 0
-          ? driveFiles.map((f) => `• ${f.name} (ID: ${f.id.slice(0, 10)}..., modificado: ${new Date(f.modifiedTime).toLocaleTimeString()})`).join('\n')
+        const diagMap = new Map();
+        allFiles.forEach((f) => diagMap.set(f.name, f));
+        uploadedMetaMap.forEach((f, name) => diagMap.set(name, f));
+        const diagFiles = Array.from(diagMap.values());
+        const filesInfo = diagFiles.length > 0
+          ? diagFiles.map((f) => `• ${f.name} (ID: ${(f.id || '').slice(0, 10)}..., modificado: ${f.modifiedTime ? new Date(f.modifiedTime).toLocaleTimeString() : 'agora'})`).join('\n')
           : 'Nenhum arquivo listado.';
         elements.driveDiagDetails.textContent =
           `Conta: ${GoogleDriveService.userEmail || 'N/A'}\n` +
@@ -625,8 +1120,8 @@
           `Arquivos no Drive:\n${filesInfo}`;
       }
 
-      const now = new Date();
-      localStorage.setItem(VIDA_STORAGE_KEYS.LAST_SYNC, now.toISOString());
+      const now = Date.now();
+      localStorage.setItem(VIDA_STORAGE_KEYS.LAST_SYNC, new Date(now).toISOString());
       updateDriveStatusUI();
     } catch (err) {
       console.error('Erro na sincronização com o Drive:', err);
@@ -922,9 +1417,9 @@
     closeQuickPropositoModal();
     showToast(`Propósito "${titulo}" criado e selecionado!`);
 
-    // Sincroniza em segundo plano se conectado ao Google Drive
+    // Sincroniza em segundo plano (com debounce) se conectado ao Google Drive
     if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
-      syncWithGoogleDrive(false);
+      scheduleDebouncedDriveSync();
     }
   }
 
@@ -1076,6 +1571,11 @@
       const idx = state.vaultData.registros.findIndex((r) => r.uuid === state.editingUuid);
       if (idx !== -1) {
         const existing = state.vaultData.registros[idx];
+        const oldYear = GoogleDriveService.extractRecordYear(existing.data);
+        const newYear = GoogleDriveService.extractRecordYear(dataIso);
+        if (oldYear !== newYear) {
+          GoogleDriveService.addDirtySyncYear(oldYear);
+        }
         state.vaultData.registros[idx] = {
           ...existing,
           conteudo,
@@ -1125,9 +1625,9 @@
       renderEntries();
       showToast('Entrada salva com sucesso!');
 
-      // 2. Se o Google Drive estiver conectado ou vinculado, salva automaticamente no Drive
+      // 2. Se o Google Drive estiver conectado ou vinculado, agenda sync com debounce
       if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
-        syncWithGoogleDrive(true);
+        scheduleDebouncedDriveSync();
       }
     } catch (e) {
       alert('Erro ao salvar entrada: ' + e.message);
@@ -1163,7 +1663,7 @@
         showToast('Entrada excluída.');
 
         if (GoogleDriveService.isConnected() || (GoogleDriveService.isLinked && GoogleDriveService.isLinked())) {
-          syncWithGoogleDrive(true);
+          scheduleDebouncedDriveSync();
         }
       } catch (e) {
         alert('Erro ao persistir exclusão: ' + e.message);
@@ -1483,9 +1983,8 @@
     try {
       showToast('Limpando arquivos da pasta privada do Google Drive...');
       await GoogleDriveService.clearAppDataFolder();
-      localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+      GoogleDriveService.clearSyncCache();
       localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
-      localStorage.removeItem('wingene_last_remote_change');
       localStorage.removeItem('wingene_last_drive_sync');
       if (elements.modalDrivePasswordError) {
         elements.modalDrivePasswordError.classList.add('hidden');
@@ -1558,6 +2057,7 @@
     try {
       await DBService.resetVault();
       CryptoService.clearSavedPassword();
+      GoogleDriveService.clearSyncCache();
       localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
       localStorage.removeItem('wingene_last_drive_sync');
       sessionStorage.removeItem(VIDA_STORAGE_KEYS.CUSTOM_PASS);
@@ -1603,6 +2103,7 @@
     });
 
     elements.btnDisconnectDriveModal.addEventListener('click', () => {
+      cancelDebouncedDriveSync();
       GoogleDriveService.signOut();
       sessionStorage.removeItem(VIDA_STORAGE_KEYS.CUSTOM_PASS);
       sessionStorage.removeItem('wingene_drive_custom_pass');
@@ -1835,9 +2336,8 @@
             propositos: []
           };
           await DBService.persistVault(state.vaultData, state.currentPassword);
-          localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_REMOTE_CHANGE);
+          GoogleDriveService.clearSyncCache();
           localStorage.removeItem(VIDA_STORAGE_KEYS.LAST_SYNC);
-          localStorage.removeItem('wingene_last_remote_change');
           localStorage.removeItem('wingene_last_drive_sync');
           renderEntries();
         }
