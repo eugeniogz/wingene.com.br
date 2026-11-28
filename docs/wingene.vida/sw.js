@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingene-vida-pwa-v9';
+const CACHE_NAME = 'wingene-vida-pwa-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
